@@ -54,7 +54,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         httpSecurity.csrf().disable()
                 .authorizeRequests()
                 .antMatchers("/error", "/favicon.ico").permitAll()
-                .antMatchers("/timetable/api/auth/login", "/timetable/api/auth/register").permitAll()
+                .antMatchers("/auth/login", "/auth/register").permitAll()
                 .antMatchers("/actuator/health", "/actuator/info").permitAll()
                 .anyRequest().authenticated()
                 .and()
