@@ -12,10 +12,11 @@
     <artifactId>timetable-backend</artifactId>
     <version>1.0.0</version>
     <name>timetable-backend</name>
-    <description>语音排课系统后端</description>
+    <description>语音排课系统后端 - jOOQ版本</description>
     <properties>
         <java.version>8</java.version>
         <flyway.version>7.14.0</flyway.version>
+        <jooq.version>3.14.16</jooq.version>
     </properties>
     <dependencies>
         <!-- Spring Boot Starter Web -->
@@ -24,10 +25,31 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         
-        <!-- Spring Boot Starter Data JPA -->
+        <!-- Spring Boot Starter JDBC (替代JPA) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        
+        <!-- jOOQ -->
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq</artifactId>
+            <version>${jooq.version}</version>
+        </dependency>
+        
+        <!-- jOOQ Meta -->
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-meta</artifactId>
+            <version>${jooq.version}</version>
+        </dependency>
+        
+        <!-- jOOQ Codegen -->
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen</artifactId>
+            <version>${jooq.version}</version>
         </dependency>
         
         <!-- Spring Boot Starter Security -->
@@ -62,12 +84,6 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
             <version>0.9.1</version>
-        </dependency>
-        
-        <!-- Jackson JSON -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
         </dependency>
         
         <!-- Spring Boot Starter Test -->
@@ -111,6 +127,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
@@ -119,6 +136,54 @@
                     <url>${db.url}?useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true</url>
                     <user>${db.user}</user>
                     <password>${db.password}</password>
+                </configuration>
+            </plugin>
+            
+            <!-- jOOQ代码生成插件 -->
+            <plugin>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen-maven</artifactId>
+                <version>${jooq.version}</version>
+                <!-- 手动执行代码生成：mvn jooq-codegen:generate -->
+                <!-- <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions> -->
+                <dependencies>
+                    <dependency>
+                        <groupId>mysql</groupId>
+                        <artifactId>mysql-connector-java</artifactId>
+                        <version>8.0.33</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <jdbc>
+                        <driver>com.mysql.cj.jdbc.Driver</driver>
+                        <url>${db.url}?useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true</url>
+                        <user>${db.user}</user>
+                        <password>${db.password}</password>
+                    </jdbc>
+                    <generator>
+                        <database>
+                            <name>org.jooq.meta.mysql.MySQLDatabase</name>
+                            <inputSchema>timetable_db</inputSchema>
+                            <includes>.*</includes>
+                            <excludes></excludes>
+                        </database>
+                        <target>
+                            <packageName>com.timetable.generated</packageName>
+                            <directory>src/main/java</directory>
+                        </target>
+                        <generate>
+                            <records>true</records>
+                            <pojos>true</pojos>
+                            <daos>true</daos>
+                            <springAnnotations>true</springAnnotations>
+                        </generate>
+                    </generator>
                 </configuration>
             </plugin>
         </plugins>

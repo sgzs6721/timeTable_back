@@ -19,16 +19,10 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
   
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: true
-        use_sql_comments: true
-    open-in-view: false
+  # jOOQ配置（由Spring Boot自动配置）
+  sql:
+    init:
+      mode: never # 使用Flyway进行数据库初始化
   
   flyway:
     locations: classpath:db/migration
