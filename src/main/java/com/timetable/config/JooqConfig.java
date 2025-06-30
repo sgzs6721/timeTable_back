@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 import javax.sql.DataSource;
 
 /**
- * jOOQ配置类
+ * jOOQ配置类 - 暂时禁用
  */
-@Configuration
+//@Configuration
 public class JooqConfig {
 
     @Bean
