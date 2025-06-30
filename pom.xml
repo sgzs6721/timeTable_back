@@ -117,8 +117,8 @@
                 <version>${flyway.version}</version>
                 <configuration>
                     <url>jdbc:mysql://localhost:3306/timetable_db?useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true</url>
-                    <user>root</user>
-                    <password>password</password>
+                    <user>timetable</user>
+                    <password>Leilei*0217</password>
                 </configuration>
             </plugin>
         </plugins>
