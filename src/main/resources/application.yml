@@ -1,7 +1,7 @@
 server:
-  port: 8080
+  port: 8088
   servlet:
-    context-path: /
+    context-path: /timetable/api
 
 spring:
   application:
@@ -9,8 +9,8 @@ spring:
   
   datasource:
     url: jdbc:mysql://localhost:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
-    username: root
-    password: password
+    username: timetable
+    password: Leilei*0217
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -49,16 +49,16 @@ jwt:
 ai:
   # 语音识别API配置
   speech:
-    provider: openai # 可选: openai, baidu, tencent, aliyun
-    api-url: https://api.openai.com/v1/audio/transcriptions
-    api-key: YOUR_OPENAI_API_KEY_HERE
+    provider: google # 可选: openai, baidu, tencent, aliyun
+    api-url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api-key: AIzaSyBEuQvM3ryBzrcXYwVcrPLgyWzwunyENLg
   
   # 自然语言处理API配置
   nlp:
-    provider: openai # 可选: openai, baidu, tencent, aliyun
-    api-url: https://api.openai.com/v1/chat/completions
-    api-key: YOUR_OPENAI_API_KEY_HERE
-    model: gpt-3.5-turbo
+    provider: google # 可选: openai, baidu, tencent, aliyun
+    api-url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api-key: AIzaSyBEuQvM3ryBzrcXYwVcrPLgyWzwunyENLg
+    model: gemini-2.5-flash
 
 # 日志配置
 logging:
@@ -77,6 +77,8 @@ cors:
   allowed-origins: 
     - http://localhost:3000
     - http://127.0.0.1:3000
+    - http://localhost:3001
+    - http://127.0.0.1:3001
   allowed-methods:
     - GET
     - POST
