@@ -87,8 +87,7 @@ timeTable_back/
 │   ├── TimetableApplication.java    # 应用启动类
 │   ├── config/                     # 配置类
 │   │   ├── SecurityConfig.java     # 安全配置
-│   │   ├── JwtConfig.java          # JWT配置
-│   │   └── CorsConfig.java         # 跨域配置
+│   │   └── PasswordEncoderConfig.java  # 密码编码器配置
 │   ├── controller/                 # 控制器层
 │   │   ├── AuthController.java     # 认证接口
 │   │   ├── TimetableController.java # 课表接口
