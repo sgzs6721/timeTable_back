@@ -35,7 +35,7 @@ jobs:
           port: 22
           source: ${{ github.workspace }}/target/timetable-backend-1.0.0.jar
           target: /root/lesson
-          strip_components: 3
+          strip_components: 6
       - name: Run Java Service Of timetable-back on HW Server
         uses: fifsky/ssh-action@master
         with:
