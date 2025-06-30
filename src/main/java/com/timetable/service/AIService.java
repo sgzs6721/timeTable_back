@@ -1,0 +1,266 @@
+package com.timetable.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.Base64;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * AI服务类
+ * 集成Google Gemini API进行语音识别和自然语言处理
+ */
+@Service
+public class AIService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(AIService.class);
+    
+    @Value("${ai.speech.api-url}")
+    private String speechApiUrl;
+    
+    @Value("${ai.speech.api-key}")
+    private String speechApiKey;
+    
+    @Value("${ai.nlp.api-url}")
+    private String nlpApiUrl;
+    
+    @Value("${ai.nlp.api-key}")
+    private String nlpApiKey;
+    
+    @Value("${ai.nlp.model:gemini-2.5-flash}")
+    private String nlpModel;
+    
+    private final OkHttpClient httpClient;
+    private final ObjectMapper objectMapper;
+    
+    public AIService() {
+        this.httpClient = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .build();
+        this.objectMapper = new ObjectMapper();
+    }
+    
+    /**
+     * 语音转文字
+     */
+    public String transcribeAudio(MultipartFile audioFile) throws IOException {
+        try {
+            // 将音频文件转换为Base64
+            byte[] audioBytes = audioFile.getBytes();
+            String audioBase64 = Base64.getEncoder().encodeToString(audioBytes);
+            
+            // 构建请求JSON
+            String requestJson = String.format("""
+                {
+                    "contents": [{
+                        "parts": [{
+                            "text": "请将以下音频文件转换为文字，音频内容是关于课程安排的描述："
+                        }, {
+                            "inline_data": {
+                                "mime_type": "%s",
+                                "data": "%s"
+                            }
+                        }]
+                    }]
+                }
+                """, audioFile.getContentType(), audioBase64);
+            
+            // 发送请求
+            String apiUrl = nlpApiUrl + "models/" + nlpModel + ":generateContent?key=" + nlpApiKey;
+            RequestBody body = RequestBody.create(requestJson, MediaType.get("application/json"));
+            Request request = new Request.Builder()
+                    .url(apiUrl)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+            
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    logger.error("语音识别API调用失败: {}", response.body().string());
+                    throw new RuntimeException("语音识别失败");
+                }
+                
+                String responseBody = response.body().string();
+                logger.debug("语音识别API响应: {}", responseBody);
+                
+                // 解析响应
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+                JsonNode candidates = jsonNode.path("candidates");
+                
+                if (candidates.isArray() && candidates.size() > 0) {
+                    JsonNode content = candidates.get(0).path("content");
+                    JsonNode parts = content.path("parts");
+                    
+                    if (parts.isArray() && parts.size() > 0) {
+                        String transcribedText = parts.get(0).path("text").asText();
+                        logger.info("语音识别成功: {}", transcribedText);
+                        return transcribedText;
+                    }
+                }
+                
+                throw new RuntimeException("语音识别响应格式异常");
+            }
+        } catch (Exception e) {
+            logger.error("语音识别处理失败", e);
+            throw new IOException("语音识别处理失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 处理课程安排文本，提取结构化信息
+     */
+    public String processScheduleText(String inputText) throws IOException {
+        try {
+            // 构建请求JSON
+            String promptText = String.format("""
+                请从以下文本中提取课程安排信息，并以结构化格式返回：
+                
+                输入文本："%s"
+                
+                请提取以下信息：
+                1. 学生姓名
+                2. 科目/课程名称
+                3. 上课时间（星期几、开始时间、结束时间）
+                4. 备注信息（如果有）
+                
+                输出格式要求：
+                - 每个课程安排占一行
+                - 格式：学生姓名：[姓名]，科目：[科目]，时间：[星期几][开始时间]-[结束时间]，备注：[备注]
+                - 时间格式使用24小时制，如：9:00-10:00
+                - 星期格式使用中文，如：周一、周二等
+                
+                示例输出：
+                学生姓名：张三，科目：数学，时间：周一9:00-10:00，备注：无
+                学生姓名：李四，科目：英语，时间：周二14:00-15:00，备注：需要准备教材
+                
+                如果无法提取完整信息，请尽量提取可用的部分。
+                """, inputText);
+            
+            String requestJson = String.format("""
+                {
+                    "contents": [{
+                        "parts": [{
+                            "text": "%s"
+                        }]
+                    }]
+                }
+                """, promptText.replace("\"", "\\\"").replace("\n", "\\n"));
+            
+            // 发送请求
+            String apiUrl = nlpApiUrl + "models/" + nlpModel + ":generateContent?key=" + nlpApiKey;
+            RequestBody body = RequestBody.create(requestJson, MediaType.get("application/json"));
+            Request request = new Request.Builder()
+                    .url(apiUrl)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+            
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    logger.error("自然语言处理API调用失败: {}", response.body().string());
+                    throw new RuntimeException("自然语言处理失败");
+                }
+                
+                String responseBody = response.body().string();
+                logger.debug("自然语言处理API响应: {}", responseBody);
+                
+                // 解析响应
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+                JsonNode candidates = jsonNode.path("candidates");
+                
+                if (candidates.isArray() && candidates.size() > 0) {
+                    JsonNode content = candidates.get(0).path("content");
+                    JsonNode parts = content.path("parts");
+                    
+                    if (parts.isArray() && parts.size() > 0) {
+                        String processedText = parts.get(0).path("text").asText();
+                        logger.info("自然语言处理成功: {}", processedText);
+                        return processedText;
+                    }
+                }
+                
+                throw new RuntimeException("自然语言处理响应格式异常");
+            }
+        } catch (Exception e) {
+            logger.error("自然语言处理失败", e);
+            throw new IOException("自然语言处理失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 智能分析课程安排冲突
+     */
+    public String analyzeScheduleConflicts(String existingSchedules, String newSchedule) throws IOException {
+        try {
+            String promptText = String.format("""
+                请分析以下课程安排是否存在时间冲突：
+                
+                现有课程安排：
+                %s
+                
+                新增课程安排：
+                %s
+                
+                请检查：
+                1. 时间段是否重叠
+                2. 同一时间是否安排了多个学生
+                3. 是否违反了常见的排课规则
+                
+                如果发现冲突，请详细说明冲突内容和建议的解决方案。
+                如果没有冲突，请回复"无冲突"。
+                """, existingSchedules, newSchedule);
+            
+            String requestJson = String.format("""
+                {
+                    "contents": [{
+                        "parts": [{
+                            "text": "%s"
+                        }]
+                    }]
+                }
+                """, promptText.replace("\"", "\\\"").replace("\n", "\\n"));
+            
+            // 发送请求
+            String apiUrl = nlpApiUrl + "models/" + nlpModel + ":generateContent?key=" + nlpApiKey;
+            RequestBody body = RequestBody.create(requestJson, MediaType.get("application/json"));
+            Request request = new Request.Builder()
+                    .url(apiUrl)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+            
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("冲突分析API调用失败");
+                }
+                
+                String responseBody = response.body().string();
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+                JsonNode candidates = jsonNode.path("candidates");
+                
+                if (candidates.isArray() && candidates.size() > 0) {
+                    JsonNode content = candidates.get(0).path("content");
+                    JsonNode parts = content.path("parts");
+                    
+                    if (parts.isArray() && parts.size() > 0) {
+                        return parts.get(0).path("text").asText();
+                    }
+                }
+                
+                return "分析失败";
+            }
+        } catch (Exception e) {
+            logger.error("冲突分析失败", e);
+            throw new IOException("冲突分析失败: " + e.getMessage());
+        }
+    }
+} 
