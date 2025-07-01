@@ -67,12 +67,12 @@ public class UserService implements UserDetailsService {
     /**
      * 创建新用户
      */
-    public Users createUser(String username, String password, Users.UserRole role) {
+    public Users createUser(String username, String password, String role) {
         String encodedPassword = passwordEncoder.encode(password);
         Users user = new Users();
         user.setUsername(username);
         user.setPasswordHash(encodedPassword);
-        user.setUserRole(role);
+        user.setRole(role);
         userRepository.save(user);
         return userRepository.findByUsername(username);
     }

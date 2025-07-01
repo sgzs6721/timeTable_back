@@ -104,7 +104,7 @@ public class AuthController {
             Users newUser = userService.createUser(
                     authRequest.getUsername(),
                     authRequest.getPassword(),
-                    Users.UserRole.USER
+                    "USER"
             );
             
             // 生成JWT Token
@@ -218,7 +218,7 @@ public class AuthController {
         Map<String, Object> userDTO = new HashMap<>();
         userDTO.put("id", user.getId());
         userDTO.put("username", user.getUsername());
-        userDTO.put("role", user.getRole().toString().toLowerCase());
+        userDTO.put("role", user.getRole());
         userDTO.put("createdAt", user.getCreatedAt());
         return userDTO;
     }
