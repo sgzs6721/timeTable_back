@@ -1,6 +1,6 @@
 package com.timetable.service;
 
-import com.timetable.model.Schedule;
+import com.timetable.generated.tables.pojos.Schedules;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,7 +43,7 @@ public class VoiceProcessingService {
     /**
      * 处理语音输入，转换为课程安排
      */
-    public List<Schedule> processVoiceInput(Long timetableId, MultipartFile audioFile) throws IOException {
+    public List<Schedules> processVoiceInput(Long timetableId, MultipartFile audioFile) throws IOException {
         // 1. 语音转文字
         String transcribedText = transcribeAudio(audioFile);
         
@@ -54,7 +54,7 @@ public class VoiceProcessingService {
     /**
      * 处理文本输入，转换为课程安排
      */
-    public List<Schedule> processTextInput(Long timetableId, String inputText) {
+    public List<Schedules> processTextInput(Long timetableId, String inputText) {
         return processTextToSchedules(timetableId, inputText);
     }
     
@@ -69,7 +69,7 @@ public class VoiceProcessingService {
     /**
      * 处理文本，提取课程安排信息
      */
-    private List<Schedule> processTextToSchedules(Long timetableId, String text) {
+    private List<Schedules> processTextToSchedules(Long timetableId, String text) {
         try {
             // 使用AI进行自然语言处理
             String aiResponse = aiService.processScheduleText(text);
@@ -85,8 +85,8 @@ public class VoiceProcessingService {
     /**
      * 解析AI返回的结构化数据
      */
-    private List<Schedule> parseAIResponse(Long timetableId, String aiResponse) {
-        List<Schedule> schedules = new ArrayList<>();
+    private List<Schedules> parseAIResponse(Long timetableId, String aiResponse) {
+        List<Schedules> schedules = new ArrayList<>();
         
         try {
             // 简化的解析逻辑，实际应该使用JSON解析
@@ -97,7 +97,7 @@ public class VoiceProcessingService {
             for (String line : lines) {
                 if (line.trim().isEmpty()) continue;
                 
-                Schedule schedule = parseScheduleLine(timetableId, line);
+                Schedules schedule = parseScheduleLine(timetableId, line);
                 if (schedule != null) {
                     schedules.add(schedule);
                 }
@@ -113,8 +113,8 @@ public class VoiceProcessingService {
     /**
      * 使用规则引擎解析文本（备用方案）
      */
-    private List<Schedule> parseTextWithRules(Long timetableId, String text) {
-        List<Schedule> schedules = new ArrayList<>();
+    private List<Schedules> parseTextWithRules(Long timetableId, String text) {
+        List<Schedules> schedules = new ArrayList<>();
         
         // 常见的时间表达式模式
         Pattern timePattern = Pattern.compile("(\\d{1,2})[:.：]?(\\d{0,2})\\s*[至到—\\-~]\\s*(\\d{1,2})[:.：]?(\\d{0,2})");
@@ -140,7 +140,7 @@ public class VoiceProcessingService {
         
         // 提取星期
         Matcher dayMatcher = dayPattern.matcher(text);
-        Schedule.DayOfWeek dayOfWeek = null;
+        java.time.DayOfWeek dayOfWeek = null;
         
         if (dayMatcher.find()) {
             String dayStr = dayMatcher.group(1);
@@ -163,7 +163,13 @@ public class VoiceProcessingService {
         
         // 创建课程安排
         if (startTime != null && endTime != null && dayOfWeek != null && !studentName.isEmpty()) {
-            Schedule schedule = new Schedule(timetableId, studentName, subject, dayOfWeek, startTime, endTime);
+            Schedules schedule = new Schedules();
+            schedule.setTimetableId(timetableId);
+            schedule.setStudentName(studentName);
+            schedule.setSubject(subject);
+            schedule.setDayOfWeek(dayOfWeek.name());
+            schedule.setStartTime(startTime);
+            schedule.setEndTime(endTime);
             schedules.add(schedule);
         }
         
@@ -173,7 +179,7 @@ public class VoiceProcessingService {
     /**
      * 解析单行课程信息
      */
-    private Schedule parseScheduleLine(Long timetableId, String line) {
+    private Schedules parseScheduleLine(Long timetableId, String line) {
         // 简化的解析逻辑
         // 实际应该根据AI返回的具体格式进行解析
         try {
@@ -181,7 +187,7 @@ public class VoiceProcessingService {
             String[] parts = line.split("，|,");
             String studentName = "";
             String subject = "";
-            Schedule.DayOfWeek dayOfWeek = null;
+            java.time.DayOfWeek dayOfWeek = null;
             LocalTime startTime = null;
             LocalTime endTime = null;
             
@@ -204,7 +210,14 @@ public class VoiceProcessingService {
             }
             
             if (!studentName.isEmpty() && dayOfWeek != null && startTime != null && endTime != null) {
-                return new Schedule(timetableId, studentName, subject, dayOfWeek, startTime, endTime);
+                Schedules schedule = new Schedules();
+                schedule.setTimetableId(timetableId);
+                schedule.setStudentName(studentName);
+                schedule.setSubject(subject);
+                schedule.setDayOfWeek(dayOfWeek.name());
+                schedule.setStartTime(startTime);
+                schedule.setEndTime(endTime);
+                return schedule;
             }
         } catch (Exception e) {
             // 解析失败，忽略该行
@@ -245,25 +258,25 @@ public class VoiceProcessingService {
     /**
      * 转换中文星期到枚举
      */
-    private Schedule.DayOfWeek convertChineseDayToEnum(String chineseDay) {
-        Map<String, Schedule.DayOfWeek> dayMap = new HashMap<>();
-        dayMap.put("周一", Schedule.DayOfWeek.MONDAY);
-        dayMap.put("周二", Schedule.DayOfWeek.TUESDAY);
-        dayMap.put("周三", Schedule.DayOfWeek.WEDNESDAY);
-        dayMap.put("周四", Schedule.DayOfWeek.THURSDAY);
-        dayMap.put("周五", Schedule.DayOfWeek.FRIDAY);
-        dayMap.put("周六", Schedule.DayOfWeek.SATURDAY);
-        dayMap.put("周日", Schedule.DayOfWeek.SUNDAY);
-        dayMap.put("周天", Schedule.DayOfWeek.SUNDAY);
-        dayMap.put("星期一", Schedule.DayOfWeek.MONDAY);
-        dayMap.put("星期二", Schedule.DayOfWeek.TUESDAY);
-        dayMap.put("星期三", Schedule.DayOfWeek.WEDNESDAY);
-        dayMap.put("星期四", Schedule.DayOfWeek.THURSDAY);
-        dayMap.put("星期五", Schedule.DayOfWeek.FRIDAY);
-        dayMap.put("星期六", Schedule.DayOfWeek.SATURDAY);
-        dayMap.put("星期日", Schedule.DayOfWeek.SUNDAY);
-        dayMap.put("星期天", Schedule.DayOfWeek.SUNDAY);
+    private java.time.DayOfWeek convertChineseDayToEnum(String chineseDay) {
+        Map<String, java.time.DayOfWeek> dayMap = new HashMap<>();
+        dayMap.put("周一", java.time.DayOfWeek.MONDAY);
+        dayMap.put("周二", java.time.DayOfWeek.TUESDAY);
+        dayMap.put("周三", java.time.DayOfWeek.WEDNESDAY);
+        dayMap.put("周四", java.time.DayOfWeek.THURSDAY);
+        dayMap.put("周五", java.time.DayOfWeek.FRIDAY);
+        dayMap.put("周六", java.time.DayOfWeek.SATURDAY);
+        dayMap.put("周日", java.time.DayOfWeek.SUNDAY);
+        dayMap.put("周天", java.time.DayOfWeek.SUNDAY);
+        dayMap.put("星期一", java.time.DayOfWeek.MONDAY);
+        dayMap.put("星期二", java.time.DayOfWeek.TUESDAY);
+        dayMap.put("星期三", java.time.DayOfWeek.WEDNESDAY);
+        dayMap.put("星期四", java.time.DayOfWeek.THURSDAY);
+        dayMap.put("星期五", java.time.DayOfWeek.FRIDAY);
+        dayMap.put("星期六", java.time.DayOfWeek.SATURDAY);
+        dayMap.put("星期日", java.time.DayOfWeek.SUNDAY);
+        dayMap.put("星期天", java.time.DayOfWeek.SUNDAY);
         
-        return dayMap.getOrDefault(chineseDay, Schedule.DayOfWeek.MONDAY);
+        return dayMap.getOrDefault(chineseDay, java.time.DayOfWeek.MONDAY);
     }
 } 

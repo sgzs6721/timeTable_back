@@ -3,8 +3,8 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.TextInputRequest;
-import com.timetable.model.Schedule;
-import com.timetable.model.User;
+import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.ScheduleService;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
@@ -39,12 +39,12 @@ public class ScheduleController {
      * 获取课表的排课列表
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Schedule>>> getTimetableSchedules(
+    public ResponseEntity<ApiResponse<List<Schedules>>> getTimetableSchedules(
             @PathVariable Long timetableId,
             @RequestParam(required = false) Integer week,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -55,7 +55,7 @@ public class ScheduleController {
             return ResponseEntity.notFound().build();
         }
         
-        List<Schedule> schedules = scheduleService.getTimetableSchedules(timetableId, week);
+        List<Schedules> schedules = scheduleService.getTimetableSchedules(timetableId, week);
         return ResponseEntity.ok(ApiResponse.success("获取排课列表成功", schedules));
     }
     
@@ -63,12 +63,12 @@ public class ScheduleController {
      * 创建新排课
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<Schedule>> createSchedule(
+    public ResponseEntity<ApiResponse<Schedules>> createSchedule(
             @PathVariable Long timetableId,
             @Valid @RequestBody ScheduleRequest request,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -85,7 +85,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("开始时间不能晚于结束时间"));
         }
         
-        Schedule schedule = scheduleService.createSchedule(timetableId, request);
+        Schedules schedule = scheduleService.createSchedule(timetableId, request);
         return ResponseEntity.ok(ApiResponse.success("创建排课成功", schedule));
     }
     
@@ -93,13 +93,13 @@ public class ScheduleController {
      * 更新排课
      */
     @PutMapping("/{scheduleId}")
-    public ResponseEntity<ApiResponse<Schedule>> updateSchedule(
+    public ResponseEntity<ApiResponse<Schedules>> updateSchedule(
             @PathVariable Long timetableId,
             @PathVariable Long scheduleId,
             @Valid @RequestBody ScheduleRequest request,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -116,7 +116,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("开始时间不能晚于结束时间"));
         }
         
-        Schedule schedule = scheduleService.updateSchedule(timetableId, scheduleId, request);
+        Schedules schedule = scheduleService.updateSchedule(timetableId, scheduleId, request);
         
         if (schedule == null) {
             return ResponseEntity.notFound().build();
@@ -134,7 +134,7 @@ public class ScheduleController {
             @PathVariable Long scheduleId,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -158,12 +158,12 @@ public class ScheduleController {
      * 通过语音输入创建排课
      */
     @PostMapping("/voice")
-    public ResponseEntity<ApiResponse<Schedule>> createScheduleByVoice(
+    public ResponseEntity<ApiResponse<Schedules>> createScheduleByVoice(
             @PathVariable Long timetableId,
             @RequestParam("audio") MultipartFile audioFile,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -181,7 +181,7 @@ public class ScheduleController {
         
         try {
             byte[] audioData = audioFile.getBytes();
-            Schedule schedule = scheduleService.createScheduleByVoice(timetableId, audioData);
+            Schedules schedule = scheduleService.createScheduleByVoice(timetableId, audioData);
             return ResponseEntity.ok(ApiResponse.success("语音创建排课成功", schedule));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
@@ -193,12 +193,12 @@ public class ScheduleController {
      * 通过文本输入创建排课
      */
     @PostMapping("/text")
-    public ResponseEntity<ApiResponse<Schedule>> createScheduleByText(
+    public ResponseEntity<ApiResponse<Schedules>> createScheduleByText(
             @PathVariable Long timetableId,
             @Valid @RequestBody TextInputRequest request,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -209,7 +209,7 @@ public class ScheduleController {
             return ResponseEntity.notFound().build();
         }
         
-        Schedule schedule = scheduleService.createScheduleByText(timetableId, request.getText());
+        Schedules schedule = scheduleService.createScheduleByText(timetableId, request.getText());
         return ResponseEntity.ok(ApiResponse.success("文本创建排课成功", schedule));
     }
 } 

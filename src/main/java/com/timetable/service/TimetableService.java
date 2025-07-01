@@ -1,9 +1,10 @@
 package com.timetable.service;
 
 import com.timetable.dto.TimetableRequest;
-import com.timetable.model.Timetable;
+import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
+import com.timetable.generated.tables.pojos.Schedules;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,19 +26,19 @@ public class TimetableService {
     /**
      * 获取用户的课表列表
      */
-    public List<Timetable> getUserTimetables(Long userId) {
+    public List<Timetables> getUserTimetables(Long userId) {
         return timetableRepository.findByUserId(userId);
     }
     
     /**
      * 创建新课表
      */
-    public Timetable createTimetable(Long userId, TimetableRequest request) {
-        Timetable timetable = new Timetable();
+    public Timetables createTimetable(Long userId, TimetableRequest request) {
+        Timetables timetable = new Timetables();
         timetable.setUserId(userId);
         timetable.setName(request.getName());
         timetable.setDescription(request.getDescription());
-        timetable.setIsWeekly(request.getIsWeekly());
+        timetable.setIsWeekly((byte) (request.getType() == TimetableRequest.TimetableType.WEEKLY ? 1 : 0));
         timetable.setStartDate(request.getStartDate());
         timetable.setEndDate(request.getEndDate());
         
@@ -47,22 +48,22 @@ public class TimetableService {
     /**
      * 获取课表详情
      */
-    public Timetable getTimetable(Long timetableId, Long userId) {
+    public Timetables getTimetable(Long timetableId, Long userId) {
         return timetableRepository.findByIdAndUserId(timetableId, userId);
     }
     
     /**
      * 更新课表
      */
-    public Timetable updateTimetable(Long timetableId, Long userId, TimetableRequest request) {
-        Timetable timetable = timetableRepository.findByIdAndUserId(timetableId, userId);
+    public Timetables updateTimetable(Long timetableId, Long userId, TimetableRequest request) {
+        Timetables timetable = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (timetable == null) {
             return null;
         }
         
         timetable.setName(request.getName());
         timetable.setDescription(request.getDescription());
-        timetable.setIsWeekly(request.getIsWeekly());
+        timetable.setIsWeekly((byte) (request.getType() == TimetableRequest.TimetableType.WEEKLY ? 1 : 0));
         timetable.setStartDate(request.getStartDate());
         timetable.setEndDate(request.getEndDate());
         timetable.setUpdatedAt(LocalDateTime.now());
@@ -97,33 +98,33 @@ public class TimetableService {
     /**
      * 获取所有课表（管理员功能）
      */
-    public List<Timetable> getAllTimetables() {
+    public List<Timetables> getAllTimetables() {
         return timetableRepository.findAll();
     }
     
     /**
      * 合并课表（管理员功能）
      */
-    public Timetable mergeTimetables(List<Long> timetableIds, String mergedName, String description, Long adminUserId) {
-        List<Timetable> timetablesToMerge = timetableRepository.findByIdIn(timetableIds);
+    public Timetables mergeTimetables(List<Long> timetableIds, String mergedName, String description, Long adminUserId) {
+        List<Timetables> timetablesToMerge = timetableRepository.findByIdIn(timetableIds);
         
         if (timetablesToMerge.isEmpty()) {
             return null;
         }
         
         // 创建新的合并课表
-        Timetable mergedTimetable = new Timetable();
+        Timetables mergedTimetable = new Timetables();
         mergedTimetable.setUserId(adminUserId);
         mergedTimetable.setName(mergedName);
         mergedTimetable.setDescription(description);
-        mergedTimetable.setIsWeekly(true); // 合并后的课表默认为周固定
+        mergedTimetable.setIsWeekly((byte) 1); // 合并后的课表默认为周固定
         
         mergedTimetable = timetableRepository.save(mergedTimetable);
         
         // 将所有相关的排课复制到新课表
-        List<com.timetable.model.Schedule> allSchedules = scheduleRepository.findByTimetableIdIn(timetableIds);
-        for (com.timetable.model.Schedule schedule : allSchedules) {
-            com.timetable.model.Schedule newSchedule = new com.timetable.model.Schedule();
+        List<Schedules> allSchedules = scheduleRepository.findByTimetableIdIn(timetableIds);
+        for (Schedules schedule : allSchedules) {
+            Schedules newSchedule = new Schedules();
             newSchedule.setTimetableId(mergedTimetable.getId());
             newSchedule.setStudentName(schedule.getStudentName());
             newSchedule.setSubject(schedule.getSubject());
@@ -136,7 +137,7 @@ public class TimetableService {
                     timetablesToMerge.stream()
                             .filter(t -> t.getId().equals(schedule.getTimetableId()))
                             .findFirst()
-                            .map(Timetable::getName)
+                            .map(Timetables::getName)
                             .orElse("未知课表") + "]");
             
             scheduleRepository.save(newSchedule);

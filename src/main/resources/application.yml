@@ -8,10 +8,10 @@ spring:
     name: timetable-backend
   
   datasource:
-    url: jdbc:h2:file:./data/timetable
-    username: sa
+    url: jdbc:mysql://localhost:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
+    username: root
     password: 
-    driver-class-name: org.h2.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -29,10 +29,7 @@ spring:
   sql:
     init:
       mode: always
-      schema-locations: 
-        - classpath:migration_remove_email.sql
-        - classpath:schema.sql
-      data-locations: classpath:data.sql
+      # schema-locations: classpath:schema.sql
   
   flyway:
     enabled: false

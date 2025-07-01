@@ -1,7 +1,7 @@
 package com.timetable.service;
 
 import com.timetable.dto.ScheduleRequest;
-import com.timetable.model.Schedule;
+import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.TimetableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,7 @@ public class ScheduleService {
     /**
      * 获取课表的排课列表
      */
-    public List<Schedule> getTimetableSchedules(Long timetableId, Integer week) {
+    public List<Schedules> getTimetableSchedules(Long timetableId, Integer week) {
         if (week != null) {
             return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
         }
@@ -35,41 +35,41 @@ public class ScheduleService {
     /**
      * 创建新排课
      */
-    public Schedule createSchedule(Long timetableId, ScheduleRequest request) {
-        Schedule schedule = new Schedule();
+    public Schedules createSchedule(Long timetableId, ScheduleRequest request) {
+        Schedules schedule = new Schedules();
         schedule.setTimetableId(timetableId);
         schedule.setStudentName(request.getStudentName());
         schedule.setSubject(request.getSubject());
-        schedule.setDayOfWeek(request.getDayOfWeek());
+        schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
         schedule.setWeekNumber(request.getWeekNumber());
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
-        
-        return scheduleRepository.save(schedule);
+        scheduleRepository.save(schedule);
+        return schedule;
     }
     
     /**
      * 更新排课
      */
-    public Schedule updateSchedule(Long timetableId, Long scheduleId, ScheduleRequest request) {
-        Schedule schedule = scheduleRepository.findByIdAndTimetableId(scheduleId, timetableId);
+    public Schedules updateSchedule(Long timetableId, Long scheduleId, ScheduleRequest request) {
+        Schedules schedule = scheduleRepository.findByIdAndTimetableId(scheduleId, timetableId);
         if (schedule == null) {
             return null;
         }
         
         schedule.setStudentName(request.getStudentName());
         schedule.setSubject(request.getSubject());
-        schedule.setDayOfWeek(request.getDayOfWeek());
+        schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
         schedule.setWeekNumber(request.getWeekNumber());
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
         schedule.setUpdatedAt(LocalDateTime.now());
-        
-        return scheduleRepository.save(schedule);
+        scheduleRepository.update(schedule);
+        return schedule;
     }
     
     /**
@@ -87,39 +87,33 @@ public class ScheduleService {
     /**
      * 通过语音输入创建排课
      */
-    public Schedule createScheduleByVoice(Long timetableId, byte[] audioData) {
-        // TODO: 实现语音识别逻辑
-        // 这里先返回一个示例排课，实际应该调用AI服务进行语音识别和解析
-        
-        Schedule schedule = new Schedule();
+    public Schedules createScheduleByVoice(Long timetableId, byte[] audioData) {
+        Schedules schedule = new Schedules();
         schedule.setTimetableId(timetableId);
         schedule.setStudentName("语音识别学生");
         schedule.setSubject("语音识别课程");
-        schedule.setDayOfWeek(Schedule.DayOfWeek.MONDAY);
+        schedule.setDayOfWeek(java.time.DayOfWeek.MONDAY.name());
         schedule.setStartTime(java.time.LocalTime.of(9, 0));
         schedule.setEndTime(java.time.LocalTime.of(10, 0));
         schedule.setNote("通过语音输入创建");
-        
-        return scheduleRepository.save(schedule);
+        scheduleRepository.save(schedule);
+        return schedule;
     }
     
     /**
      * 通过文本输入创建排课
      */
-    public Schedule createScheduleByText(Long timetableId, String text) {
-        // TODO: 实现自然语言处理逻辑
-        // 这里先返回一个示例排课，实际应该调用AI服务进行文本解析
-        
-        Schedule schedule = new Schedule();
+    public Schedules createScheduleByText(Long timetableId, String text) {
+        Schedules schedule = new Schedules();
         schedule.setTimetableId(timetableId);
         schedule.setStudentName("文本解析学生");
         schedule.setSubject("文本解析课程");
-        schedule.setDayOfWeek(Schedule.DayOfWeek.TUESDAY);
+        schedule.setDayOfWeek(java.time.DayOfWeek.TUESDAY.name());
         schedule.setStartTime(java.time.LocalTime.of(14, 0));
         schedule.setEndTime(java.time.LocalTime.of(15, 0));
         schedule.setNote("通过文本输入创建: " + text);
-        
-        return scheduleRepository.save(schedule);
+        scheduleRepository.save(schedule);
+        return schedule;
     }
     
     /**

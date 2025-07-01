@@ -2,6 +2,7 @@ package com.timetable.dto;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 /**
@@ -15,20 +16,25 @@ public class TimetableRequest {
     
     private String description;
     
-    private Boolean isWeekly = false;
+    @NotNull(message = "课表类型不能为空")
+    private TimetableType type;
     
     private LocalDate startDate;
     
     private LocalDate endDate;
     
+    public enum TimetableType {
+        WEEKLY, DATE_RANGE
+    }
+    
     // 构造函数
     public TimetableRequest() {
     }
     
-    public TimetableRequest(String name, String description, Boolean isWeekly) {
+    public TimetableRequest(String name, String description, TimetableType type) {
         this.name = name;
         this.description = description;
-        this.isWeekly = isWeekly;
+        this.type = type;
     }
     
     // Getter和Setter方法
@@ -48,12 +54,12 @@ public class TimetableRequest {
         this.description = description;
     }
     
-    public Boolean getIsWeekly() {
-        return isWeekly;
+    public TimetableType getType() {
+        return type;
     }
     
-    public void setIsWeekly(Boolean isWeekly) {
-        this.isWeekly = isWeekly;
+    public void setType(TimetableType type) {
+        this.type = type;
     }
     
     public LocalDate getStartDate() {

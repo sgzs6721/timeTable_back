@@ -2,8 +2,8 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.MergeTimetablesRequest;
-import com.timetable.model.Timetable;
-import com.timetable.model.User;
+import com.timetable.generated.tables.pojos.Users;
+import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +35,8 @@ public class AdminController {
      * 获取所有用户的课表
      */
     @GetMapping("/timetables")
-    public ResponseEntity<ApiResponse<List<Timetable>>> getAllTimetables() {
-        List<Timetable> timetables = timetableService.getAllTimetables();
+    public ResponseEntity<ApiResponse<List<Timetables>>> getAllTimetables() {
+        List<Timetables> timetables = timetableService.getAllTimetables();
         return ResponseEntity.ok(ApiResponse.success("获取所有课表成功", timetables));
     }
     
@@ -44,11 +44,11 @@ public class AdminController {
      * 合并课表
      */
     @PostMapping("/timetables/merge")
-    public ResponseEntity<ApiResponse<Timetable>> mergeTimetables(
+    public ResponseEntity<ApiResponse<Timetables>> mergeTimetables(
             @Valid @RequestBody MergeTimetablesRequest request,
             Authentication authentication) {
         
-        User admin = userService.findByUsername(authentication.getName());
+        Users admin = userService.findByUsername(authentication.getName());
         if (admin == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
@@ -59,7 +59,7 @@ public class AdminController {
                     .body(ApiResponse.error("至少需要选择2个课表进行合并"));
         }
         
-        Timetable mergedTimetable = timetableService.mergeTimetables(
+        Timetables mergedTimetable = timetableService.mergeTimetables(
                 request.getTimetableIds(),
                 request.getMergedName(),
                 request.getDescription(),

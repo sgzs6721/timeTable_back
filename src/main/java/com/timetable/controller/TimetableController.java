@@ -2,8 +2,8 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.TimetableRequest;
-import com.timetable.model.Timetable;
-import com.timetable.model.User;
+import com.timetable.generated.tables.pojos.Timetables;
+import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,14 +33,14 @@ public class TimetableController {
      * 获取用户的课表列表
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Timetable>>> getUserTimetables(Authentication authentication) {
-        User user = userService.findByUsername(authentication.getName());
+    public ResponseEntity<ApiResponse<List<Timetables>>> getUserTimetables(Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
         
-        List<Timetable> timetables = timetableService.getUserTimetables(user.getId());
+        List<Timetables> timetables = timetableService.getUserTimetables(user.getId());
         return ResponseEntity.ok(ApiResponse.success("获取课表列表成功", timetables));
     }
     
@@ -48,30 +48,26 @@ public class TimetableController {
      * 创建新课表
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<Timetable>> createTimetable(
+    public ResponseEntity<ApiResponse<Timetables>> createTimetable(
             @Valid @RequestBody TimetableRequest request,
             Authentication authentication) {
-        
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
-        // 验证日期范围课表的时间
-        if (!request.getIsWeekly() && 
-            (request.getStartDate() == null || request.getEndDate() == null)) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("日期范围课表必须指定开始和结束日期"));
+        // 校验课表类型和日期
+        if (request.getType() == TimetableRequest.TimetableType.DATE_RANGE) {
+            if (request.getStartDate() == null || request.getEndDate() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("日期范围课表必须指定开始和结束日期"));
+            }
+            if (request.getStartDate().isAfter(request.getEndDate())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("开始日期不能晚于结束日期"));
+            }
         }
-        
-        if (!request.getIsWeekly() && 
-            request.getStartDate().isAfter(request.getEndDate())) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("开始日期不能晚于结束日期"));
-        }
-        
-        Timetable timetable = timetableService.createTimetable(user.getId(), request);
+        Timetables timetable = timetableService.createTimetable(user.getId(), request);
         return ResponseEntity.ok(ApiResponse.success("创建课表成功", timetable));
     }
     
@@ -79,17 +75,17 @@ public class TimetableController {
      * 获取课表详情
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Timetable>> getTimetable(
+    public ResponseEntity<ApiResponse<Timetables>> getTimetable(
             @PathVariable Long id,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
         
-        Timetable timetable = timetableService.getTimetable(id, user.getId());
+        Timetables timetable = timetableService.getTimetable(id, user.getId());
         
         if (timetable == null) {
             return ResponseEntity.notFound()
@@ -103,37 +99,31 @@ public class TimetableController {
      * 更新课表
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Timetable>> updateTimetable(
+    public ResponseEntity<ApiResponse<Timetables>> updateTimetable(
             @PathVariable Long id,
             @Valid @RequestBody TimetableRequest request,
             Authentication authentication) {
-        
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
-        // 验证日期范围课表的时间
-        if (!request.getIsWeekly() && 
-            (request.getStartDate() == null || request.getEndDate() == null)) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("日期范围课表必须指定开始和结束日期"));
+        // 校验课表类型和日期
+        if (request.getType() == TimetableRequest.TimetableType.DATE_RANGE) {
+            if (request.getStartDate() == null || request.getEndDate() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("日期范围课表必须指定开始和结束日期"));
+            }
+            if (request.getStartDate().isAfter(request.getEndDate())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("开始日期不能晚于结束日期"));
+            }
         }
-        
-        if (!request.getIsWeekly() && 
-            request.getStartDate().isAfter(request.getEndDate())) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("开始日期不能晚于结束日期"));
-        }
-        
-        Timetable timetable = timetableService.updateTimetable(id, user.getId(), request);
-        
+        Timetables timetable = timetableService.updateTimetable(id, user.getId(), request);
         if (timetable == null) {
             return ResponseEntity.notFound()
                     .build();
         }
-        
         return ResponseEntity.ok(ApiResponse.success("更新课表成功", timetable));
     }
     
@@ -145,7 +135,7 @@ public class TimetableController {
             @PathVariable Long id,
             Authentication authentication) {
         
-        User user = userService.findByUsername(authentication.getName());
+        Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));

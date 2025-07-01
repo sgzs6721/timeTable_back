@@ -1,6 +1,5 @@
 package com.timetable.service;
 
-import com.timetable.model.User;
 import com.timetable.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.jooq.DSLContext;
+import com.timetable.generated.tables.pojos.Users;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,18 +27,21 @@ public class UserService implements UserDetailsService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
     
+    @Autowired
+    private DSLContext dsl;
+    
     /**
      * Spring Security用户认证
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username);
+        Users user = userRepository.findByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("用户不存在: " + username);
         }
         
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
         
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
@@ -49,7 +53,7 @@ public class UserService implements UserDetailsService {
     /**
      * 根据用户名查找用户
      */
-    public User findByUsername(String username) {
+    public Users findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
     
@@ -63,10 +67,14 @@ public class UserService implements UserDetailsService {
     /**
      * 创建新用户
      */
-    public User createUser(String username, String password, User.UserRole role) {
+    public Users createUser(String username, String password, Users.UserRole role) {
         String encodedPassword = passwordEncoder.encode(password);
-        User user = new User(username, encodedPassword, role);
-        return userRepository.save(user);
+        Users user = new Users();
+        user.setUsername(username);
+        user.setPasswordHash(encodedPassword);
+        user.setUserRole(role);
+        userRepository.save(user);
+        return userRepository.findByUsername(username);
     }
     
     /**

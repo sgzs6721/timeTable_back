@@ -1,10 +1,11 @@
 package com.timetable.dto;
 
-import com.timetable.model.Schedule;
+import com.timetable.generated.tables.pojos.Schedules;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.DayOfWeek;
 
 /**
  * 排课请求DTO
@@ -17,7 +18,7 @@ public class ScheduleRequest {
     private String subject;
     
     @NotNull(message = "星期几不能为空")
-    private Schedule.DayOfWeek dayOfWeek;
+    private DayOfWeek dayOfWeek;
     
     @NotNull(message = "开始时间不能为空")
     private LocalTime startTime;
@@ -52,11 +53,11 @@ public class ScheduleRequest {
         this.subject = subject;
     }
     
-    public Schedule.DayOfWeek getDayOfWeek() {
+    public DayOfWeek getDayOfWeek() {
         return dayOfWeek;
     }
     
-    public void setDayOfWeek(Schedule.DayOfWeek dayOfWeek) {
+    public void setDayOfWeek(DayOfWeek dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
     }
     

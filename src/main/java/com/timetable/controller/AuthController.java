@@ -2,7 +2,7 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AuthRequest;
-import com.timetable.model.User;
+import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.UserService;
 import com.timetable.util.JwtUtil;
 import org.slf4j.Logger;
@@ -58,7 +58,7 @@ public class AuthController {
             );
             
             // 获取用户信息
-            User user = userService.findByUsername(authRequest.getUsername());
+            Users user = userService.findByUsername(authRequest.getUsername());
             if (user == null) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.error("用户不存在"));
@@ -100,11 +100,11 @@ public class AuthController {
                         .body(ApiResponse.error("用户名已存在"));
             }
             
-            // 创建新用户
-            User newUser = userService.createUser(
+            // 创建新用户（不再传email）
+            Users newUser = userService.createUser(
                     authRequest.getUsername(),
                     authRequest.getPassword(),
-                    User.UserRole.USER
+                    Users.UserRole.USER
             );
             
             // 生成JWT Token
@@ -141,7 +141,7 @@ public class AuthController {
             String username = jwtUtil.extractUsername(token);
             
             if (username != null && jwtUtil.validateToken(token, username)) {
-                User user = userService.findByUsername(username);
+                Users user = userService.findByUsername(username);
                 if (user != null) {
                     Map<String, Object> data = new HashMap<>();
                     data.put("user", convertUserToDTO(user));
@@ -174,7 +174,7 @@ public class AuthController {
             }
             
             String username = authentication.getName();
-            User user = userService.findByUsername(username);
+            Users user = userService.findByUsername(username);
             
             if (user == null) {
                 return ResponseEntity.badRequest()
@@ -214,7 +214,7 @@ public class AuthController {
     /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
-    private Map<String, Object> convertUserToDTO(User user) {
+    private Map<String, Object> convertUserToDTO(Users user) {
         Map<String, Object> userDTO = new HashMap<>();
         userDTO.put("id", user.getId());
         userDTO.put("username", user.getUsername());
