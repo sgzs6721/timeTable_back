@@ -100,8 +100,14 @@ public class AuthController {
                         .body(ApiResponse.error("用户名已存在"));
             }
             
-            // 检查邮箱是否已存在
-            if (authRequest.getEmail() != null && userService.existsByEmail(authRequest.getEmail())) {
+            // 处理空的email字符串，将其转换为null
+            String email = authRequest.getEmail();
+            if (email != null && email.trim().isEmpty()) {
+                email = null;
+            }
+            
+            // 检查邮箱是否已存在（只有当email不为null时才检查）
+            if (email != null && userService.existsByEmail(email)) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.error("邮箱已被注册"));
             }
@@ -110,7 +116,7 @@ public class AuthController {
             User newUser = userService.createUser(
                     authRequest.getUsername(),
                     authRequest.getPassword(),
-                    authRequest.getEmail(),
+                    email,
                     User.UserRole.USER
             );
             
