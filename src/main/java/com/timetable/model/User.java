@@ -9,7 +9,6 @@ public class User {
     
     private Long id;
     private String username;
-    private String email;
     private String passwordHash;
     private UserRole role;
     private LocalDateTime createdAt;
@@ -23,9 +22,8 @@ public class User {
     public User() {
     }
     
-    public User(String username, String email, String passwordHash, UserRole role) {
+    public User(String username, String passwordHash, UserRole role) {
         this.username = username;
-        this.email = email;
         this.passwordHash = passwordHash;
         this.role = role;
         this.createdAt = LocalDateTime.now();
@@ -47,14 +45,6 @@ public class User {
     
     public void setUsername(String username) {
         this.username = username;
-    }
-    
-    public String getEmail() {
-        return email;
-    }
-    
-    public void setEmail(String email) {
-        this.email = email;
     }
     
     public String getPasswordHash() {
@@ -94,7 +84,6 @@ public class User {
         return "User{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
                 ", role=" + role +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +

@@ -28,8 +28,10 @@ spring:
   # jOOQ配置（由Spring Boot自动配置）
   sql:
     init:
-      mode: embedded
-      schema-locations: classpath:schema.sql
+      mode: always
+      schema-locations: 
+        - classpath:migration_remove_email.sql
+        - classpath:schema.sql
       data-locations: classpath:data.sql
   
   flyway:

@@ -31,7 +31,6 @@ public class UserRepository {
             User user = new User();
             user.setId(rs.getLong("id"));
             user.setUsername(rs.getString("username"));
-            user.setEmail(rs.getString("email"));
             user.setPasswordHash(rs.getString("password_hash"));
             user.setRole(User.UserRole.valueOf(rs.getString("role")));
             
@@ -62,18 +61,6 @@ public class UserRepository {
     }
     
     /**
-     * 根据邮箱查找用户
-     */
-    public User findByEmail(String email) {
-        try {
-            String sql = "SELECT * FROM users WHERE email = ?";
-            return jdbcTemplate.queryForObject(sql, userRowMapper, email);
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-    
-    /**
      * 根据ID查找用户
      */
     public User findById(Long id) {
@@ -95,15 +82,6 @@ public class UserRepository {
     }
     
     /**
-     * 检查邮箱是否存在
-     */
-    public boolean existsByEmail(String email) {
-        String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
-        return count != null && count > 0;
-    }
-    
-    /**
      * 保存用户
      */
     public User save(User user) {
@@ -120,16 +98,15 @@ public class UserRepository {
      * 插入新用户
      */
     private User insertUser(User user) {
-        String sql = "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)";
         
         KeyHolder keyHolder = new GeneratedKeyHolder();
         
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, user.getUsername());
-            ps.setString(2, user.getEmail());
-            ps.setString(3, user.getPasswordHash());
-            ps.setString(4, user.getRole().name());
+            ps.setString(2, user.getPasswordHash());
+            ps.setString(3, user.getRole().name());
             return ps;
         }, keyHolder);
         
@@ -162,13 +139,12 @@ public class UserRepository {
      * 更新用户
      */
     private User updateUser(User user) {
-        String sql = "UPDATE users SET username = ?, email = ?, password_hash = ?, role = ?, updated_at = ? WHERE id = ?";
+        String sql = "UPDATE users SET username = ?, password_hash = ?, role = ?, updated_at = ? WHERE id = ?";
         
         LocalDateTime now = LocalDateTime.now();
         
         jdbcTemplate.update(sql, 
             user.getUsername(),
-            user.getEmail(), 
             user.getPasswordHash(),
             user.getRole().name(),
             Timestamp.valueOf(now),

@@ -54,13 +54,6 @@ public class UserService implements UserDetailsService {
     }
     
     /**
-     * 根据邮箱查找用户
-     */
-    public User findByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-    
-    /**
      * 检查用户名是否存在
      */
     public boolean existsByUsername(String username) {
@@ -68,18 +61,11 @@ public class UserService implements UserDetailsService {
     }
     
     /**
-     * 检查邮箱是否存在
-     */
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
-    
-    /**
      * 创建新用户
      */
-    public User createUser(String username, String password, String email, User.UserRole role) {
+    public User createUser(String username, String password, User.UserRole role) {
         String encodedPassword = passwordEncoder.encode(password);
-        User user = new User(username, email, encodedPassword, role);
+        User user = new User(username, encodedPassword, role);
         return userRepository.save(user);
     }
     

@@ -1,41 +1,15 @@
--- 数据库迁移逻辑（适用于现有数据库）
--- 修改users表email字段，允许为NULL
-DO $$
-BEGIN
-    -- 检查users表是否存在，如果存在则执行迁移
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users') THEN
-        -- 修改email字段约束
-        ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
-        -- 将空字符串转换为NULL
-        UPDATE users SET email = NULL WHERE email = '';
-    END IF;
-EXCEPTION
-    WHEN OTHERS THEN
-        -- H2数据库可能不支持这个语法，忽略错误
-        NULL;
-END $$;
-
--- 对于H2数据库的简单处理方式
--- 尝试修改列约束（如果失败则忽略）
-ALTER TABLE users ALTER COLUMN email SET NULL;
-
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(10) NOT NULL DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 迁移现有数据：将空字符串email更新为NULL（如果表已存在）
-UPDATE users SET email = NULL WHERE email = '' AND email IS NOT NULL;
-
 -- 为用户表创建索引
 CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 
 -- 创建课表表
 CREATE TABLE IF NOT EXISTS timetables (

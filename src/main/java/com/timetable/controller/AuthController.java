@@ -100,23 +100,10 @@ public class AuthController {
                         .body(ApiResponse.error("用户名已存在"));
             }
             
-            // 处理空的email字符串，将其转换为null
-            String email = authRequest.getEmail();
-            if (email != null && email.trim().isEmpty()) {
-                email = null;
-            }
-            
-            // 检查邮箱是否已存在（只有当email不为null时才检查）
-            if (email != null && userService.existsByEmail(email)) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("邮箱已被注册"));
-            }
-            
             // 创建新用户
             User newUser = userService.createUser(
                     authRequest.getUsername(),
                     authRequest.getPassword(),
-                    email,
                     User.UserRole.USER
             );
             
@@ -231,7 +218,6 @@ public class AuthController {
         Map<String, Object> userDTO = new HashMap<>();
         userDTO.put("id", user.getId());
         userDTO.put("username", user.getUsername());
-        userDTO.put("email", user.getEmail());
         userDTO.put("role", user.getRole().toString().toLowerCase());
         userDTO.put("createdAt", user.getCreatedAt());
         return userDTO;
