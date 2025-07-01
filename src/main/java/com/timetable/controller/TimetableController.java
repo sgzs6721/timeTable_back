@@ -5,6 +5,7 @@ import com.timetable.dto.TimetableRequest;
 import com.timetable.model.Timetable;
 import com.timetable.model.User;
 import com.timetable.service.TimetableService;
+import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -25,14 +26,21 @@ public class TimetableController {
     @Autowired
     private TimetableService timetableService;
     
+    @Autowired
+    private UserService userService;
+    
     /**
      * 获取用户的课表列表
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<Timetable>>> getUserTimetables(Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        List<Timetable> timetables = timetableService.getUserTimetables(user.getId());
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
+        List<Timetable> timetables = timetableService.getUserTimetables(user.getId());
         return ResponseEntity.ok(ApiResponse.success("获取课表列表成功", timetables));
     }
     
@@ -44,7 +52,11 @@ public class TimetableController {
             @Valid @RequestBody TimetableRequest request,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 验证日期范围课表的时间
         if (!request.getIsWeekly() && 
@@ -71,7 +83,12 @@ public class TimetableController {
             @PathVariable Long id,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+        
         Timetable timetable = timetableService.getTimetable(id, user.getId());
         
         if (timetable == null) {
@@ -91,7 +108,11 @@ public class TimetableController {
             @Valid @RequestBody TimetableRequest request,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 验证日期范围课表的时间
         if (!request.getIsWeekly() && 
@@ -124,7 +145,12 @@ public class TimetableController {
             @PathVariable Long id,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+        
         boolean deleted = timetableService.deleteTimetable(id, user.getId());
         
         if (!deleted) {

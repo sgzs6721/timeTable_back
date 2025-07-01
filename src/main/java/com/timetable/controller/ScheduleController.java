@@ -7,6 +7,7 @@ import com.timetable.model.Schedule;
 import com.timetable.model.User;
 import com.timetable.service.ScheduleService;
 import com.timetable.service.TimetableService;
+import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -31,6 +32,9 @@ public class ScheduleController {
     @Autowired
     private TimetableService timetableService;
     
+    @Autowired
+    private UserService userService;
+    
     /**
      * 获取课表的排课列表
      */
@@ -40,7 +44,11 @@ public class ScheduleController {
             @RequestParam(required = false) Integer week,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
@@ -60,7 +68,11 @@ public class ScheduleController {
             @Valid @RequestBody ScheduleRequest request,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
@@ -87,7 +99,11 @@ public class ScheduleController {
             @Valid @RequestBody ScheduleRequest request,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
@@ -118,7 +134,11 @@ public class ScheduleController {
             @PathVariable Long scheduleId,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
@@ -143,7 +163,11 @@ public class ScheduleController {
             @RequestParam("audio") MultipartFile audioFile,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
@@ -174,7 +198,11 @@ public class ScheduleController {
             @Valid @RequestBody TextInputRequest request,
             Authentication authentication) {
         
-        User user = (User) authentication.getPrincipal();
+        User user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {

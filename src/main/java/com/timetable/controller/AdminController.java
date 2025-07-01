@@ -5,6 +5,7 @@ import com.timetable.dto.MergeTimetablesRequest;
 import com.timetable.model.Timetable;
 import com.timetable.model.User;
 import com.timetable.service.TimetableService;
+import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +28,9 @@ public class AdminController {
     @Autowired
     private TimetableService timetableService;
     
+    @Autowired
+    private UserService userService;
+    
     /**
      * 获取所有用户的课表
      */
@@ -44,7 +48,11 @@ public class AdminController {
             @Valid @RequestBody MergeTimetablesRequest request,
             Authentication authentication) {
         
-        User admin = (User) authentication.getPrincipal();
+        User admin = userService.findByUsername(authentication.getName());
+        if (admin == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
         
         if (request.getTimetableIds().size() < 2) {
             return ResponseEntity.badRequest()
