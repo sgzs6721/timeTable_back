@@ -125,7 +125,7 @@ public class UserRepository {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, user.getUsername());
             ps.setString(2, user.getEmail());
             ps.setString(3, user.getPasswordHash());
@@ -133,12 +133,29 @@ public class UserRepository {
             return ps;
         }, keyHolder);
         
-        // 获取生成的ID
-        Long generatedId = (Long) keyHolder.getKeys().get("ID");
-        user.setId(generatedId);
+        // 获取生成的ID - 兼容H2数据库
+        Long generatedId = null;
+        if (keyHolder.getKeys() != null) {
+            Object id = keyHolder.getKeys().get("id");
+            if (id == null) {
+                id = keyHolder.getKeys().get("ID");
+            }
+            if (id != null) {
+                generatedId = ((Number) id).longValue();
+            }
+        }
         
-        // 查询完整的用户信息（包括自动生成的时间戳）
-        return findById(user.getId());
+        if (generatedId != null) {
+            user.setId(generatedId);
+            // 查询完整的用户信息（包括自动生成的时间戳）
+            return findById(user.getId());
+        } else {
+            // 备用方案：设置时间戳并返回
+            LocalDateTime now = LocalDateTime.now();
+            user.setCreatedAt(now);
+            user.setUpdatedAt(now);
+            return user;
+        }
     }
     
     /**
