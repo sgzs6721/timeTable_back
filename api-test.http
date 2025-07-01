@@ -15,8 +15,7 @@ Content-Type: application/json
 
 {
   "username": "new2user",
-  "password": "newpass",
-  "email": "newuser@example.com"
+  "password": "newpass"
 }
 
 ### 验证Token

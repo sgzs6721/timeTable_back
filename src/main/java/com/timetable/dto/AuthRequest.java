@@ -46,6 +46,7 @@ public class AuthRequest {
     public String toString() {
         return "AuthRequest{" +
                 "username='" + username + '\'' +
+                ", password='******'" +
                 '}';
     }
 } 
