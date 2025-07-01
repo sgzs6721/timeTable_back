@@ -28,7 +28,7 @@ spring:
   # jOOQ配置（由Spring Boot自动配置）
   sql:
     init:
-      mode: always
+      mode: embedded
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
   
