@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -195,28 +196,33 @@ public class ScheduleController {
      * 通过文本输入创建排课
      */
     @PostMapping("/text")
-    public Mono<ResponseEntity<ApiResponse<List<ScheduleInfo>>>> createScheduleByText(
+    public ResponseEntity<ApiResponse<List<ScheduleInfo>>> createScheduleByText(
             @PathVariable Long timetableId,
             @Valid @RequestBody TextInputRequest request,
             Authentication authentication) {
         
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
-            return Mono.just(ResponseEntity.badRequest()
-                    .body(ApiResponse.error("用户不存在")));
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
         }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return Mono.just(ResponseEntity.notFound().build());
+            return ResponseEntity.notFound().build();
         }
         
-        return scheduleService.extractScheduleInfoFromText(request.getText())
-                .map(scheduleInfoList -> {
-                    if (scheduleInfoList.isEmpty()) {
-                        return ResponseEntity.badRequest().body(ApiResponse.<List<ScheduleInfo>>error("无法从文本中解析出排课信息"));
-                    }
-                    return ResponseEntity.ok(ApiResponse.success("文本解析成功", scheduleInfoList));
-                });
+        try {
+            List<ScheduleInfo> scheduleInfoList = scheduleService.extractScheduleInfoFromText(request.getText())
+                    .block(Duration.ofSeconds(60)); // Block for up to 60 seconds
+
+            if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("无法从文本中解析出排课信息"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("文本解析成功", scheduleInfoList));
+        } catch (Exception e) {
+            // This will catch the timeout exception from .block() or any other error
+            return ResponseEntity.internalServerError().body(ApiResponse.error("处理文本解析时出错: " + e.getMessage()));
+        }
     }
 } 
