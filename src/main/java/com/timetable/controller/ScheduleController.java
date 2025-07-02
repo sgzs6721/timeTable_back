@@ -183,12 +183,11 @@ public class ScheduleController {
         }
         
         try {
-            byte[] audioData = audioFile.getBytes();
-            Schedules schedule = scheduleService.createScheduleByVoice(timetableId, audioData);
+            Schedules schedule = scheduleService.createScheduleByVoice(timetableId, audioFile);
             return ResponseEntity.ok(ApiResponse.success("语音创建排课成功", schedule));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("处理音频文件失败"));
+                    .body(ApiResponse.error("处理音频文件失败: " + e.getMessage()));
         }
     }
     

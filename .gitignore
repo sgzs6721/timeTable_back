@@ -27,3 +27,4 @@ replay_pid*
 target/
 src/main/java/com/timetable/generated/
 logs/
+.serena/
