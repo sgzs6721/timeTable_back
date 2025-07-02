@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
 import com.timetable.dto.ai.ChatResponse;
+import com.timetable.dto.ai.ResponseFormat;
 import com.timetable.dto.ai.ScheduleInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,8 @@ public class AiNlpService {
 
         ChatRequest request = new ChatRequest(
                 model,
-                Collections.singletonList(new ChatMessage("user", prompt))
+                Collections.singletonList(new ChatMessage("user", prompt)),
+                new ResponseFormat("json_object")
         );
 
         try {
