@@ -253,4 +253,23 @@ public class ScheduleController {
         List<Schedules> result = scheduleService.createSchedules(timetableId, requests);
         return ResponseEntity.ok(ApiResponse.success("批量创建排课成功", result));
     }
+    
+    /**
+     * 按条件批量删除排课
+     */
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Integer>> deleteSchedulesByCondition(
+            @PathVariable Long timetableId,
+            @RequestBody ScheduleRequest request,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return ResponseEntity.notFound().build();
+        }
+        int deleted = scheduleService.deleteSchedulesByCondition(timetableId, request);
+        return ResponseEntity.ok(ApiResponse.success("删除排课成功", deleted));
+    }
 } 

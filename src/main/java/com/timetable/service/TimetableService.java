@@ -41,7 +41,8 @@ public class TimetableService {
         timetable.setIsWeekly((byte) (request.getType() == TimetableRequest.TimetableType.WEEKLY ? 1 : 0));
         timetable.setStartDate(request.getStartDate());
         timetable.setEndDate(request.getEndDate());
-        
+        timetable.setCreatedAt(LocalDateTime.now());
+        timetable.setUpdatedAt(LocalDateTime.now());
         return timetableRepository.save(timetable);
     }
     

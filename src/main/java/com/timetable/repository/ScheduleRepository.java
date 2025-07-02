@@ -74,5 +74,32 @@ public class ScheduleRepository {
                 .execute();
     }
 
+    /**
+     * 按条件批量删除排课
+     */
+    public int deleteByCondition(Long timetableId, com.timetable.dto.ScheduleRequest request) {
+        com.timetable.generated.tables.Schedules dslTable = com.timetable.generated.tables.Schedules.SCHEDULES;
+        org.jooq.Condition condition = dslTable.TIMETABLE_ID.eq(timetableId);
+        if (request.getStudentName() != null && !request.getStudentName().isEmpty()) {
+            condition = condition.and(dslTable.STUDENT_NAME.eq(request.getStudentName()));
+        }
+        if (request.getDayOfWeek() != null) {
+            condition = condition.and(dslTable.DAY_OF_WEEK.eq(request.getDayOfWeek().name()));
+        }
+        if (request.getStartTime() != null) {
+            condition = condition.and(dslTable.START_TIME.eq(request.getStartTime()));
+        }
+        if (request.getEndTime() != null) {
+            condition = condition.and(dslTable.END_TIME.eq(request.getEndTime()));
+        }
+        if (request.getWeekNumber() != null) {
+            condition = condition.and(dslTable.WEEK_NUMBER.eq(request.getWeekNumber()));
+        }
+        if (request.getScheduleDate() != null) {
+            condition = condition.and(dslTable.SCHEDULE_DATE.eq(request.getScheduleDate()));
+        }
+        return dsl.deleteFrom(dslTable).where(condition).execute();
+    }
+
     // 可根据业务扩展更多jOOQ查询
 } 

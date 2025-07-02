@@ -86,4 +86,16 @@ Authorization: Bearer {{token}}
 
 ### 获取排课列表
 GET http://localhost:8088/timetable/api/timetables/1/schedules
-Authorization: Bearer {{token}} 
+Authorization: Bearer {{token}}
+
+### 按条件批量删除排课
+DELETE http://localhost:8088/timetable/api/timetables/1/schedules
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "studentName": "于乐之",
+  "dayOfWeek": "THURSDAY",
+  "startTime": "13:00",
+  "endTime": "14:00"
+} 

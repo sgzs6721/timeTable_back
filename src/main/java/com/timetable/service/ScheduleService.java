@@ -131,4 +131,11 @@ public class ScheduleService {
         }
         return result;
     }
+    
+    /**
+     * 按条件批量删除排课
+     */
+    public int deleteSchedulesByCondition(Long timetableId, ScheduleRequest request) {
+        return scheduleRepository.deleteByCondition(timetableId, request);
+    }
 } 
