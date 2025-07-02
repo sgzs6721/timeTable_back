@@ -79,7 +79,7 @@ public class AiNlpService {
 
         if ("WEEKLY".equalsIgnoreCase(timetableType)) {
             typeDescription = "这是一个**周固定课表**。";
-            negativeInstruction = "你**只能**提取 `dayOfWeek` (星期几)，**绝对不能**包含 `date` (日期) 字段。如果用户提到了具体的日期（如"8月15日"），请忽略它，只关注星期几。";
+            negativeInstruction = "你**只能**提取 `dayOfWeek` (星期几)，**绝对不能**包含 `date` (日期) 字段。如果用户提到了具体的日期（如\\\"8月15日\\\"），请忽略它，只关注星期几。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +
                          "  \"time\": \"HH:mm-HH:mm\",\n" +
@@ -87,7 +87,7 @@ public class AiNlpService {
                          "}";
         } else { // DATE_RANGE
             typeDescription = "这是一个**日期范围课表**。";
-            negativeInstruction = "你**只能**提取 `date` (具体日期)，**绝对不能**包含 `dayOfWeek` (星期几) 字段。如果用户提到了星期几（如"周三"），请忽略它，专注于识别具体的日期。";
+            negativeInstruction = "你**只能**提取 `date` (具体日期)，**绝对不能**包含 `dayOfWeek` (星期几) 字段。如果用户提到了星期几（如\\\"周三\\\"），请忽略它，专注于识别具体的日期。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +
                          "  \"time\": \"HH:mm-HH:mm\",\n" +
