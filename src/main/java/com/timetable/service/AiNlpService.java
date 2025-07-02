@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -38,7 +39,7 @@ public class AiNlpService {
 
         ChatRequest request = new ChatRequest(
                 model,
-                List.of(new ChatMessage("user", prompt))
+                Collections.singletonList(new ChatMessage("user", prompt))
         );
 
         return webClient.post()
@@ -77,7 +78,7 @@ public class AiNlpService {
     }
 
     private Mono<ScheduleInfo> parseResponse(String jsonResponse) {
-        if (jsonResponse == null || jsonResponse.isBlank() || jsonResponse.trim().equals("{}")) {
+        if (jsonResponse == null || jsonResponse.trim().isEmpty() || jsonResponse.trim().equals("{}")) {
             return Mono.empty();
         }
         try {
