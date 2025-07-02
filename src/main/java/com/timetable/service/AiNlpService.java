@@ -6,7 +6,6 @@ import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
 import com.timetable.dto.ai.ChatResponse;
 import com.timetable.dto.ai.ScheduleInfo;
-import com.timetable.generated.enums.TimetableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +43,7 @@ public class AiNlpService {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<List<ScheduleInfo>> extractScheduleInfo(String text, TimetableType timetableType) {
+    public Mono<List<ScheduleInfo>> extractScheduleInfo(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
 
         ChatRequest request = new ChatRequest(
@@ -73,11 +72,11 @@ public class AiNlpService {
                 .flatMap(this::parseResponseToList);
     }
 
-    private String buildPrompt(String text, TimetableType timetableType) {
+    private String buildPrompt(String text, String timetableType) {
         String jsonFormat;
         String typeDescription;
 
-        if (timetableType == TimetableType.WEEKLY) {
+        if ("WEEKLY".equalsIgnoreCase(timetableType)) {
             typeDescription = "这是一个固定周课表, 你只需要提取星期几 (dayOfWeek)。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +

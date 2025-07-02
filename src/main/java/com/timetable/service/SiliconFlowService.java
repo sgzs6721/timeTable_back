@@ -95,7 +95,7 @@ public class SiliconFlowService {
         }
     }
 
-    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, TimetableType timetableType) {
+    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
 
         String requestJson = String.format("{\"model\": \"%s\", \"messages\": [{\"role\": \"system\", \"content\": \"%s\"}, {\"role\": \"user\", \"content\": \"%s\"}], \"temperature\": 0.3, \"max_tokens\": 1024}",
@@ -122,11 +122,11 @@ public class SiliconFlowService {
         }
     }
 
-    private String buildPrompt(String text, TimetableType timetableType) {
+    private String buildPrompt(String text, String timetableType) {
         String jsonFormat;
         String typeDescription;
 
-        if (timetableType == TimetableType.WEEKLY) {
+        if ("WEEKLY".equalsIgnoreCase(timetableType)) {
             typeDescription = "这是一个固定周课表, 你只需要提取星期几 (dayOfWeek)。";
             jsonFormat = "{\"studentName\": \"学生姓名\", \"time\": \"HH:mm-HH:mm\", \"dayOfWeek\": \"MONDAY\"}";
         } else { // DATE_RANGE
