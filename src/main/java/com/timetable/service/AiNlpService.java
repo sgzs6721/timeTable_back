@@ -61,16 +61,14 @@ public class AiNlpService {
                 "请将结果以JSON格式返回,不要包含任何其他说明文字或代码标记。\n" +
                 "如果文本与课程无关,请返回一个空的JSON对象 {}。\n\n" +
                 "JSON格式如下:\n" +
-                "对于固定周课表:\n" +
+                "对于固定周课表(不需要dayOfWeek字段时请省略):\n" +
                 "{\n" +
-                "  \"type\": \"weekly\",\n" +
                 "  \"studentName\": \"学生姓名\",\n" +
                 "  \"time\": \"HH:mm-HH:mm\",\n" +
                 "  \"dayOfWeek\": \"MONDAY\"\n" +
                 "}\n\n" +
-                "对于日期类课表:\n" +
+                "对于日期类课表(不需要date字段时请省略):\n" +
                 "{\n" +
-                "  \"type\": \"dated\",\n" +
                 "  \"studentName\": \"学生姓名\",\n" +
                 "  \"time\": \"HH:mm-HH:mm\",\n" +
                 "  \"date\": \"YYYY-MM-DD\"\n" +
