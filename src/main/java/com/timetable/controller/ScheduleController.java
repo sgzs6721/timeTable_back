@@ -225,4 +225,32 @@ public class ScheduleController {
             return ResponseEntity.internalServerError().body(ApiResponse.error("处理文本解析时出错: " + e.getMessage()));
         }
     }
+    
+    /**
+     * 批量创建排课
+     */
+    @PostMapping("/batch")
+    public ResponseEntity<ApiResponse<List<Schedules>>> createSchedulesBatch(
+            @PathVariable Long timetableId,
+            @Valid @RequestBody List<ScheduleRequest> requests,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+        // 检查课表是否属于当前用户
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return ResponseEntity.notFound().build();
+        }
+        // 校验每个排课的时间
+        for (ScheduleRequest request : requests) {
+            if (request.getStartTime().isAfter(request.getEndTime())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("开始时间不能晚于结束时间"));
+            }
+        }
+        List<Schedules> result = scheduleService.createSchedules(timetableId, requests);
+        return ResponseEntity.ok(ApiResponse.success("批量创建排课成功", result));
+    }
 } 

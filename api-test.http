@@ -14,7 +14,7 @@ POST http://localhost:8088/timetable/api/auth/register
 Content-Type: application/json
 
 {
-  "username": "new2user",
+  "username": "new2user12",
   "password": "newpass"
 }
 
@@ -33,9 +33,6 @@ Authorization: Bearer {{token}}
 ### 新建周课表
 POST http://localhost:8088/timetable/api/timetables
 Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
   "name": "测试周课表",
   "description": "自动化测试周课表",
   "type": "WEEKLY"
@@ -56,4 +53,37 @@ Authorization: Bearer {{token}}
 
 ### 获取课表列表
 GET http://localhost:8088/timetable/api/timetables
+Authorization: Bearer {{token}}
+
+### 批量创建排课
+POST http://localhost:8088/timetable/api/timetables/1/schedules/batch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+[
+  {
+    "studentName": "于乐之",
+    "dayOfWeek": "THURSDAY",
+    "startTime": "13:00",
+    "endTime": "14:00",
+    "note": "通过文本识别创建"
+  },
+  {
+    "studentName": "于乐之",
+    "dayOfWeek": "THURSDAY",
+    "startTime": "14:00",
+    "endTime": "15:00",
+    "note": "通过文本识别创建"
+  },
+  {
+    "studentName": "张早早",
+    "dayOfWeek": "FRIDAY",
+    "startTime": "13:00",
+    "endTime": "14:00",
+    "note": "通过文本识别创建"
+  }
+]
+
+### 获取排课列表
+GET http://localhost:8088/timetable/api/timetables/1/schedules
 Authorization: Bearer {{token}} 

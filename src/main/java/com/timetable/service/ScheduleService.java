@@ -120,4 +120,15 @@ public class ScheduleService {
     public boolean isScheduleInTimetable(Long scheduleId, Long timetableId) {
         return scheduleRepository.existsByIdAndTimetableId(scheduleId, timetableId);
     }
+    
+    /**
+     * 批量创建排课
+     */
+    public List<Schedules> createSchedules(Long timetableId, List<ScheduleRequest> requests) {
+        List<Schedules> result = new java.util.ArrayList<>();
+        for (ScheduleRequest req : requests) {
+            result.add(createSchedule(timetableId, req));
+        }
+        return result;
+    }
 } 
