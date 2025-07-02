@@ -3,6 +3,7 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.TextInputRequest;
+import com.timetable.dto.ai.ScheduleInfo;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.ScheduleService;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -193,23 +195,24 @@ public class ScheduleController {
      * 通过文本输入创建排课
      */
     @PostMapping("/text")
-    public ResponseEntity<ApiResponse<Schedules>> createScheduleByText(
+    public Mono<ResponseEntity<ApiResponse<ScheduleInfo>>> createScheduleByText(
             @PathVariable Long timetableId,
             @Valid @RequestBody TextInputRequest request,
             Authentication authentication) {
         
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("用户不存在"));
+            return Mono.just(ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在")));
         }
         
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+            return Mono.just(ResponseEntity.notFound().build());
         }
         
-        Schedules schedule = scheduleService.createScheduleByText(timetableId, request.getText());
-        return ResponseEntity.ok(ApiResponse.success("文本创建排课成功", schedule));
+        return scheduleService.extractScheduleInfoFromText(request.getText())
+                .map(scheduleInfo -> ResponseEntity.ok(ApiResponse.success("文本解析成功", scheduleInfo)))
+                .defaultIfEmpty(ResponseEntity.badRequest().body(ApiResponse.<ScheduleInfo>error("无法从文本中解析出排课信息")));
     }
 } 

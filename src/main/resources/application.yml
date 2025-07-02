@@ -48,15 +48,15 @@ jwt:
 ai:
   # 语音识别API配置
   speech:
-    provider: google # 可选: openai, baidu, tencent, aliyun
-    api-url: https://generativelanguage.googleapis.com/v1beta/openai/
-    api-key: AIzaSyBEuQvM3ryBzrcXYwVcrPLgyWzwunyENLg
+    provider: siliconFlow # 可选: openai, baidu, tencent, aliyun
+    api-url: https://api.siliconflow.cn/v1
+    api-key: sk-vsowhlqsbsbuvublbvizaiwdkydooizbzlbzyfuolyyhcbri
 
   # 自然语言处理API配置
   nlp:
-    provider: google # 可选: openai, baidu, tencent, aliyun
-    api-url: https://generativelanguage.googleapis.com/v1beta/openai/
-    api-key: AIzaSyBEuQvM3ryBzrcXYwVcrPLgyWzwunyENLg
+    provider: siliconFlow # 可选: openai, baidu, tencent, aliyun
+    api-url: https://api.siliconflow.cn/v1
+    api-key: sk-vsowhlqsbsbuvublbvizaiwdkydooizbzlbzyfuolyyhcbri
     model: gemini-2.5-flash
 
 # 日志配置

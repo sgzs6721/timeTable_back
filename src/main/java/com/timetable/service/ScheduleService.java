@@ -1,11 +1,13 @@
 package com.timetable.service;
 
 import com.timetable.dto.ScheduleRequest;
+import com.timetable.dto.ai.ScheduleInfo;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.TimetableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,11 +18,16 @@ import java.util.List;
 @Service
 public class ScheduleService {
     
+    private final ScheduleRepository scheduleRepository;
+    private final AiNlpService aiNlpService;
+    private final TimetableRepository timetableRepository;
+
     @Autowired
-    private ScheduleRepository scheduleRepository;
-    
-    @Autowired
-    private TimetableRepository timetableRepository;
+    public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService, TimetableRepository timetableRepository) {
+        this.scheduleRepository = scheduleRepository;
+        this.aiNlpService = aiNlpService;
+        this.timetableRepository = timetableRepository;
+    }
     
     /**
      * 获取课表的排课列表
@@ -101,19 +108,10 @@ public class ScheduleService {
     }
     
     /**
-     * 通过文本输入创建排课
+     * 通过文本输入提取排课信息
      */
-    public Schedules createScheduleByText(Long timetableId, String text) {
-        Schedules schedule = new Schedules();
-        schedule.setTimetableId(timetableId);
-        schedule.setStudentName("文本解析学生");
-        schedule.setSubject("文本解析课程");
-        schedule.setDayOfWeek(java.time.DayOfWeek.TUESDAY.name());
-        schedule.setStartTime(java.time.LocalTime.of(14, 0));
-        schedule.setEndTime(java.time.LocalTime.of(15, 0));
-        schedule.setNote("通过文本输入创建: " + text);
-        scheduleRepository.save(schedule);
-        return schedule;
+    public Mono<ScheduleInfo> extractScheduleInfoFromText(String text) {
+        return aiNlpService.extractScheduleInfo(text);
     }
     
     /**
