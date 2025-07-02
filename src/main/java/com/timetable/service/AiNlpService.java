@@ -6,6 +6,7 @@ import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
 import com.timetable.dto.ai.ChatResponse;
 import com.timetable.dto.ai.ScheduleInfo;
+import com.timetable.generated.enums.TimetableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,8 +44,8 @@ public class AiNlpService {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<List<ScheduleInfo>> extractScheduleInfo(String text) {
-        String prompt = buildPrompt(text);
+    public Mono<List<ScheduleInfo>> extractScheduleInfo(String text, TimetableType timetableType) {
+        String prompt = buildPrompt(text, timetableType);
 
         ChatRequest request = new ChatRequest(
                 model,
@@ -72,28 +73,33 @@ public class AiNlpService {
                 .flatMap(this::parseResponseToList);
     }
 
-    private String buildPrompt(String text) {
+    private String buildPrompt(String text, TimetableType timetableType) {
+        String jsonFormat;
+        String typeDescription;
+
+        if (timetableType == TimetableType.WEEKLY) {
+            typeDescription = "这是一个固定周课表, 你只需要提取星期几 (dayOfWeek)。";
+            jsonFormat = "{\n" +
+                         "  \"studentName\": \"学生姓名\",\n" +
+                         "  \"time\": \"HH:mm-HH:mm\",\n" +
+                         "  \"dayOfWeek\": \"MONDAY\"\n" +
+                         "}";
+        } else { // DATE_RANGE
+            typeDescription = "这是一个日期范围课表, 你只需要提取具体的日期 (date)。";
+            jsonFormat = "{\n" +
+                         "  \"studentName\": \"学生姓名\",\n" +
+                         "  \"time\": \"HH:mm-HH:mm\",\n" +
+                         "  \"date\": \"YYYY-MM-DD\"\n" +
+                         "}";
+        }
+
         return String.format(
                 "请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
-                "你需要识别这是固定周课表还是按日期的课表。对于文本中提到的每一个排课，都需提取相应信息。\n" +
-                "- 如果是固定周课表,请提取星期几、时间(例如 \"14:00-15:00\")和姓名。\n" +
-                "- 如果是日期类课表,请提取日期(格式 YYYY-MM-DD)、时间(例如 \"14:00-15:00\")和姓名。\n\n" +
-                "请将结果以JSON数组格式返回,数组中的每个对象代表一个排课。不要包含任何其他说明文字或代码标记。\n" +
-                "如果文本与课程无关,请返回一个空的JSON数组 []。\n\n" +
-                "JSON对象格式如下:\n" +
-                "对于固定周课表(不适用时请省略dayOfWeek字段):\n" +
-                "{\n" +
-                "  \"studentName\": \"学生姓名\",\n" +
-                "  \"time\": \"HH:mm-HH:mm\",\n" +
-                "  \"dayOfWeek\": \"MONDAY\"\n" +
-                "}\n\n" +
-                "对于日期类课表(不适用时请省略date字段):\n" +
-                "{\n" +
-                "  \"studentName\": \"学生姓名\",\n" +
-                "  \"time\": \"HH:mm-HH:mm\",\n" +
-                "  \"date\": \"YYYY-MM-DD\"\n" +
-                "}",
-                text);
+                "这是一个%s, 请严格按照这个类型来提取信息。\n\n" +
+                "请将结果以JSON数组格式返回, 数组中的每个对象代表一个排课。不要包含任何其他说明文字或代码标记。\n" +
+                "如果文本与课程无关, 请返回一个空的JSON数组 []。\n\n" +
+                "JSON对象格式如下:\n%s",
+                text, typeDescription, jsonFormat);
     }
 
     private Mono<List<ScheduleInfo>> parseResponseToList(String jsonResponse) {
@@ -139,7 +145,8 @@ public class AiNlpService {
                             schedule.getStudentName(),
                             currentTime.format(timeFormatter) + "-" + nextHour.format(timeFormatter),
                             schedule.getDayOfWeek(),
-                            schedule.getDate()
+                            schedule.getDate(),
+                            null // No error message for successful parsing
                         );
                         expandedList.add(newSchedule);
 

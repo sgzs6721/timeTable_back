@@ -109,20 +109,23 @@ public class ScheduleService {
     /**
      * 通过语音输入创建排课
      */
-    public Schedules createScheduleByVoice(Long timetableId, MultipartFile audioFile) throws Exception {
+    public List<ScheduleInfo> createScheduleByVoice(Long timetableId, MultipartFile audioFile) throws Exception {
+        var timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            throw new IllegalArgumentException("Timetable not found");
+        }
+
         try {
             // 第一步：调用语音转文字API
             String transcribedText = siliconFlowService.transcribeAudio(audioFile);
             
             // 第二步：调用聊天completion API进行信息提取
-            String aiResponse = siliconFlowService.processTextForSchedule(transcribedText);
-            
-            // 第三步：解析AI返回的JSON结果并创建排课
-            return parseAiResponseAndCreateSchedule(timetableId, aiResponse, transcribedText);
+            return siliconFlowService.extractScheduleInfoFromText(transcribedText, timetable.getType())
+                .block(); // Blocking for simplicity, consider async handling
             
         } catch (Exception e) {
-            // 如果AI处理失败，创建一个基础的排课记录
-            return createFallbackSchedule(timetableId, "语音处理失败: " + e.getMessage());
+            // 如果AI处理失败，返回一个包含错误信息的列表
+            return List.of(createFallbackScheduleInfo("语音处理失败: " + e.getMessage()));
         }
     }
     
@@ -208,20 +211,8 @@ public class ScheduleService {
     /**
      * 创建备用排课记录（当所有解析都失败时使用）
      */
-    private Schedules createFallbackSchedule(Long timetableId, String errorMsg) {
-        Schedules schedule = new Schedules();
-        schedule.setTimetableId(timetableId);
-        schedule.setStudentName("待确认学生");
-        schedule.setSubject("待确认科目");
-        schedule.setDayOfWeek(DayOfWeek.MONDAY.name());
-        schedule.setStartTime(LocalTime.of(9, 0));
-        schedule.setEndTime(LocalTime.of(10, 0));
-        schedule.setNote(errorMsg);
-        schedule.setCreatedAt(LocalDateTime.now());
-        schedule.setUpdatedAt(LocalDateTime.now());
-        
-        scheduleRepository.save(schedule);
-        return schedule;
+    private ScheduleInfo createFallbackScheduleInfo(String errorMsg) {
+        return new ScheduleInfo("待确认", "09:00-10:00", "MONDAY", null, errorMsg);
     }
     
     /**
@@ -287,8 +278,13 @@ public class ScheduleService {
     /**
      * 通过文本输入提取排课信息
      */
-    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text) {
-        return aiNlpService.extractScheduleInfo(text);
+    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(Long timetableId, String text) {
+        var timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            return Mono.error(new IllegalArgumentException("Timetable not found"));
+        }
+        
+        return aiNlpService.extractScheduleInfo(text, timetable.getType());
     }
     
     /**

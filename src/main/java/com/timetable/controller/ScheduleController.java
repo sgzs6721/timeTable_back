@@ -161,7 +161,7 @@ public class ScheduleController {
      * 通过语音输入创建排课
      */
     @PostMapping("/voice")
-    public ResponseEntity<ApiResponse<Schedules>> createScheduleByVoice(
+    public ResponseEntity<ApiResponse<List<ScheduleInfo>>> createScheduleByVoice(
             @PathVariable Long timetableId,
             @RequestParam("audio") MultipartFile audioFile,
             Authentication authentication) {
@@ -183,8 +183,11 @@ public class ScheduleController {
         }
         
         try {
-            Schedules schedule = scheduleService.createScheduleByVoice(timetableId, audioFile);
-            return ResponseEntity.ok(ApiResponse.success("语音创建排课成功", schedule));
+            List<ScheduleInfo> scheduleInfoList = scheduleService.createScheduleByVoice(timetableId, audioFile);
+            if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("无法从语音中解析出排课信息"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("语音解析成功", scheduleInfoList));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("处理音频文件失败: " + e.getMessage()));
@@ -212,7 +215,7 @@ public class ScheduleController {
         }
         
         try {
-            List<ScheduleInfo> scheduleInfoList = scheduleService.extractScheduleInfoFromText(request.getText())
+            List<ScheduleInfo> scheduleInfoList = scheduleService.extractScheduleInfoFromText(timetableId, request.getText())
                     .block(Duration.ofSeconds(60)); // Block for up to 60 seconds
 
             if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
