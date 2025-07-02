@@ -122,7 +122,7 @@ public class ScheduleService {
             String transcribedText = siliconFlowService.transcribeAudio(audioFile);
             
             // 第二步：调用聊天completion API进行信息提取
-            return siliconFlowService.extractScheduleInfoFromText(transcribedText, timetable.getType_())
+            return siliconFlowService.extractScheduleInfoFromText(transcribedText, timetable.type)
                 .block(); // Blocking for simplicity, consider async handling
             
         } catch (Exception e) {
@@ -286,7 +286,7 @@ public class ScheduleService {
             return Mono.error(new IllegalArgumentException("Timetable not found"));
         }
         
-        return aiNlpService.extractScheduleInfo(text, timetable.getType_());
+        return aiNlpService.extractScheduleInfo(text, timetable.type);
     }
     
     /**
