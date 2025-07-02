@@ -44,8 +44,7 @@ public class AiNlpService {
 
         ChatRequest request = new ChatRequest(
                 model,
-                Collections.singletonList(new ChatMessage("user", prompt)),
-                new ResponseFormat("json_object")
+                Collections.singletonList(new ChatMessage("user", prompt))
         );
 
         try {
