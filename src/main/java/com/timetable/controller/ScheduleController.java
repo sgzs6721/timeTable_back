@@ -274,4 +274,23 @@ public class ScheduleController {
         int deleted = scheduleService.deleteSchedulesByCondition(timetableId, request);
         return ResponseEntity.ok(ApiResponse.success("删除排课成功", deleted));
     }
+    
+    /**
+     * 批量按条件删除排课
+     */
+    @DeleteMapping("/batch")
+    public ResponseEntity<ApiResponse<Integer>> deleteSchedulesBatch(
+            @PathVariable Long timetableId,
+            @RequestBody List<ScheduleRequest> requests,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return ResponseEntity.notFound().build();
+        }
+        int deleted = scheduleService.deleteSchedulesBatch(timetableId, requests);
+        return ResponseEntity.ok(ApiResponse.success("批量删除排课成功", deleted));
+    }
 }

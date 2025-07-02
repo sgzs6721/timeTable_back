@@ -310,4 +310,15 @@ public class ScheduleService {
     public int deleteSchedulesByCondition(Long timetableId, ScheduleRequest request) {
         return scheduleRepository.deleteByCondition(timetableId, request);
     }
+    
+    /**
+     * 批量按条件删除排课
+     */
+    public int deleteSchedulesBatch(Long timetableId, List<ScheduleRequest> requests) {
+        int total = 0;
+        for (ScheduleRequest req : requests) {
+            total += scheduleRepository.deleteByCondition(timetableId, req);
+        }
+        return total;
+    }
 } 
