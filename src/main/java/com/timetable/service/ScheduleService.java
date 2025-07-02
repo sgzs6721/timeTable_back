@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.ai.ScheduleInfo;
 import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.TimetableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import reactor.core.publisher.Mono;
 
@@ -110,7 +112,7 @@ public class ScheduleService {
      * 通过语音输入创建排课
      */
     public List<ScheduleInfo> createScheduleByVoice(Long timetableId, MultipartFile audioFile) throws Exception {
-        var timetable = timetableRepository.findById(timetableId);
+        Timetables timetable = timetableRepository.findById(timetableId);
         if (timetable == null) {
             throw new IllegalArgumentException("Timetable not found");
         }
@@ -125,7 +127,7 @@ public class ScheduleService {
             
         } catch (Exception e) {
             // 如果AI处理失败，返回一个包含错误信息的列表
-            return List.of(createFallbackScheduleInfo("语音处理失败: " + e.getMessage()));
+            return Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage()));
         }
     }
     
@@ -279,7 +281,7 @@ public class ScheduleService {
      * 通过文本输入提取排课信息
      */
     public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(Long timetableId, String text) {
-        var timetable = timetableRepository.findById(timetableId);
+        Timetables timetable = timetableRepository.findById(timetableId);
         if (timetable == null) {
             return Mono.error(new IllegalArgumentException("Timetable not found"));
         }

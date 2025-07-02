@@ -10,16 +10,19 @@ public final class ScheduleInfo {
     private final String time;
     private final String dayOfWeek;
     private final String date;
+    private final String errorMessage;
 
     @JsonCreator
     public ScheduleInfo(@JsonProperty("studentName") String studentName,
                         @JsonProperty("time") String time,
                         @JsonProperty("dayOfWeek") String dayOfWeek,
-                        @JsonProperty("date") String date) {
+                        @JsonProperty("date") String date,
+                        @JsonProperty("errorMessage") String errorMessage) {
         this.studentName = studentName;
         this.time = time;
         this.dayOfWeek = dayOfWeek;
         this.date = date;
+        this.errorMessage = errorMessage;
     }
 
     public String getStudentName() {
@@ -36,5 +39,9 @@ public final class ScheduleInfo {
 
     public String getDate() {
         return date;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
 } 
