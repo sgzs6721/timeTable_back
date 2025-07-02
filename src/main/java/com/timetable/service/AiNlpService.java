@@ -53,33 +53,29 @@ public class AiNlpService {
     }
 
     private String buildPrompt(String text) {
-        return """
-                请从以下文本中提取课程安排信息: "%s"
-
-                你需要识别这是固定周课表还是按日期的课表。
-                - 如果是固定周课表，请提取星期几、时间（例如 "14:00-15:00"）和姓名。
-                - 如果是日期类课表，请提取日期（格式 YYYY-MM-DD）、时间（例如 "14:00-15:00"）和姓名。
-
-                请将结果以JSON格式返回，不要包含任何其他说明文字或代码标记。
-                如果文本与课程无关，请返回一个空的JSON对象 {}。
-
-                JSON格式如下:
-                对于固定周课表:
-                {
-                  "type": "weekly",
-                  "studentName": "学生姓名",
-                  "time": "HH:mm-HH:mm",
-                  "dayOfWeek": "MONDAY"
-                }
-
-                对于日期类课表:
-                {
-                  "type": "dated",
-                  "studentName": "学生姓名",
-                  "time": "HH:mm-HH:mm",
-                  "date": "YYYY-MM-DD"
-                }
-                """.formatted(text);
+        return String.format(
+                "请从以下文本中提取课程安排信息: \"%s\"\n\n" +
+                "你需要识别这是固定周课表还是按日期的课表。\n" +
+                "- 如果是固定周课表,请提取星期几、时间(例如 \"14:00-15:00\")和姓名。\n" +
+                "- 如果是日期类课表,请提取日期(格式 YYYY-MM-DD)、时间(例如 \"14:00-15:00\")和姓名。\n\n" +
+                "请将结果以JSON格式返回,不要包含任何其他说明文字或代码标记。\n" +
+                "如果文本与课程无关,请返回一个空的JSON对象 {}。\n\n" +
+                "JSON格式如下:\n" +
+                "对于固定周课表:\n" +
+                "{\n" +
+                "  \"type\": \"weekly\",\n" +
+                "  \"studentName\": \"学生姓名\",\n" +
+                "  \"time\": \"HH:mm-HH:mm\",\n" +
+                "  \"dayOfWeek\": \"MONDAY\"\n" +
+                "}\n\n" +
+                "对于日期类课表:\n" +
+                "{\n" +
+                "  \"type\": \"dated\",\n" +
+                "  \"studentName\": \"学生姓名\",\n" +
+                "  \"time\": \"HH:mm-HH:mm\",\n" +
+                "  \"date\": \"YYYY-MM-DD\"\n" +
+                "}",
+                text);
     }
 
     private Mono<ScheduleInfo> parseResponse(String jsonResponse) {
