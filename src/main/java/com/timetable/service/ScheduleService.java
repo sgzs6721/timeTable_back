@@ -122,7 +122,8 @@ public class ScheduleService {
             String transcribedText = siliconFlowService.transcribeAudio(audioFile);
             
             // 第二步：调用聊天completion API进行信息提取
-            String type = timetable.getIsWeekly() ? "WEEKLY" : "DATE_RANGE";
+            // MySQL的BOOLEAN/TINYINT(1)映射为Byte, 1=true, 0=false
+            String type = timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1 ? "WEEKLY" : "DATE_RANGE";
             return siliconFlowService.extractScheduleInfoFromText(transcribedText, type)
                 .block(); // Blocking for simplicity, consider async handling
             
@@ -287,7 +288,8 @@ public class ScheduleService {
             return Mono.error(new IllegalArgumentException("Timetable not found"));
         }
         
-        String type = timetable.getIsWeekly() ? "WEEKLY" : "DATE_RANGE";
+        // MySQL的BOOLEAN/TINYINT(1)映射为Byte, 1=true, 0=false
+        String type = timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1 ? "WEEKLY" : "DATE_RANGE";
         return aiNlpService.extractScheduleInfo(text, type);
     }
     
