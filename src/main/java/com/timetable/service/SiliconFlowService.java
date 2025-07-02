@@ -3,7 +3,6 @@ package com.timetable.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ai.ScheduleInfo;
-import com.timetable.generated.enums.TimetableType;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
