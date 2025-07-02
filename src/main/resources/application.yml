@@ -57,7 +57,7 @@ ai:
     provider: siliconFlow # 可选: openai, baidu, tencent, aliyun
     api-url: https://api.siliconflow.cn/v1
     api-key: sk-vsowhlqsbsbuvublbvizaiwdkydooizbzlbzyfuolyyhcbri
-    model: DeepSeek-R1-Distill-Qwen-7B
+    model: DQwen3-8B
 
 # 日志配置
 logging:
