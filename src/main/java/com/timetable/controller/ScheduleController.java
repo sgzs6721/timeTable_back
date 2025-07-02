@@ -195,7 +195,7 @@ public class ScheduleController {
      * 通过文本输入创建排课
      */
     @PostMapping("/text")
-    public Mono<ResponseEntity<ApiResponse<ScheduleInfo>>> createScheduleByText(
+    public Mono<ResponseEntity<ApiResponse<List<ScheduleInfo>>>> createScheduleByText(
             @PathVariable Long timetableId,
             @Valid @RequestBody TextInputRequest request,
             Authentication authentication) {
@@ -212,7 +212,11 @@ public class ScheduleController {
         }
         
         return scheduleService.extractScheduleInfoFromText(request.getText())
-                .map(scheduleInfo -> ResponseEntity.ok(ApiResponse.success("文本解析成功", scheduleInfo)))
-                .defaultIfEmpty(ResponseEntity.badRequest().body(ApiResponse.<ScheduleInfo>error("无法从文本中解析出排课信息")));
+                .map(scheduleInfoList -> {
+                    if (scheduleInfoList.isEmpty()) {
+                        return ResponseEntity.badRequest().body(ApiResponse.<List<ScheduleInfo>>error("无法从文本中解析出排课信息"));
+                    }
+                    return ResponseEntity.ok(ApiResponse.success("文本解析成功", scheduleInfoList));
+                });
     }
 } 

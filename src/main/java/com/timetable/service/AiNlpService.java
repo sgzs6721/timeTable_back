@@ -1,5 +1,6 @@
 package com.timetable.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
@@ -38,7 +39,7 @@ public class AiNlpService {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<ScheduleInfo> extractScheduleInfo(String text) {
+    public Mono<List<ScheduleInfo>> extractScheduleInfo(String text) {
         String prompt = buildPrompt(text);
 
         ChatRequest request = new ChatRequest(
@@ -64,25 +65,25 @@ public class AiNlpService {
                     logger.error("AI API response body: {}", ex.getResponseBodyAsString());
                 })
                 .map(ChatResponse::getFirstChoiceContent)
-                .flatMap(this::parseResponse);
+                .flatMap(this::parseResponseToList);
     }
 
     private String buildPrompt(String text) {
         return String.format(
-                "请从以下文本中提取课程安排信息: \"%s\"\n\n" +
-                "你需要识别这是固定周课表还是按日期的课表。\n" +
+                "请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
+                "你需要识别这是固定周课表还是按日期的课表。对于文本中提到的每一个排课，都需提取相应信息。\n" +
                 "- 如果是固定周课表,请提取星期几、时间(例如 \"14:00-15:00\")和姓名。\n" +
                 "- 如果是日期类课表,请提取日期(格式 YYYY-MM-DD)、时间(例如 \"14:00-15:00\")和姓名。\n\n" +
-                "请将结果以JSON格式返回,不要包含任何其他说明文字或代码标记。\n" +
-                "如果文本与课程无关,请返回一个空的JSON对象 {}。\n\n" +
-                "JSON格式如下:\n" +
-                "对于固定周课表(不需要dayOfWeek字段时请省略):\n" +
+                "请将结果以JSON数组格式返回,数组中的每个对象代表一个排课。不要包含任何其他说明文字或代码标记。\n" +
+                "如果文本与课程无关,请返回一个空的JSON数组 []。\n\n" +
+                "JSON对象格式如下:\n" +
+                "对于固定周课表(不适用时请省略dayOfWeek字段):\n" +
                 "{\n" +
                 "  \"studentName\": \"学生姓名\",\n" +
                 "  \"time\": \"HH:mm-HH:mm\",\n" +
                 "  \"dayOfWeek\": \"MONDAY\"\n" +
                 "}\n\n" +
-                "对于日期类课表(不需要date字段时请省略):\n" +
+                "对于日期类课表(不适用时请省略date字段):\n" +
                 "{\n" +
                 "  \"studentName\": \"学生姓名\",\n" +
                 "  \"time\": \"HH:mm-HH:mm\",\n" +
@@ -91,15 +92,15 @@ public class AiNlpService {
                 text);
     }
 
-    private Mono<ScheduleInfo> parseResponse(String jsonResponse) {
-        if (jsonResponse == null || jsonResponse.trim().isEmpty() || jsonResponse.trim().equals("{}")) {
-            return Mono.empty();
+    private Mono<List<ScheduleInfo>> parseResponseToList(String jsonResponse) {
+        if (jsonResponse == null || jsonResponse.trim().isEmpty() || jsonResponse.trim().equals("[]")) {
+            return Mono.just(Collections.emptyList());
         }
         try {
             // The response from the AI might be wrapped in ```json ... ```
             String cleanJson = jsonResponse.trim().replace("```json", "").replace("```", "").trim();
-            ScheduleInfo scheduleInfo = objectMapper.readValue(cleanJson, ScheduleInfo.class);
-            return Mono.just(scheduleInfo);
+            List<ScheduleInfo> scheduleInfoList = objectMapper.readValue(cleanJson, new TypeReference<List<ScheduleInfo>>() {});
+            return Mono.just(scheduleInfoList);
         } catch (IOException e) {
             // Log the error and the problematic JSON
             logger.error("Failed to parse AI response: " + jsonResponse, e);

@@ -110,7 +110,7 @@ public class ScheduleService {
     /**
      * 通过文本输入提取排课信息
      */
-    public Mono<ScheduleInfo> extractScheduleInfoFromText(String text) {
+    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text) {
         return aiNlpService.extractScheduleInfo(text);
     }
     
