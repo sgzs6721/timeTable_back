@@ -15,6 +15,10 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -100,7 +104,55 @@ public class AiNlpService {
             // The response from the AI might be wrapped in ```json ... ```
             String cleanJson = jsonResponse.trim().replace("```json", "").replace("```", "").trim();
             List<ScheduleInfo> scheduleInfoList = objectMapper.readValue(cleanJson, new TypeReference<List<ScheduleInfo>>() {});
-            return Mono.just(scheduleInfoList);
+
+            List<ScheduleInfo> expandedList = new ArrayList<>();
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            for (ScheduleInfo schedule : scheduleInfoList) {
+                if (schedule.getTime() == null || !schedule.getTime().contains("-")) {
+                    expandedList.add(schedule); // Add as is if no time or invalid format
+                    continue;
+                }
+
+                try {
+                    String[] timeParts = schedule.getTime().split("-");
+                    LocalTime startTime = LocalTime.parse(timeParts[0].trim());
+                    LocalTime endTime = LocalTime.parse(timeParts[1].trim());
+
+                    if (startTime.isAfter(endTime) || startTime.equals(endTime)) {
+                        logger.warn("Invalid time range (start is not before end): {}. Adding schedule as is.", schedule.getTime());
+                        expandedList.add(schedule);
+                        continue;
+                    }
+
+                    LocalTime currentTime = startTime;
+                    while (currentTime.isBefore(endTime)) {
+                        LocalTime nextHour = currentTime.plusHours(1);
+                        
+                        // Ensure we don't go past the original end time
+                        if (nextHour.isAfter(endTime)) {
+                            nextHour = endTime;
+                        }
+                        
+                        // Create a new ScheduleInfo for the one-hour slot
+                        ScheduleInfo newSchedule = new ScheduleInfo(
+                            schedule.getStudentName(),
+                            currentTime.format(timeFormatter) + "-" + nextHour.format(timeFormatter),
+                            schedule.getDayOfWeek(),
+                            schedule.getDate()
+                        );
+                        expandedList.add(newSchedule);
+
+                        currentTime = nextHour;
+                    }
+                } catch (DateTimeParseException | ArrayIndexOutOfBoundsException e) {
+                    // Log the error and add the original schedule
+                    logger.warn("Could not parse time slot: '{}'. Adding schedule as is.", schedule.getTime(), e);
+                    expandedList.add(schedule);
+                }
+            }
+
+            return Mono.just(expandedList);
         } catch (IOException e) {
             // Log the error and the problematic JSON
             logger.error("Failed to parse AI response: " + jsonResponse, e);
