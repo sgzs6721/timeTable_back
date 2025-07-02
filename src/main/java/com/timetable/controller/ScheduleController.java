@@ -215,7 +215,7 @@ public class ScheduleController {
         }
         
         try {
-            List<ScheduleInfo> scheduleInfoList = scheduleService.extractScheduleInfoFromText(timetableId, request.getText())
+            List<ScheduleInfo> scheduleInfoList = scheduleService.extractScheduleInfoFromText(request.getText(), request.getType())
                     .block(Duration.ofSeconds(60)); // Block for up to 60 seconds
 
             if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
@@ -274,4 +274,4 @@ public class ScheduleController {
         int deleted = scheduleService.deleteSchedulesByCondition(timetableId, request);
         return ResponseEntity.ok(ApiResponse.success("删除排课成功", deleted));
     }
-} 
+}

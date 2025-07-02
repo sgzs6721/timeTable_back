@@ -11,6 +11,8 @@ public class TextInputRequest {
     @NotBlank(message = "输入文本不能为空")
     @Size(max = 1000, message = "输入文本长度不能超过1000字符")
     private String text;
+
+    private String type;
     
     // 构造函数
     public TextInputRequest() {
@@ -27,6 +29,14 @@ public class TextInputRequest {
     
     public void setText(String text) {
         this.text = text;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
     
     @Override

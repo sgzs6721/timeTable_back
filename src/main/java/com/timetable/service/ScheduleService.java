@@ -282,14 +282,7 @@ public class ScheduleService {
     /**
      * 通过文本输入提取排课信息
      */
-    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(Long timetableId, String text) {
-        Timetables timetable = timetableRepository.findById(timetableId);
-        if (timetable == null) {
-            return Mono.error(new IllegalArgumentException("Timetable not found"));
-        }
-        
-        // MySQL的BOOLEAN/TINYINT(1)映射为Byte, 1=true, 0=false
-        String type = timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1 ? "WEEKLY" : "DATE_RANGE";
+    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, String type) {
         return aiNlpService.extractScheduleInfo(text, type);
     }
     
