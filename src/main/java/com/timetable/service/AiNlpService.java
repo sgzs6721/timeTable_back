@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
 import com.timetable.dto.ai.ChatResponse;
-import com.timetable.dto.ai.ResponseFormat;
 import com.timetable.dto.ai.ScheduleInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
