@@ -5,9 +5,12 @@ import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
 import com.timetable.dto.ai.ChatResponse;
 import com.timetable.dto.ai.ScheduleInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
@@ -17,6 +20,7 @@ import java.util.List;
 @Service
 public class AiNlpService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AiNlpService.class);
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
@@ -42,6 +46,12 @@ public class AiNlpService {
                 Collections.singletonList(new ChatMessage("user", prompt))
         );
 
+        try {
+            logger.info("Sending AI request with body: {}", objectMapper.writeValueAsString(request));
+        } catch (IOException e) {
+            logger.error("Error serializing AI request body", e);
+        }
+
         return webClient.post()
                 .uri(apiUrl + "/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
@@ -49,6 +59,10 @@ public class AiNlpService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
+                .doOnError(WebClientResponseException.class, ex -> {
+                    logger.error("AI API call failed with status code: {}", ex.getRawStatusCode());
+                    logger.error("AI API response body: {}", ex.getResponseBodyAsString());
+                })
                 .map(ChatResponse::getFirstChoiceContent)
                 .flatMap(this::parseResponse);
     }
@@ -88,7 +102,7 @@ public class AiNlpService {
             return Mono.just(scheduleInfo);
         } catch (IOException e) {
             // Log the error and the problematic JSON
-            System.err.println("Failed to parse AI response: " + jsonResponse);
+            logger.error("Failed to parse AI response: " + jsonResponse, e);
             return Mono.error(new RuntimeException("Failed to parse AI response", e));
         }
     }
