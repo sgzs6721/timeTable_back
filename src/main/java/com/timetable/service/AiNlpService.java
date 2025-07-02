@@ -75,16 +75,19 @@ public class AiNlpService {
     private String buildPrompt(String text, String timetableType) {
         String jsonFormat;
         String typeDescription;
+        String negativeInstruction;
 
         if ("WEEKLY".equalsIgnoreCase(timetableType)) {
-            typeDescription = "这是一个固定周课表, 你只需要提取星期几 (dayOfWeek)。";
+            typeDescription = "这是一个**周固定课表**。";
+            negativeInstruction = "你**只能**提取 `dayOfWeek` (星期几)，**绝对不能**包含 `date` (日期) 字段。如果用户提到了具体的日期（如"8月15日"），请忽略它，只关注星期几。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +
                          "  \"time\": \"HH:mm-HH:mm\",\n" +
                          "  \"dayOfWeek\": \"MONDAY\"\n" +
                          "}";
         } else { // DATE_RANGE
-            typeDescription = "这是一个日期范围课表, 你只需要提取具体的日期 (date)。";
+            typeDescription = "这是一个**日期范围课表**。";
+            negativeInstruction = "你**只能**提取 `date` (具体日期)，**绝对不能**包含 `dayOfWeek` (星期几) 字段。如果用户提到了星期几（如"周三"），请忽略它，专注于识别具体的日期。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +
                          "  \"time\": \"HH:mm-HH:mm\",\n" +
@@ -93,12 +96,14 @@ public class AiNlpService {
         }
 
         return String.format(
-                "请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
-                "这是一个%s, 请严格按照这个类型来提取信息。\n\n" +
-                "请将结果以JSON数组格式返回, 数组中的每个对象代表一个排课。不要包含任何其他说明文字或代码标记。\n" +
-                "如果文本与课程无关, 请返回一个空的JSON数组 []。\n\n" +
-                "JSON对象格式如下:\n%s",
-                text, typeDescription, jsonFormat);
+                "你是一个严格的课程安排解析助手。请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
+                "### 任务要求\n" +
+                "1. **课表类型**: %s\n" +
+                "2. **关键指令**: %s\n" +
+                "3. **输出格式**: 必须是严格的JSON数组格式，数组中的每个对象代表一个排课。不要返回任何其他说明文字或代码标记。\n" +
+                "4. **无关内容**: 如果文本与课程无关，请返回一个空的JSON数组 `[]`。\n\n" +
+                "### JSON对象格式\n%s",
+                text, typeDescription, negativeInstruction, jsonFormat);
     }
 
     private Mono<List<ScheduleInfo>> parseResponseToList(String jsonResponse) {
