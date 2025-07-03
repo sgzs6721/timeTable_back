@@ -369,6 +369,49 @@ public class ScheduleService {
     }
 
     /**
+     * 强制批量创建排课（智能覆盖）
+     * - 如果是不同学员的时间冲突：删除原有排课，添加新排课
+     * - 如果是同一学员的重复排课：保留原有排课，添加新排课
+     */
+    public List<Schedules> createSchedulesWithOverride(Long timetableId, List<ScheduleRequest> requests) {
+        List<Schedules> result = new ArrayList<>();
+
+        // 获取现有的排课数据
+        List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+
+        for (ScheduleRequest request : requests) {
+            // 查找与当前请求冲突的现有排课
+            List<Schedules> conflictingSchedules = new ArrayList<>();
+
+            for (Schedules existing : existingSchedules) {
+                if (hasTimeConflict(request, existing)) {
+                    // 如果是不同学员的冲突，需要删除原有排课
+                    if (!request.getStudentName().equals(existing.getStudentName())) {
+                        conflictingSchedules.add(existing);
+                    }
+                    // 如果是同一学员，不删除，允许重复
+                }
+            }
+
+            // 删除冲突的排课（仅限不同学员）
+            for (Schedules conflicting : conflictingSchedules) {
+                scheduleRepository.deleteById(conflicting.getId());
+                logger.info("删除冲突排课: 学生={}, 时间={}-{}, ID={}",
+                    conflicting.getStudentName(),
+                    conflicting.getStartTime(),
+                    conflicting.getEndTime(),
+                    conflicting.getId());
+            }
+
+            // 创建新的排课
+            Schedules newSchedule = createSchedule(timetableId, request);
+            result.add(newSchedule);
+        }
+
+        return result;
+    }
+
+    /**
      * 检测排课冲突
      */
     public ConflictCheckResult checkScheduleConflicts(Long timetableId, List<ScheduleRequest> requests) {
@@ -538,7 +581,7 @@ public class ScheduleService {
             }
             return true;
         } else { // DATE_RANGE
-            String[] dateTokens = part.split("[-~至]");
+            String[] dateTokens = part.split("[-~至到]");
             if (dateTokens.length == 1) {
                 // A single date part must be in M.D format
                 return dateTokens[0].matches("^\\d{1,2}[月./]\\d{1,2}$");
@@ -564,7 +607,7 @@ public class ScheduleService {
 
     private List<String> parseDayOfWeekRanges(String part) {
         List<String> resultDays = new ArrayList<>();
-        String[] dayParts = part.split("[-~至]");
+        String[] dayParts = part.split("[-~至到]");
 
         if (dayParts.length == 2) {
             DayOfWeek startDay = weekDayMap.get(dayParts[0]);
@@ -582,7 +625,7 @@ public class ScheduleService {
 
     private List<String> parseDateRanges(String part) {
         List<String> resultDates = new ArrayList<>();
-        String[] dateParts = part.split("[-~至]");
+        String[] dateParts = part.split("[-~至到]");
         int currentYear = LocalDate.now().getYear();
 
         if (dateParts.length == 2) {

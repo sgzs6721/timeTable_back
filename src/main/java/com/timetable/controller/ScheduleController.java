@@ -363,10 +363,11 @@ public class ScheduleController {
             }
         }
         try {
-            // 直接创建，不检查冲突
-            List<Schedules> schedules = scheduleService.createSchedules(timetableId, requests);
+            // 使用智能覆盖逻辑：删除不同学员的冲突排课，保留同学员的重复排课
+            List<Schedules> schedules = scheduleService.createSchedulesWithOverride(timetableId, requests);
             return ResponseEntity.ok(ApiResponse.success("强制创建排课成功", schedules));
         } catch (Exception e) {
+            logger.error("强制创建排课失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("创建排课失败: " + e.getMessage()));
         }
     }
