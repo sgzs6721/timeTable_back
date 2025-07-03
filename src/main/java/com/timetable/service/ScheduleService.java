@@ -94,7 +94,7 @@ public class ScheduleService {
             return scheduleRepository.findByTimetableId(timetableId);
         }
 
-        // For DATE-RANGE timetables, calculate the Monday-Sunday week based on the timetable's start date.
+        // For DATE-RANGE timetables, a "week" is defined as the calendar week (Monday-Sunday) that contains the timetable's start date.
         if (week != null && week > 0) {
             LocalDate timetableStartDate = timetable.getStartDate();
             if (timetableStartDate == null) {
@@ -103,11 +103,11 @@ public class ScheduleService {
                 return Collections.emptyList();
             }
 
-            // Find the Monday of the week where the timetable starts. This is our anchor.
-            LocalDate firstMonday = timetableStartDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            // Find the Monday of the week where the timetable officially starts. This is our anchor for all week calculations.
+            LocalDate anchorMonday = timetableStartDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             
             // Calculate the start and end date for the requested week (N).
-            LocalDate weekStartDate = firstMonday.plusWeeks(week - 1);
+            LocalDate weekStartDate = anchorMonday.plusWeeks(week - 1);
             LocalDate weekEndDate = weekStartDate.plusDays(6); // Monday + 6 days = Sunday
             
             return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, weekStartDate, weekEndDate);
