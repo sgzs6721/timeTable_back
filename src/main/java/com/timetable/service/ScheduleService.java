@@ -86,8 +86,28 @@ public class ScheduleService {
             return Collections.emptyList();
         }
 
-        // For both WEEKLY and DATE-RANGE timetables, we return all schedules.
-        // The frontend will be responsible for filtering/grouping by date or week.
+        // For WEEKLY timetables, week-based filtering is based on the week_number field.
+        if (timetable.getIsWeekly() == 1) {
+            if (week != null && week > 0) {
+                return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
+            }
+            return scheduleRepository.findByTimetableId(timetableId);
+        }
+
+        // For DATE-RANGE timetables, calculate date range from 'week' parameter.
+        if (week != null && week > 0) {
+            LocalDate timetableStartDate = timetable.getStartDate();
+            if (timetableStartDate == null) {
+                // Should not happen for a date-range timetable, but handle defensively.
+                return Collections.emptyList();
+            }
+            // Define a week as a 7-day block starting from the timetable's start date.
+            LocalDate weekStartDate = timetableStartDate.plusDays((long)(week - 1) * 7);
+            LocalDate weekEndDate = weekStartDate.plusDays(6);
+            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, weekStartDate, weekEndDate);
+        }
+        
+        // If 'week' is not provided for a date-range timetable, return all its schedules.
         return scheduleRepository.findByTimetableId(timetableId);
     }
     
@@ -102,8 +122,16 @@ public class ScheduleService {
         schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
-        // For DATE_RANGE timetables, weekNumber should be null. We rely on scheduleDate.
-        schedule.setWeekNumber(request.getWeekNumber());
+        
+        // For date-range timetables, weekNumber from request is ignored and set to null.
+        // For weekly timetables, we use the one from the request.
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable != null && timetable.getIsWeekly() == 0) {
+            schedule.setWeekNumber(null);
+        } else {
+            schedule.setWeekNumber(request.getWeekNumber());
+        }
+        
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
         scheduleRepository.save(schedule);

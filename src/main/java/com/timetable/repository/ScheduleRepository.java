@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.time.LocalDate;
 
+import static com.timetable.generated.Tables.SCHEDULES;
+
 /**
  * 排课Repository - 内存实现（用于测试）
  */
@@ -42,9 +44,8 @@ public class ScheduleRepository {
     }
 
     public List<Schedules> findByTimetableIdAndWeekNumber(Long timetableId, Integer weekNumber) {
-        return dsl.selectFrom(com.timetable.generated.tables.Schedules.SCHEDULES)
-                .where(com.timetable.generated.tables.Schedules.SCHEDULES.TIMETABLE_ID.eq(timetableId)
-                        .and(com.timetable.generated.tables.Schedules.SCHEDULES.WEEK_NUMBER.eq(weekNumber)))
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId).and(SCHEDULES.WEEK_NUMBER.eq(weekNumber)))
                 .fetchInto(Schedules.class);
     }
 
@@ -107,6 +108,14 @@ public class ScheduleRepository {
             condition = condition.and(dslTable.SCHEDULE_DATE.eq(request.getScheduleDate()));
         }
         return dsl.deleteFrom(dslTable).where(condition).execute();
+    }
+
+    public List<Schedules> findByTimetableIdAndScheduleDateBetween(Long timetableId, LocalDate startDate, LocalDate endDate) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.SCHEDULE_DATE.between(startDate, endDate))
+                .orderBy(SCHEDULES.SCHEDULE_DATE, SCHEDULES.START_TIME)
+                .fetchInto(Schedules.class);
     }
 
     // 可根据业务扩展更多jOOQ查询
