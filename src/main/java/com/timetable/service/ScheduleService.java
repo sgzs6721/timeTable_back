@@ -606,4 +606,14 @@ public class ScheduleService {
 
         return "09:00-10:00"; // Fallback if no valid interpretation found
     }
+
+    public boolean deleteSingleSchedule(Long scheduleId) {
+        try {
+            scheduleRepository.deleteById(scheduleId);
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to delete schedule with ID: {}", scheduleId, e);
+            return false;
+        }
+    }
 } 
