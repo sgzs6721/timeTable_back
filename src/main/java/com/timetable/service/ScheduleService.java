@@ -79,9 +79,26 @@ public class ScheduleService {
      * 获取课表的排课列表
      */
     public List<Schedules> getTimetableSchedules(Long timetableId, Integer week) {
-        if (week != null) {
-            return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            return Collections.emptyList();
         }
+
+        // For WEEKLY timetables, ALWAYS return all schedules and IGNORE the 'week' parameter.
+        if (timetable.getIsWeekly() == 1) {
+            return scheduleRepository.findByTimetableId(timetableId);
+        }
+
+        // For DATE-RANGE timetables:
+        // If a 'week' parameter is provided, paginate by that week.
+        if (week != null && week > 0 && timetable.getStartDate() != null) {
+            LocalDate timetableStartDate = timetable.getStartDate();
+            LocalDate weekStartDate = timetableStartDate.plusWeeks(week - 1);
+            LocalDate weekEndDate = weekStartDate.plusDays(6);
+            return scheduleRepository.findByTimetableIdAndDateRange(timetableId, weekStartDate, weekEndDate);
+        }
+        
+        // If 'week' is not provided for a date-range timetable, return all its schedules.
         return scheduleRepository.findByTimetableId(timetableId);
     }
     

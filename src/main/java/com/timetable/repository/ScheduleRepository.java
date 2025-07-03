@@ -6,6 +6,7 @@ import com.timetable.generated.tables.pojos.Schedules;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.time.LocalDate;
 
 /**
  * 排课Repository - 内存实现（用于测试）
@@ -44,6 +45,13 @@ public class ScheduleRepository {
         return dsl.selectFrom(com.timetable.generated.tables.Schedules.SCHEDULES)
                 .where(com.timetable.generated.tables.Schedules.SCHEDULES.TIMETABLE_ID.eq(timetableId)
                         .and(com.timetable.generated.tables.Schedules.SCHEDULES.WEEK_NUMBER.eq(weekNumber)))
+                .fetchInto(Schedules.class);
+    }
+
+    public List<Schedules> findByTimetableIdAndDateRange(Long timetableId, LocalDate startDate, LocalDate endDate) {
+        return dsl.selectFrom(com.timetable.generated.tables.Schedules.SCHEDULES)
+                .where(com.timetable.generated.tables.Schedules.SCHEDULES.TIMETABLE_ID.eq(timetableId)
+                        .and(com.timetable.generated.tables.Schedules.SCHEDULES.SCHEDULE_DATE.between(startDate, endDate)))
                 .fetchInto(Schedules.class);
     }
 
