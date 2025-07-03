@@ -18,8 +18,11 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import javax.validation.Validator;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
+import java.util.ArrayList;
 
 /**
  * 排课控制器
@@ -29,14 +32,18 @@ import java.util.List;
 @Validated
 public class ScheduleController {
     
-    @Autowired
-    private ScheduleService scheduleService;
+    private final ScheduleService scheduleService;
+    private final TimetableService timetableService;
+    private final UserService userService;
+    private final Validator validator;
     
     @Autowired
-    private TimetableService timetableService;
-    
-    @Autowired
-    private UserService userService;
+    public ScheduleController(ScheduleService scheduleService, TimetableService timetableService, UserService userService, Validator validator) {
+        this.scheduleService = scheduleService;
+        this.timetableService = timetableService;
+        this.userService = userService;
+        this.validator = validator;
+    }
     
     /**
      * 获取课表的排课列表
@@ -267,12 +274,11 @@ public class ScheduleController {
     @PostMapping("/batch")
     public ResponseEntity<ApiResponse<List<Schedules>>> createSchedulesBatch(
             @PathVariable Long timetableId,
-            @Valid @RequestBody List<ScheduleRequest> requests,
+            @RequestBody List<ScheduleRequest> requests,
             Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("用户不存在"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
