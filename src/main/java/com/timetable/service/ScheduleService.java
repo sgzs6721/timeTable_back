@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.time.temporal.TemporalAdjusters;
 
 /**
  * 排课服务
@@ -81,6 +82,7 @@ public class ScheduleService {
     public List<Schedules> getTimetableSchedules(Long timetableId, Integer week) {
         Timetables timetable = timetableRepository.findById(timetableId);
         if (timetable == null) {
+            logger.warn("Timetable with ID {} not found.", timetableId);
             return Collections.emptyList();
         }
 
@@ -90,15 +92,29 @@ public class ScheduleService {
         }
 
         // For DATE-RANGE timetables:
-        // If a 'week' parameter is provided, paginate by that week.
-        if (week != null && week > 0 && timetable.getStartDate() != null) {
+        if (week != null && week > 0) {
+            if (timetable.getStartDate() == null) {
+                logger.warn("Date-range timetable {} has no start date, cannot paginate by week.", timetableId);
+                // Fallback to returning all schedules, as we cannot calculate a week range.
+                return scheduleRepository.findByTimetableId(timetableId);
+            }
+            
             LocalDate timetableStartDate = timetable.getStartDate();
-            LocalDate weekStartDate = timetableStartDate.plusWeeks(week - 1);
+            // Align the start to the Monday of the first week.
+            LocalDate firstCalendarWeekMonday = timetableStartDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            
+            // Calculate the start and end of the requested week.
+            LocalDate weekStartDate = firstCalendarWeekMonday.plusWeeks(week - 1);
             LocalDate weekEndDate = weekStartDate.plusDays(6);
+            
+            logger.info("Fetching schedules for date-range timetable ID: {}, week: {}, date range: {} to {}", 
+                        timetableId, week, weekStartDate, weekEndDate);
+            
             return scheduleRepository.findByTimetableIdAndDateRange(timetableId, weekStartDate, weekEndDate);
         }
         
         // If 'week' is not provided for a date-range timetable, return all its schedules.
+        logger.info("Fetching all schedules for date-range timetable ID: {}", timetableId);
         return scheduleRepository.findByTimetableId(timetableId);
     }
     
