@@ -8,6 +8,8 @@ import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.TimetableRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +31,8 @@ import java.util.List;
  */
 @Service
 public class ScheduleService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ScheduleService.class);
     
     private final ScheduleRepository scheduleRepository;
     private final AiNlpService aiNlpService;
@@ -119,7 +123,7 @@ public class ScheduleService {
         return Mono.fromCallable(() -> siliconFlowService.transcribeAudio(audioFile))
                 .flatMap(transcribedText -> {
                     if (transcribedText == null || transcribedText.trim().isEmpty()) {
-                        return Mono.just(Collections.emptyList());
+                        return Mono.just(Collections.<ScheduleInfo>emptyList());
                     }
                     return this.extractScheduleInfoFromText(transcribedText, type);
                 })

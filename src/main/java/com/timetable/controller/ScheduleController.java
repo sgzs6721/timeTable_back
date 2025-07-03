@@ -170,7 +170,7 @@ public class ScheduleController {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return Mono.just(ResponseEntity.badRequest()
-                    .body(ApiResponse.error("用户不存在", null)));
+                    .body(ApiResponse.<List<ScheduleInfo>>error("用户不存在", null)));
         }
 
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
@@ -179,19 +179,19 @@ public class ScheduleController {
 
         if (audioFile.isEmpty()) {
             return Mono.just(ResponseEntity.badRequest()
-                    .body(ApiResponse.error("音频文件不能为空", null)));
+                    .body(ApiResponse.<List<ScheduleInfo>>error("音频文件不能为空", null)));
         }
 
         return scheduleService.createScheduleByVoice(timetableId, audioFile, type)
             .map(scheduleInfoList -> {
                 if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
-                    return ResponseEntity.badRequest().body(ApiResponse.error("无法从语音中解析出排课信息", null));
+                    return ResponseEntity.badRequest().body(ApiResponse.<List<ScheduleInfo>>error("无法从语音中解析出排课信息", null));
                 }
                 return ResponseEntity.ok(ApiResponse.success("语音解析成功", scheduleInfoList));
             })
             .onErrorResume(e -> Mono.just(
                 ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("处理音频文件失败: " + e.getMessage(), null))
+                    .body(ApiResponse.<List<ScheduleInfo>>error("处理音频文件失败: " + e.getMessage(), null))
             ));
     }
     
