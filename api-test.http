@@ -1,12 +1,12 @@
-@token = eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJuZXcydXNlciIsImV4cCI6MTgzNzc3NDQ1NSwiaWF0IjoxNzUxMzc0NDU1fQ.CI6g3LATAUutFhXkvO_7HmyMK5Z32Km6W3jpSgInOTnWnCIe6PLm8rzkY6eSMtin9vDEyM-lvkB6r1JYcro7qw
+@token = eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZ3pzIiwiZXhwIjoxODM3OTU3MzIwLCJpYXQiOjE3NTE1NTczMjB9.pQCo8mQNjuCcE6zPlSklO7nD0EC978Gm4UwbJImJCR6uuvXUtq-pg_s7pRavxQdhb9Dp8ytrOVHXCTf8oK9eMw
 
 ### 用户登录
 POST http://localhost:8088/timetable/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "new2user",
-  "password": "newpass"
+  "username": "sgzs",
+  "password": "1234567"
 }
 
 ### 用户注册
@@ -85,7 +85,7 @@ Authorization: Bearer {{token}}
 ]
 
 ### 获取排课列表
-GET http://localhost:8088/timetable/api/timetables/1/schedules
+GET http://localhost:8088/timetable/api/timetables/4/schedules
 Authorization: Bearer {{token}}
 
 ### 按条件批量删除排课
@@ -98,4 +98,50 @@ Authorization: Bearer {{token}}
   "dayOfWeek": "THURSDAY",
   "startTime": "13:00",
   "endTime": "14:00"
-} 
+}
+
+### 批量按条件删除排课
+DELETE http://localhost:8088/timetable/api/timetables/1/schedules/batch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+[
+  {
+    "studentName": "于乐之",
+    "dayOfWeek": "THURSDAY",
+    "startTime": "13:00",
+    "endTime": "14:00"
+  },
+  {
+    "studentName": "张早早",
+    "dayOfWeek": "FRIDAY",
+    "startTime": "13:00",
+    "endTime": "14:00"
+  }
+]
+
+### 获取第1周的排课（本地测试）
+GET http://localhost:8088/timetable/api/timetables/6/schedules?week=1
+Authorization: Bearer {{token}} 
+
+
+### 获取第1周的排课（本地测试）
+
+POST http://localhost:8088/timetable/api/timetables/4/schedules/batch
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+[
+  {
+    "studentName": "张三",
+    "scheduleDate": "2024-07-01",
+    "startTime": "13:00",
+    "endTime": "14:00"
+  },
+  {
+    "studentName": "李四",
+    "scheduleDate": "2024-07-02",
+    "startTime": "15:00",
+    "endTime": "16:00"
+  }
+]

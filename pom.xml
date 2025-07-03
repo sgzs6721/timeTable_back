@@ -125,6 +125,14 @@
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -202,9 +210,9 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <db.url>jdbc:mysql://localhost:3306/timetable_db</db.url>
-                <db.user>root</db.user>
-                <db.password></db.password>
+                <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
+                <db.user>timetable</db.user>
+                <db.password>Leilei*0217</db.password>
             </properties>
         </profile>
         <profile>

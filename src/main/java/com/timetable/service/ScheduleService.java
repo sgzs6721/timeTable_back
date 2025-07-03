@@ -93,26 +93,9 @@ public class ScheduleService {
 
         // For DATE-RANGE timetables:
         if (week != null && week > 0) {
-            if (timetable.getStartDate() == null) {
-                logger.warn("Date-range timetable {} has no start date, cannot paginate by week.", timetableId);
-                // Fallback to returning all schedules, as we cannot calculate a week range.
-                return scheduleRepository.findByTimetableId(timetableId);
-            }
-            
-            LocalDate timetableStartDate = timetable.getStartDate();
-            // Align the start to the Monday of the first week.
-            LocalDate firstCalendarWeekMonday = timetableStartDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-            
-            // Calculate the start and end of the requested week.
-            LocalDate weekStartDate = firstCalendarWeekMonday.plusWeeks(week - 1);
-            LocalDate weekEndDate = weekStartDate.plusDays(6);
-            
-            logger.info("Fetching schedules for date-range timetable ID: {}, week: {}, date range: {} to {}", 
-                        timetableId, week, weekStartDate, weekEndDate);
-            
-            return scheduleRepository.findByTimetableIdAndDateRange(timetableId, weekStartDate, weekEndDate);
+            // 直接用weekNumber字段过滤
+            return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
         }
-        
         // If 'week' is not provided for a date-range timetable, return all its schedules.
         logger.info("Fetching all schedules for date-range timetable ID: {}", timetableId);
         return scheduleRepository.findByTimetableId(timetableId);
@@ -122,6 +105,7 @@ public class ScheduleService {
      * 创建新排课
      */
     public Schedules createSchedule(Long timetableId, ScheduleRequest request) {
+        Timetables timetable = timetableRepository.findById(timetableId);
         Schedules schedule = new Schedules();
         schedule.setTimetableId(timetableId);
         schedule.setStudentName(request.getStudentName());
@@ -129,7 +113,22 @@ public class ScheduleService {
         schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
-        schedule.setWeekNumber(request.getWeekNumber());
+        // weekNumber自动补全逻辑
+        Integer weekNumber = request.getWeekNumber();
+        if (weekNumber == null && timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 0) {
+            // DATE_RANGE类型，自动计算weekNumber
+            LocalDate startDate = timetable.getStartDate();
+            LocalDate scheduleDate = request.getScheduleDate();
+            if (startDate != null && scheduleDate != null) {
+                LocalDate firstMonday = startDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                long days = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, scheduleDate);
+                weekNumber = (int)(days / 7) + 1;
+                if (weekNumber < 1) {
+                    weekNumber = 1;
+                }
+            }
+        }
+        schedule.setWeekNumber(weekNumber);
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
         scheduleRepository.save(schedule);
