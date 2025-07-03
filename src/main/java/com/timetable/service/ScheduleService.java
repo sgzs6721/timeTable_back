@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * 排课服务
@@ -43,6 +45,25 @@ public class ScheduleService {
     private final TimetableRepository timetableRepository;
     private final SiliconFlowService siliconFlowService;
     private final ObjectMapper objectMapper;
+
+    private static final Map<String, DayOfWeek> weekDayMap = new LinkedHashMap<>();
+    static {
+        weekDayMap.put("一", DayOfWeek.MONDAY);
+        weekDayMap.put("1", DayOfWeek.MONDAY);
+        weekDayMap.put("二", DayOfWeek.TUESDAY);
+        weekDayMap.put("2", DayOfWeek.TUESDAY);
+        weekDayMap.put("三", DayOfWeek.WEDNESDAY);
+        weekDayMap.put("3", DayOfWeek.WEDNESDAY);
+        weekDayMap.put("四", DayOfWeek.THURSDAY);
+        weekDayMap.put("4", DayOfWeek.THURSDAY);
+        weekDayMap.put("五", DayOfWeek.FRIDAY);
+        weekDayMap.put("5", DayOfWeek.FRIDAY);
+        weekDayMap.put("六", DayOfWeek.SATURDAY);
+        weekDayMap.put("6", DayOfWeek.SATURDAY);
+        weekDayMap.put("日", DayOfWeek.SUNDAY);
+        weekDayMap.put("天", DayOfWeek.SUNDAY);
+        weekDayMap.put("7", DayOfWeek.SUNDAY);
+    }
 
     @Autowired
     public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService, 
@@ -340,17 +361,50 @@ public class ScheduleService {
 
     private List<ScheduleInfo> parseSingleLine(String line, String type) {
         List<ScheduleInfo> results = new ArrayList<>();
-        // Replace multiple spaces and different delimiters with a single comma
-        String standardizedLine = line.trim().replaceAll("\\s+", ",").replaceAll("，", ",");
-        String[] parts = standardizedLine.split(",");
+        String[] parts = line.trim().split("[\\s，,]+");
 
-        if (parts.length < 3) {
-            return results; // Not enough info
+        if (parts.length != 3) {
+            return results; // Expect exactly three parts: name, day/date, and time
         }
 
-        String studentName = parts[0];
-        List<String> days = parseDays(parts[1], type);
-        String timeRange = parseTime(parts[2]);
+        List<String> partList = new ArrayList<>(Arrays.asList(parts));
+        String timePart = null;
+        String dayPart = null;
+        String studentName = null;
+
+        // Identify Time Part
+        for (Iterator<String> iterator = partList.iterator(); iterator.hasNext();) {
+            String part = iterator.next();
+            if (isTimePart(part)) {
+                timePart = part;
+                iterator.remove();
+                break;
+            }
+        }
+
+        // Identify Day/Date Part
+        if (timePart != null) { // Only proceed if time was found
+            for (Iterator<String> iterator = partList.iterator(); iterator.hasNext();) {
+                String part = iterator.next();
+                if (isDayPart(part, type)) {
+                    dayPart = part;
+                    iterator.remove();
+                    break;
+                }
+            }
+        }
+        
+        // The remaining part must be the student name
+        if (partList.size() == 1) {
+            studentName = partList.get(0);
+        }
+
+        if (studentName == null || dayPart == null || timePart == null) {
+            return results; // Failed to identify all three components
+        }
+
+        List<String> days = parseDays(dayPart, type);
+        String timeRange = parseTime(timePart);
 
         for (String day : days) {
             if ("WEEKLY".equalsIgnoreCase(type)) {
@@ -360,6 +414,30 @@ public class ScheduleService {
             }
         }
         return results;
+    }
+
+    private boolean isTimePart(String part) {
+        String cleanPart = part.trim().replaceAll("点", "");
+        return cleanPart.matches("^\\d{1,2}([-~]\\d{1,2})?$") || cleanPart.matches("^\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}$");
+    }
+
+    private boolean isDayPart(String part, String type) {
+        if ("WEEKLY".equalsIgnoreCase(type)) {
+            String cleanPart = part.trim().replaceAll("周|星期", "");
+            String[] dayTokens = cleanPart.split("[-~至]");
+            if (dayTokens.length < 1 || dayTokens.length > 2) return false;
+            for (String token : dayTokens) {
+                if (!weekDayMap.containsKey(token)) return false;
+            }
+            return true;
+        } else { // DATE_RANGE
+            String[] dateTokens = part.split("[-~至]");
+            if (dateTokens.length < 1 || dateTokens.length > 2) return false;
+            for (String token : dateTokens) {
+                if (!token.matches("^\\d{1,2}[月./]\\d{1,2}$")) return false;
+            }
+            return true;
+        }
     }
 
     private List<String> parseDays(String dayPart, String type) {
@@ -372,23 +450,6 @@ public class ScheduleService {
     }
 
     private List<String> parseDayOfWeekRanges(String part) {
-        Map<String, DayOfWeek> weekDayMap = new LinkedHashMap<>();
-        weekDayMap.put("一", DayOfWeek.MONDAY);
-        weekDayMap.put("1", DayOfWeek.MONDAY);
-        weekDayMap.put("二", DayOfWeek.TUESDAY);
-        weekDayMap.put("2", DayOfWeek.TUESDAY);
-        weekDayMap.put("三", DayOfWeek.WEDNESDAY);
-        weekDayMap.put("3", DayOfWeek.WEDNESDAY);
-        weekDayMap.put("四", DayOfWeek.THURSDAY);
-        weekDayMap.put("4", DayOfWeek.THURSDAY);
-        weekDayMap.put("五", DayOfWeek.FRIDAY);
-        weekDayMap.put("5", DayOfWeek.FRIDAY);
-        weekDayMap.put("六", DayOfWeek.SATURDAY);
-        weekDayMap.put("6", DayOfWeek.SATURDAY);
-        weekDayMap.put("日", DayOfWeek.SUNDAY);
-        weekDayMap.put("天", DayOfWeek.SUNDAY);
-        weekDayMap.put("7", DayOfWeek.SUNDAY);
-        
         List<String> resultDays = new ArrayList<>();
         String[] dayParts = part.split("[-~至]");
 
@@ -402,8 +463,6 @@ public class ScheduleService {
             }
         } else if (dayParts.length == 1 && weekDayMap.containsKey(dayParts[0])) {
              resultDays.add(weekDayMap.get(dayParts[0]).toString());
-        } else {
-            // Handle single entries not in map or invalid ranges
         }
         return resultDays;
     }
@@ -442,7 +501,7 @@ public class ScheduleService {
     }
 
     private String parseTime(String timePart) {
-        timePart = timePart.trim().replaceAll("[~]", "-");
+        timePart = timePart.trim().replaceAll("点", "").replaceAll("[~]", "-");
 
         // Handles "15:00-16:00" - pass through for now
         if (timePart.matches("\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}")) {
