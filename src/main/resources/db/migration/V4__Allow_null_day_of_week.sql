@@ -1,0 +1,1 @@
+ALTER TABLE schedules MODIFY COLUMN day_of_week VARCHAR(20) NULL; 

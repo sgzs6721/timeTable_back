@@ -33,16 +33,16 @@ CREATE INDEX idx_timetables_name ON timetables (name);
 CREATE INDEX idx_timetables_created_at ON timetables (created_at);
 
 -- 创建课程安排表
-CREATE TABLE IF NOT EXISTS schedules (
+CREATE TABLE schedules (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     timetable_id BIGINT NOT NULL,
     student_name VARCHAR(100) NOT NULL,
     subject VARCHAR(100),
+    day_of_week VARCHAR(10) NOT NULL CHECK (day_of_week IN ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    day_of_week VARCHAR(20),
-    week_number INT,
-    schedule_date DATE,
+    week_number INT NULL,
+    schedule_date DATE NULL,
     note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
