@@ -112,18 +112,21 @@ public class ScheduleService {
      * 通过语音输入创建排课
      */
     public Mono<List<ScheduleInfo>> createScheduleByVoice(Long timetableId, MultipartFile audioFile, String type) {
-        Timetables timetable = timetableRepository.findById(timetableId);
-        if (timetable == null) {
+        if (timetableRepository.findById(timetableId) == null) {
             return Mono.error(new IllegalArgumentException("Timetable not found"));
         }
 
-        return siliconFlowService.transcribeAudio(audioFile)
-                .flatMap(transcribedText -> 
-                    aiNlpService.extractScheduleInfoFromText(transcribedText, type)
-                )
-                .onErrorResume(e -> 
-                    Mono.just(Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage())))
-                );
+        return Mono.fromCallable(() -> siliconFlowService.transcribeAudio(audioFile))
+                .flatMap(transcribedText -> {
+                    if (transcribedText == null || transcribedText.trim().isEmpty()) {
+                        return Mono.just(Collections.emptyList());
+                    }
+                    return this.extractScheduleInfoFromText(transcribedText, type);
+                })
+                .onErrorResume(e -> {
+                    logger.error("Error processing voice input for timetableId: " + timetableId, e);
+                    return Mono.just(Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage())));
+                });
     }
     
     /**

@@ -43,7 +43,7 @@ public class AiNlpService {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<List<ScheduleInfo>> extractScheduleInfo(String text, String timetableType) {
+    public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
 
         ChatRequest request = new ChatRequest(
@@ -99,10 +99,11 @@ public class AiNlpService {
                 "你是一个严格的课程安排解析助手。请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
                 "### 任务要求\n" +
                 "1. **课表类型**: %s\n" +
-                "2. **用户输入内容**: 用户的输入通常只会包含**日期（如 2023-01-01）、星期（如周一）、时间（如 3-4点）和人名（如张三）**相关的信息。请专注于从这些信息中解析。\n" +
-                "3. **关键指令**: %s\n" +
-                "4. **输出格式**: 必须是严格的JSON数组格式，数组中的每个对象代表一个排课。不要返回任何其他说明文字或代码标记。\n" +
-                "5. **无关内容**: 如果文本与课程无关，请返回一个空的JSON数组 `[]`。\n\n" +
+                "2. **用户输入内容**: 用户的输入通常只会包含**日期、星期、时间和人名**相关的信息。请专注于从这些信息中解析。\n" +
+                "3. **年份处理**: 如果用户输入的日期没有指定年份（例如只说了"8月15日"），你必须默认使用**当前年份**。\n" +
+                "4. **关键指令**: %s\n" +
+                "5. **输出格式**: 必须是严格的JSON数组格式，数组中的每个对象代表一个排课。不要返回任何其他说明文字或代码标记。\n" +
+                "6. **无关内容**: 如果文本与课程无关，请返回一个空的JSON数组 `[]`。\n\n" +
                 "### JSON对象格式\n%s",
                 text, typeDescription, negativeInstruction, jsonFormat);
     }

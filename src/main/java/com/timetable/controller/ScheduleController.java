@@ -167,31 +167,32 @@ public class ScheduleController {
             @RequestParam("type") String type,
             Authentication authentication) {
         
-        return Mono.fromCallable(() -> {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return Mono.just(ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在", null)));
+        }
 
-            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-                return ResponseEntity.notFound().build();
-            }
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return Mono.just(ResponseEntity.notFound().build());
+        }
 
-            if (audioFile.isEmpty()) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("音频文件不能为空"));
-            }
-            return null; // 继续执行
-        }).switchIfEmpty(
-            scheduleService.createScheduleByVoice(timetableId, audioFile, type)
-                .map(scheduleInfoList -> {
-                    if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
-                        return ResponseEntity.badRequest().body(ApiResponse.error("无法从语音中解析出排课信息"));
-                    }
-                    return ResponseEntity.ok(ApiResponse.success("语音解析成功", scheduleInfoList));
-                })
-                .onErrorResume(e -> Mono.just(ResponseEntity.internalServerError()
-                        .body(ApiResponse.error("处理音频文件失败: " + e.getMessage()))))
-        ).defaultIfEmpty(ResponseEntity.status(500).build()); // Fallback for initial checks
+        if (audioFile.isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest()
+                    .body(ApiResponse.error("音频文件不能为空", null)));
+        }
+
+        return scheduleService.createScheduleByVoice(timetableId, audioFile, type)
+            .map(scheduleInfoList -> {
+                if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("无法从语音中解析出排课信息", null));
+                }
+                return ResponseEntity.ok(ApiResponse.success("语音解析成功", scheduleInfoList));
+            })
+            .onErrorResume(e -> Mono.just(
+                ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("处理音频文件失败: " + e.getMessage(), null))
+            ));
     }
     
     /**
