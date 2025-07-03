@@ -10,6 +10,8 @@ import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.ScheduleService;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -32,6 +34,8 @@ import java.util.ArrayList;
 @RequestMapping("/timetables/{timetableId}/schedules")
 @Validated
 public class ScheduleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ScheduleController.class);
 
     private final ScheduleService scheduleService;
     private final TimetableService timetableService;
@@ -324,8 +328,13 @@ public class ScheduleController {
 
         try {
             ConflictCheckResult result = scheduleService.checkScheduleConflicts(timetableId, requests);
-            return ResponseEntity.ok(ApiResponse.success(result));
+            if (result.isHasConflicts()) {
+                return ResponseEntity.ok(ApiResponse.success("检测到冲突", result));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("无冲突", result));
+            }
         } catch (Exception e) {
+            logger.error("检查冲突失败", e);
             return ResponseEntity.badRequest().body(ApiResponse.error("检查冲突失败: " + e.getMessage()));
         }
     }

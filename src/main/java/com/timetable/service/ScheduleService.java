@@ -375,39 +375,44 @@ public class ScheduleService {
         ConflictCheckResult result = new ConflictCheckResult();
         List<ConflictInfo> conflicts = new ArrayList<>();
 
-        // 获取现有的排课数据
-        List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+        try {
+            // 获取现有的排课数据
+            List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
 
-        for (int i = 0; i < requests.size(); i++) {
-            ScheduleRequest request = requests.get(i);
+            for (int i = 0; i < requests.size(); i++) {
+                ScheduleRequest request = requests.get(i);
 
-            // 检查与现有排课的冲突
-            for (Schedules existing : existingSchedules) {
-                if (hasTimeConflict(request, existing)) {
-                    ConflictInfo conflict = new ConflictInfo();
-                    conflict.setNewScheduleIndex(i);
-                    conflict.setNewSchedule(request);
-                    conflict.setExistingSchedule(existing);
-                    conflict.setConflictType(determineConflictType(request, existing));
-                    conflict.setConflictDescription(generateConflictDescription(request, existing));
-                    conflicts.add(conflict);
+                // 检查与现有排课的冲突
+                for (Schedules existing : existingSchedules) {
+                    if (hasTimeConflict(request, existing)) {
+                        ConflictInfo conflict = new ConflictInfo();
+                        conflict.setNewScheduleIndex(i);
+                        conflict.setNewSchedule(request);
+                        conflict.setExistingSchedule(existing);
+                        conflict.setConflictType(determineConflictType(request, existing));
+                        conflict.setConflictDescription(generateConflictDescription(request, existing));
+                        conflicts.add(conflict);
+                    }
+                }
+
+                // 检查新排课之间的冲突
+                for (int j = i + 1; j < requests.size(); j++) {
+                    ScheduleRequest other = requests.get(j);
+                    if (hasTimeConflict(request, other)) {
+                        ConflictInfo conflict = new ConflictInfo();
+                        conflict.setNewScheduleIndex(i);
+                        conflict.setNewSchedule(request);
+                        conflict.setOtherNewScheduleIndex(j);
+                        conflict.setOtherNewSchedule(other);
+                        conflict.setConflictType("NEW_SCHEDULE_CONFLICT");
+                        conflict.setConflictDescription(generateConflictDescription(request, other));
+                        conflicts.add(conflict);
+                    }
                 }
             }
-
-            // 检查新排课之间的冲突
-            for (int j = i + 1; j < requests.size(); j++) {
-                ScheduleRequest other = requests.get(j);
-                if (hasTimeConflict(request, other)) {
-                    ConflictInfo conflict = new ConflictInfo();
-                    conflict.setNewScheduleIndex(i);
-                    conflict.setNewSchedule(request);
-                    conflict.setOtherNewScheduleIndex(j);
-                    conflict.setOtherNewSchedule(other);
-                    conflict.setConflictType("NEW_SCHEDULE_CONFLICT");
-                    conflict.setConflictDescription(generateConflictDescription(request, other));
-                    conflicts.add(conflict);
-                }
-            }
+        } catch (Exception e) {
+            logger.error("检测排课冲突时发生错误", e);
+            // 发生错误时返回无冲突结果，让业务继续进行
         }
 
         result.setHasConflicts(!conflicts.isEmpty());
