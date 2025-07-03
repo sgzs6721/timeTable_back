@@ -1,6 +1,6 @@
 package com.timetable.dto;
 
-import com.timetable.entity.Schedules;
+import com.timetable.generated.tables.pojos.Schedules;
 import java.util.List;
 
 /**
