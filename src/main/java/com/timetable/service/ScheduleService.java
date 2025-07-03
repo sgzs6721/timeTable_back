@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.ai.ScheduleInfo;
+import com.timetable.dto.ConflictInfo;
+import com.timetable.dto.ConflictCheckResult;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.ScheduleRepository;
@@ -367,6 +369,55 @@ public class ScheduleService {
     }
 
     /**
+     * 检测排课冲突
+     */
+    public ConflictCheckResult checkScheduleConflicts(Long timetableId, List<ScheduleRequest> requests) {
+        ConflictCheckResult result = new ConflictCheckResult();
+        List<ConflictInfo> conflicts = new ArrayList<>();
+
+        // 获取现有的排课数据
+        List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+
+        for (int i = 0; i < requests.size(); i++) {
+            ScheduleRequest request = requests.get(i);
+
+            // 检查与现有排课的冲突
+            for (Schedules existing : existingSchedules) {
+                if (hasTimeConflict(request, existing)) {
+                    ConflictInfo conflict = new ConflictInfo();
+                    conflict.setNewScheduleIndex(i);
+                    conflict.setNewSchedule(request);
+                    conflict.setExistingSchedule(existing);
+                    conflict.setConflictType(determineConflictType(request, existing));
+                    conflict.setConflictDescription(generateConflictDescription(request, existing));
+                    conflicts.add(conflict);
+                }
+            }
+
+            // 检查新排课之间的冲突
+            for (int j = i + 1; j < requests.size(); j++) {
+                ScheduleRequest other = requests.get(j);
+                if (hasTimeConflict(request, other)) {
+                    ConflictInfo conflict = new ConflictInfo();
+                    conflict.setNewScheduleIndex(i);
+                    conflict.setNewSchedule(request);
+                    conflict.setOtherNewScheduleIndex(j);
+                    conflict.setOtherNewSchedule(other);
+                    conflict.setConflictType("NEW_SCHEDULE_CONFLICT");
+                    conflict.setConflictDescription(generateConflictDescription(request, other));
+                    conflicts.add(conflict);
+                }
+            }
+        }
+
+        result.setHasConflicts(!conflicts.isEmpty());
+        result.setConflicts(conflicts);
+        result.setTotalConflicts(conflicts.size());
+
+        return result;
+    }
+
+    /**
      * 按条件批量删除排课
      */
     public int deleteSchedulesByCondition(Long timetableId, ScheduleRequest request) {
@@ -678,6 +729,148 @@ public class ScheduleService {
         }
 
         return expandedList;
+    }
+
+    /**
+     * 检查两个排课是否有时间冲突
+     */
+    private boolean hasTimeConflict(ScheduleRequest request, Schedules existing) {
+        // 检查日期/星期是否匹配
+        if (!isSameDateOrWeek(request, existing)) {
+            return false;
+        }
+
+        // 检查时间是否重叠
+        return isTimeOverlap(request.getStartTime(), request.getEndTime(),
+                           existing.getStartTime(), existing.getEndTime());
+    }
+
+    /**
+     * 检查两个新排课是否有时间冲突
+     */
+    private boolean hasTimeConflict(ScheduleRequest request1, ScheduleRequest request2) {
+        // 检查日期/星期是否匹配
+        if (!isSameDateOrWeek(request1, request2)) {
+            return false;
+        }
+
+        // 检查时间是否重叠
+        return isTimeOverlap(request1.getStartTime(), request1.getEndTime(),
+                           request2.getStartTime(), request2.getEndTime());
+    }
+
+    /**
+     * 检查是否是同一日期或星期
+     */
+    private boolean isSameDateOrWeek(ScheduleRequest request, Schedules existing) {
+        // 如果都有具体日期，比较日期
+        if (request.getScheduleDate() != null && existing.getScheduleDate() != null) {
+            return request.getScheduleDate().equals(existing.getScheduleDate());
+        }
+
+        // 如果都有星期，比较星期
+        if (request.getDayOfWeek() != null && existing.getDayOfWeek() != null) {
+            return request.getDayOfWeek().name().equals(existing.getDayOfWeek());
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查是否是同一日期或星期（两个新排课）
+     */
+    private boolean isSameDateOrWeek(ScheduleRequest request1, ScheduleRequest request2) {
+        // 如果都有具体日期，比较日期
+        if (request1.getScheduleDate() != null && request2.getScheduleDate() != null) {
+            return request1.getScheduleDate().equals(request2.getScheduleDate());
+        }
+
+        // 如果都有星期，比较星期
+        if (request1.getDayOfWeek() != null && request2.getDayOfWeek() != null) {
+            return request1.getDayOfWeek().equals(request2.getDayOfWeek());
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查时间是否重叠
+     */
+    private boolean isTimeOverlap(LocalTime start1, LocalTime end1, LocalTime start2, LocalTime end2) {
+        // 时间重叠的条件：start1 < end2 && start2 < end1
+        return start1.isBefore(end2) && start2.isBefore(end1);
+    }
+
+    /**
+     * 确定冲突类型
+     */
+    private String determineConflictType(ScheduleRequest request, Schedules existing) {
+        // 如果学生姓名相同，是学生时间冲突
+        if (request.getStudentName().equals(existing.getStudentName())) {
+            return "STUDENT_TIME_CONFLICT";
+        }
+        // 否则是时间段占用冲突
+        return "TIME_SLOT_CONFLICT";
+    }
+
+    /**
+     * 生成冲突描述（新排课 vs 现有排课）
+     */
+    private String generateConflictDescription(ScheduleRequest request, Schedules existing) {
+        StringBuilder desc = new StringBuilder();
+
+        // 时间信息
+        String timeInfo = String.format("%s-%s",
+            request.getStartTime().toString(),
+            request.getEndTime().toString());
+
+        // 日期/星期信息
+        String dateInfo = "";
+        if (request.getScheduleDate() != null) {
+            dateInfo = request.getScheduleDate().toString();
+        } else if (request.getDayOfWeek() != null) {
+            dateInfo = request.getDayOfWeek().name();
+        }
+
+        if (request.getStudentName().equals(existing.getStudentName())) {
+            desc.append(String.format("学生 %s 在 %s %s 已有课程安排",
+                request.getStudentName(), dateInfo, timeInfo));
+        } else {
+            desc.append(String.format("时间段 %s %s 已被学生 %s 占用，新学生 %s 产生冲突",
+                dateInfo, timeInfo, existing.getStudentName(), request.getStudentName()));
+        }
+
+        return desc.toString();
+    }
+
+    /**
+     * 生成冲突描述（两个新排课）
+     */
+    private String generateConflictDescription(ScheduleRequest request1, ScheduleRequest request2) {
+        StringBuilder desc = new StringBuilder();
+
+        // 时间信息
+        String timeInfo = String.format("%s-%s",
+            request1.getStartTime().toString(),
+            request1.getEndTime().toString());
+
+        // 日期/星期信息
+        String dateInfo = "";
+        if (request1.getScheduleDate() != null) {
+            dateInfo = request1.getScheduleDate().toString();
+        } else if (request1.getDayOfWeek() != null) {
+            dateInfo = request1.getDayOfWeek().name();
+        }
+
+        if (request1.getStudentName().equals(request2.getStudentName())) {
+            desc.append(String.format("学生 %s 在 %s %s 有重复的课程安排",
+                request1.getStudentName(), dateInfo, timeInfo));
+        } else {
+            desc.append(String.format("时间段 %s %s 被学生 %s 和 %s 同时占用",
+                dateInfo, timeInfo, request1.getStudentName(), request2.getStudentName()));
+        }
+
+        return desc.toString();
     }
 
     public boolean deleteSingleSchedule(Long scheduleId) {

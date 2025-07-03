@@ -3,6 +3,7 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.TextInputRequest;
+import com.timetable.dto.ConflictCheckResult;
 import com.timetable.dto.ai.ScheduleInfo;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Users;
@@ -31,12 +32,12 @@ import java.util.ArrayList;
 @RequestMapping("/timetables/{timetableId}/schedules")
 @Validated
 public class ScheduleController {
-    
+
     private final ScheduleService scheduleService;
     private final TimetableService timetableService;
     private final UserService userService;
     private final Validator validator;
-    
+
     @Autowired
     public ScheduleController(ScheduleService scheduleService, TimetableService timetableService, UserService userService, Validator validator) {
         this.scheduleService = scheduleService;
@@ -44,7 +45,7 @@ public class ScheduleController {
         this.userService = userService;
         this.validator = validator;
     }
-    
+
     /**
      * 获取课表的排课列表
      */
@@ -53,22 +54,22 @@ public class ScheduleController {
             @PathVariable Long timetableId,
             @RequestParam(required = false) Integer week,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
             return ResponseEntity.notFound().build();
         }
-        
+
         List<Schedules> schedules = scheduleService.getTimetableSchedules(timetableId, week);
         return ResponseEntity.ok(ApiResponse.success("获取排课列表成功", schedules));
     }
-    
+
     /**
      * 创建新排课
      */
@@ -77,28 +78,28 @@ public class ScheduleController {
             @PathVariable Long timetableId,
             @Valid @RequestBody ScheduleRequest request,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
             return ResponseEntity.notFound().build();
         }
-        
+
         // 验证时间逻辑
         if (request.getStartTime().isAfter(request.getEndTime())) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("开始时间不能晚于结束时间"));
         }
-        
+
         Schedules schedule = scheduleService.createSchedule(timetableId, request);
         return ResponseEntity.ok(ApiResponse.success("创建排课成功", schedule));
     }
-    
+
     /**
      * 更新排课
      */
@@ -108,33 +109,33 @@ public class ScheduleController {
             @PathVariable Long scheduleId,
             @Valid @RequestBody ScheduleRequest request,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
             return ResponseEntity.notFound().build();
         }
-        
+
         // 验证时间逻辑
         if (request.getStartTime().isAfter(request.getEndTime())) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("开始时间不能晚于结束时间"));
         }
-        
+
         Schedules schedule = scheduleService.updateSchedule(timetableId, scheduleId, request);
-        
+
         if (schedule == null) {
             return ResponseEntity.notFound().build();
         }
-        
+
         return ResponseEntity.ok(ApiResponse.success("更新排课成功", schedule));
     }
-    
+
     /**
      * 删除排课
      */
@@ -143,27 +144,27 @@ public class ScheduleController {
             @PathVariable Long timetableId,
             @PathVariable Long scheduleId,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
             return ResponseEntity.notFound().build();
         }
-        
+
         boolean deleted = scheduleService.deleteSchedule(timetableId, scheduleId);
-        
+
         if (!deleted) {
             return ResponseEntity.notFound().build();
         }
-        
+
         return ResponseEntity.ok(ApiResponse.success("排课删除成功"));
     }
-    
+
     /**
      * 通过语音输入创建排课
      */
@@ -173,7 +174,7 @@ public class ScheduleController {
             @RequestParam("audio") MultipartFile audioFile,
             @RequestParam("type") String type,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return Mono.just(ResponseEntity.badRequest()
@@ -201,7 +202,7 @@ public class ScheduleController {
                     .body(ApiResponse.<List<ScheduleInfo>>error("处理音频文件失败: " + e.getMessage(), null))
             ));
     }
-    
+
     /**
      * 通过文本输入创建排课
      */
@@ -210,18 +211,18 @@ public class ScheduleController {
             @PathVariable Long timetableId,
             @Valid @RequestBody TextInputRequest request,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         // 检查课表是否属于当前用户
         if (!timetableService.isUserTimetable(timetableId, user.getId())) {
             return ResponseEntity.notFound().build();
         }
-        
+
         try {
             List<ScheduleInfo> scheduleInfoList = scheduleService.extractScheduleInfoFromText(request.getText(), request.getType())
                     .block(Duration.ofSeconds(60)); // Block for up to 60 seconds
@@ -235,7 +236,7 @@ public class ScheduleController {
             return ResponseEntity.internalServerError().body(ApiResponse.error("处理文本解析时出错: " + e.getMessage()));
         }
     }
-    
+
     /**
      * 通过格式化文本创建排课
      */
@@ -267,7 +268,7 @@ public class ScheduleController {
             return ResponseEntity.internalServerError().body(ApiResponse.error("处理文本解析时出错: " + e.getMessage()));
         }
     }
-    
+
     /**
      * 批量创建排课
      */
@@ -294,7 +295,73 @@ public class ScheduleController {
         List<Schedules> result = scheduleService.createSchedules(timetableId, requests);
         return ResponseEntity.ok(ApiResponse.success("批量创建排课成功", result));
     }
-    
+
+    /**
+     * 检查排课冲突
+     */
+    @PostMapping("/batch/check-conflicts")
+    public ResponseEntity<ApiResponse<ConflictCheckResult>> checkScheduleConflicts(
+            @PathVariable Long timetableId,
+            @RequestBody List<ScheduleRequest> requests,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 检查课表是否属于当前用户
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // 校验每个排课的时间
+        for (ScheduleRequest request : requests) {
+            if (request.getStartTime().isAfter(request.getEndTime())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("开始时间不能晚于结束时间"));
+            }
+        }
+
+        try {
+            ConflictCheckResult result = scheduleService.checkScheduleConflicts(timetableId, requests);
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("检查冲突失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 强制批量创建排课（忽略冲突）
+     */
+    @PostMapping("/batch/force")
+    public ResponseEntity<ApiResponse<List<Schedules>>> createSchedulesBatchForce(
+            @PathVariable Long timetableId,
+            @RequestBody List<ScheduleRequest> requests,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        // 检查课表是否属于当前用户
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return ResponseEntity.notFound().build();
+        }
+        // 校验每个排课的时间
+        for (ScheduleRequest request : requests) {
+            if (request.getStartTime().isAfter(request.getEndTime())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("开始时间不能晚于结束时间"));
+            }
+        }
+        try {
+            // 直接创建，不检查冲突
+            List<Schedules> schedules = scheduleService.createSchedules(timetableId, requests);
+            return ResponseEntity.ok(ApiResponse.success("强制创建排课成功", schedules));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("创建排课失败: " + e.getMessage()));
+        }
+    }
+
     /**
      * 按条件批量删除排课
      */
@@ -313,7 +380,7 @@ public class ScheduleController {
         int deleted = scheduleService.deleteSchedulesByCondition(timetableId, request);
         return ResponseEntity.ok(ApiResponse.success("删除排课成功", deleted));
     }
-    
+
     /**
      * 批量按条件删除排课
      */
