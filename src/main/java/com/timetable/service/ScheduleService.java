@@ -443,13 +443,56 @@ public class ScheduleService {
 
     private String parseTime(String timePart) {
         timePart = timePart.trim().replaceAll("[~]", "-");
-        if (timePart.matches("\\d{1,2}")) {
-            int startHour = Integer.parseInt(timePart);
-            return String.format("%02d:00-%02d:00", startHour, startHour + 1);
-        }
+
+        // Handles "15:00-16:00" - pass through for now
         if (timePart.matches("\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}")) {
             return timePart;
         }
-        return "09:00-10:00"; // Fallback
+
+        final int MIN_HOUR = 8;
+        final int MAX_HOUR = 20;
+
+        try {
+            int startHourInput, endHourInput;
+
+            if (timePart.matches("\\d{1,2}-\\d{1,2}")) {
+                String[] parts = timePart.split("-");
+                startHourInput = Integer.parseInt(parts[0]);
+                endHourInput = Integer.parseInt(parts[1]);
+            } else if (timePart.matches("\\d{1,2}")) {
+                startHourInput = Integer.parseInt(timePart);
+                endHourInput = startHourInput + 1;
+            } else {
+                return "09:00-10:00"; // Fallback for unknown format
+            }
+
+            // --- Disambiguation Logic ---
+
+            // Interpretation 1: PM-preferred (e.g., 3 -> 15:00, 8 -> 20:00)
+            int start1 = (startHourInput >= 1 && startHourInput <= 8) ? startHourInput + 12 : startHourInput;
+            int end1 = (endHourInput >= 1 && endHourInput <= 8) ? endHourInput + 12 : endHourInput;
+            if (end1 < start1) { // Adjust for ranges like "8-9" -> 20:00-21:00
+                end1 += 12;
+            }
+
+            // Check if Interpretation 1 is valid
+            if (start1 >= MIN_HOUR && end1 <= MAX_HOUR) {
+                return String.format("%02d:00-%02d:00", start1, end1);
+            }
+
+            // Interpretation 2: As-is / AM-preferred (e.g., 8 -> 08:00)
+            int start2 = startHourInput;
+            int end2 = endHourInput;
+
+            // Check if Interpretation 2 is valid
+            if (start2 >= MIN_HOUR && end2 <= MAX_HOUR) {
+                return String.format("%02d:00-%02d:00", start2, end2);
+            }
+
+        } catch (NumberFormatException e) {
+            // Fallthrough to default if parsing fails
+        }
+
+        return "09:00-10:00"; // Fallback if no valid interpretation found
     }
 } 
