@@ -834,7 +834,7 @@ public class ScheduleService {
         if (request.getScheduleDate() != null) {
             dateInfo = request.getScheduleDate().toString();
         } else if (request.getDayOfWeek() != null) {
-            dateInfo = request.getDayOfWeek().name();
+            dateInfo = convertDayOfWeekToChinese(request.getDayOfWeek().name());
         }
 
         if (request.getStudentName().equals(existing.getStudentName())) {
@@ -864,7 +864,7 @@ public class ScheduleService {
         if (request1.getScheduleDate() != null) {
             dateInfo = request1.getScheduleDate().toString();
         } else if (request1.getDayOfWeek() != null) {
-            dateInfo = request1.getDayOfWeek().name();
+            dateInfo = convertDayOfWeekToChinese(request1.getDayOfWeek().name());
         }
 
         if (request1.getStudentName().equals(request2.getStudentName())) {
@@ -876,6 +876,24 @@ public class ScheduleService {
         }
 
         return desc.toString();
+    }
+
+    /**
+     * 将英文星期转换为中文
+     */
+    private String convertDayOfWeekToChinese(String dayOfWeek) {
+        if (dayOfWeek == null) return "";
+
+        switch (dayOfWeek.toUpperCase()) {
+            case "MONDAY": return "周一";
+            case "TUESDAY": return "周二";
+            case "WEDNESDAY": return "周三";
+            case "THURSDAY": return "周四";
+            case "FRIDAY": return "周五";
+            case "SATURDAY": return "周六";
+            case "SUNDAY": return "周日";
+            default: return dayOfWeek;
+        }
     }
 
     public boolean deleteSingleSchedule(Long scheduleId) {
