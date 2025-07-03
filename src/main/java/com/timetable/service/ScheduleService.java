@@ -369,6 +369,79 @@ public class ScheduleService {
     }
 
     /**
+     * 检查冲突并部分创建无冲突的排课
+     * 返回结果包含：已创建的排课 + 冲突的排课信息
+     */
+    public ConflictCheckResult checkConflictsWithPartialCreation(Long timetableId, List<ScheduleRequest> requests) {
+        List<Schedules> createdSchedules = new ArrayList<>();
+        List<ConflictInfo> conflicts = new ArrayList<>();
+
+        // 获取现有排课
+        List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+
+        for (ScheduleRequest request : requests) {
+            boolean hasConflict = false;
+
+            // 检查与现有排课的冲突
+            for (Schedules existing : existingSchedules) {
+                if (hasTimeConflict(request, existing)) {
+                    ConflictInfo conflict = new ConflictInfo();
+                    conflict.setConflictType(request.getStudentName().equals(existing.getStudentName()) ?
+                        "STUDENT_TIME_CONFLICT" : "TIME_SLOT_CONFLICT");
+                    conflict.setConflictDescription(generateConflictDescription(request, existing));
+                    conflict.setNewScheduleRequest(request);
+                    conflict.setExistingSchedule(existing);
+                    conflicts.add(conflict);
+                    hasConflict = true;
+                    break; // 找到一个冲突就够了
+                }
+            }
+
+            // 检查与已创建排课的冲突
+            if (!hasConflict) {
+                for (Schedules created : createdSchedules) {
+                    if (hasTimeConflict(request, created)) {
+                        ConflictInfo conflict = new ConflictInfo();
+                        conflict.setConflictType(request.getStudentName().equals(created.getStudentName()) ?
+                            "STUDENT_TIME_CONFLICT" : "TIME_SLOT_CONFLICT");
+                        conflict.setConflictDescription(generateConflictDescription(request, created));
+                        conflict.setNewScheduleRequest(request);
+                        conflict.setExistingSchedule(created);
+                        conflicts.add(conflict);
+                        hasConflict = true;
+                        break;
+                    }
+                }
+            }
+
+            // 如果没有冲突，直接创建
+            if (!hasConflict) {
+                try {
+                    Schedules newSchedule = createSchedule(timetableId, request);
+                    createdSchedules.add(newSchedule);
+                    // 同时添加到现有排课列表中，以便后续冲突检查
+                    existingSchedules.add(newSchedule);
+                } catch (Exception e) {
+                    logger.error("创建排课失败: {}", e.getMessage(), e);
+                    // 创建失败也当作冲突处理
+                    ConflictInfo conflict = new ConflictInfo();
+                    conflict.setConflictType("CREATION_ERROR");
+                    conflict.setConflictDescription("创建失败: " + e.getMessage());
+                    conflict.setNewScheduleRequest(request);
+                    conflicts.add(conflict);
+                }
+            }
+        }
+
+        ConflictCheckResult result = new ConflictCheckResult();
+        result.setHasConflicts(!conflicts.isEmpty());
+        result.setConflicts(conflicts);
+        result.setCreatedSchedules(createdSchedules);
+
+        return result;
+    }
+
+    /**
      * 强制批量创建排课（智能覆盖）
      * - 如果是不同学员的时间冲突：删除原有排课，添加新排课
      * - 如果是同一学员的重复排课：保留原有排课，添加新排课

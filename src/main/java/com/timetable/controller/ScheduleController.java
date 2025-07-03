@@ -327,11 +327,17 @@ public class ScheduleController {
         }
 
         try {
-            ConflictCheckResult result = scheduleService.checkScheduleConflicts(timetableId, requests);
+            ConflictCheckResult result = scheduleService.checkConflictsWithPartialCreation(timetableId, requests);
+
             if (result.isHasConflicts()) {
-                return ResponseEntity.ok(ApiResponse.success("检测到冲突", result));
+                logger.warn("发现冲突: 总数={}, 冲突数={}, 已创建数={}",
+                    requests.size(), result.getConflicts().size(),
+                    result.getCreatedSchedules() != null ? result.getCreatedSchedules().size() : 0);
+                return ResponseEntity.ok(ApiResponse.success("部分创建成功，发现冲突", result));
             } else {
-                return ResponseEntity.ok(ApiResponse.success("无冲突", result));
+                logger.info("全部创建成功: 数量={}",
+                    result.getCreatedSchedules() != null ? result.getCreatedSchedules().size() : 0);
+                return ResponseEntity.ok(ApiResponse.success("全部创建成功", result));
             }
         } catch (Exception e) {
             logger.error("检查冲突失败", e);

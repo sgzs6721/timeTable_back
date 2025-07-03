@@ -1,5 +1,6 @@
 package com.timetable.dto;
 
+import com.timetable.entity.Schedules;
 import java.util.List;
 
 /**
@@ -26,6 +27,11 @@ public class ConflictCheckResult {
      * 检测摘要信息
      */
     private String summary;
+
+    /**
+     * 已成功创建的排课列表
+     */
+    private List<Schedules> createdSchedules;
 
     // Constructors
     public ConflictCheckResult() {}
@@ -69,6 +75,14 @@ public class ConflictCheckResult {
 
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    public List<Schedules> getCreatedSchedules() {
+        return createdSchedules;
+    }
+
+    public void setCreatedSchedules(List<Schedules> createdSchedules) {
+        this.createdSchedules = createdSchedules;
     }
 
     /**
