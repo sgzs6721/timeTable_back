@@ -86,18 +86,8 @@ public class ScheduleService {
             return Collections.emptyList();
         }
 
-        // For WEEKLY timetables, ALWAYS return all schedules and IGNORE the 'week' parameter.
-        if (timetable.getIsWeekly() == 1) {
-            return scheduleRepository.findByTimetableId(timetableId);
-        }
-
-        // For DATE-RANGE timetables:
-        if (week != null && week > 0) {
-            // 直接用weekNumber字段过滤
-            return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
-        }
-        // If 'week' is not provided for a date-range timetable, return all its schedules.
-        logger.info("Fetching all schedules for date-range timetable ID: {}", timetableId);
+        // For both WEEKLY and DATE-RANGE timetables, we return all schedules.
+        // The frontend will be responsible for filtering/grouping by date or week.
         return scheduleRepository.findByTimetableId(timetableId);
     }
     
@@ -105,7 +95,6 @@ public class ScheduleService {
      * 创建新排课
      */
     public Schedules createSchedule(Long timetableId, ScheduleRequest request) {
-        Timetables timetable = timetableRepository.findById(timetableId);
         Schedules schedule = new Schedules();
         schedule.setTimetableId(timetableId);
         schedule.setStudentName(request.getStudentName());
@@ -113,22 +102,8 @@ public class ScheduleService {
         schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
-        // weekNumber自动补全逻辑
-        Integer weekNumber = request.getWeekNumber();
-        if (weekNumber == null && timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 0) {
-            // DATE_RANGE类型，自动计算weekNumber
-            LocalDate startDate = timetable.getStartDate();
-            LocalDate scheduleDate = request.getScheduleDate();
-            if (startDate != null && scheduleDate != null) {
-                LocalDate firstMonday = startDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-                long days = java.time.temporal.ChronoUnit.DAYS.between(firstMonday, scheduleDate);
-                weekNumber = (int)(days / 7) + 1;
-                if (weekNumber < 1) {
-                    weekNumber = 1;
-                }
-            }
-        }
-        schedule.setWeekNumber(weekNumber);
+        // For DATE_RANGE timetables, weekNumber should be null. We rely on scheduleDate.
+        schedule.setWeekNumber(request.getWeekNumber());
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
         scheduleRepository.save(schedule);
