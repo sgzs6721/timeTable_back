@@ -230,6 +230,38 @@ public class ScheduleController {
     }
     
     /**
+     * 通过格式化文本创建排课
+     */
+    @PostMapping("/format")
+    public ResponseEntity<ApiResponse<List<ScheduleInfo>>> createScheduleByFormat(
+            @PathVariable Long timetableId,
+            @Valid @RequestBody TextInputRequest request,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        // 检查课表是否属于当前用户
+        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            List<ScheduleInfo> scheduleInfoList = scheduleService.parseTextWithRules(request.getText(), request.getType());
+
+            if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("无法从文本中解析出排课信息"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("文本解析成功", scheduleInfoList));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error("处理文本解析时出错: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * 批量创建排课
      */
     @PostMapping("/batch")

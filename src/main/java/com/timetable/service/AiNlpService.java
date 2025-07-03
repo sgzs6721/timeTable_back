@@ -72,14 +72,28 @@ public class AiNlpService {
                 .flatMap(this::parseResponseToList);
     }
 
-    private String buildPrompt(String text, String timetableType) {
+    private String buildPrompt(String text, String type) {
         String jsonFormat;
         String typeDescription;
         String negativeInstruction;
+        
+        String commonPrompt = "你是一个严格的课程安排解析助手。请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
+                "### 任务要求\n" +
+                "1. **课表类型**: %s\n" +
+                "2. **用户输入内容**: 用户的输入通常只会包含**日期、星期、时间和人名**相关的信息。请专注于从这些信息中解析。\n" +
+                "3. **时间解析规则**:\n" +
+                "   - **上课时间范围**: 课程只可能在**上午9点到晚上8点（20:00）**之间。\n" +
+                "   - **12/24小时制**: 用户可能会输入"下午3点"或"15点"，请正确解析为24小时格式的时间。例如，"下午3-4点"应解析为 `15:00-16:00`。\n" +
+                "   - **模糊时间推断**: 上课时间多为下午和晚上。如果用户输入如"4-5"这样不明确的时间，应优先理解为 `16:00-17:00`。\n" +
+                "4. **多行处理**: 文本中的每一行都代表一个独立学员的排课安排，请分别解析。\n" +
+                "5. **关键指令**: %s\n" +
+                "6. **输出格式**: 必须是严格的JSON数组格式，数组中的每个对象代表一个排课。不要返回任何其他说明文字或代码标记。\n" +
+                "7. **无关内容**: 如果文本与课程无关，请返回一个空的JSON数组 `[]`。\n\n" +
+                "### JSON对象格式\n%s";
 
-        if ("WEEKLY".equalsIgnoreCase(timetableType)) {
+        if ("WEEKLY".equalsIgnoreCase(type)) {
             typeDescription = "这是一个**周固定课表**。";
-            negativeInstruction = "你**只能**提取 `dayOfWeek` (星期几)，**绝对不能**包含 `date` (日期) 字段。如果用户提到了具体的日期（如\\\"8月15日\\\"），请忽略它，只关注星期几。";
+            negativeInstruction = "你**只能**提取 `dayOfWeek` (星期几)，**绝对不能**包含 `date` (日期) 字段。如果用户提到了具体的日期（如"8月15日"），请忽略它，只关注星期几。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +
                          "  \"time\": \"HH:mm-HH:mm\",\n" +
@@ -87,7 +101,7 @@ public class AiNlpService {
                          "}";
         } else { // DATE_RANGE
             typeDescription = "这是一个**日期范围课表**。";
-            negativeInstruction = "你**只能**提取 `date` (具体日期)，**绝对不能**包含 `dayOfWeek` (星期几) 字段。如果用户提到了星期几（如\\\"周三\\\"），请忽略它，专注于识别具体的日期。";
+            negativeInstruction = "你**只能**提取 `date` (具体日期)，**绝对不能**包含 `dayOfWeek` (星期几) 字段。如果用户提到了星期几（如"周三"），请忽略它，专注于识别具体的日期。";
             jsonFormat = "{\n" +
                          "  \"studentName\": \"学生姓名\",\n" +
                          "  \"time\": \"HH:mm-HH:mm\",\n" +
@@ -96,18 +110,7 @@ public class AiNlpService {
         }
 
         return String.format(
-                "你是一个严格的课程安排解析助手。请从以下文本中提取所有课程安排信息: \"%s\"\n\n" +
-                "### 任务要求\n" +
-                "1. **课表类型**: %s\n" +
-                "2. **用户输入内容**: 用户的输入通常只会包含**日期、星期、时间和人名**相关的信息。请专注于从这些信息中解析。\n" +
-                "3. **时间解析规则**:\n" +
-                "   - **上课时间范围**: 课程只可能在**上午9点到晚上8点（20:00）**之间。\n" +
-                "   - **12/24小时制**: 用户可能会输入\\\"下午3点\\\"或\\\"15点\\\"，请正确解析为24小时格式的时间。例如，\\\"下午3-4点\\\"应解析为 `15:00-16:00`。\n" +
-                "4. **多行处理**: 文本中的每一行都代表一个独立学员的排课安排，请分别解析。\n" +
-                "5. **关键指令**: %s\n" +
-                "6. **输出格式**: 必须是严格的JSON数组格式，数组中的每个对象代表一个排课。不要返回任何其他说明文字或代码标记。\n" +
-                "7. **无关内容**: 如果文本与课程无关，请返回一个空的JSON数组 `[]`。\n\n" +
-                "### JSON对象格式\n%s",
+                commonPrompt,
                 text, typeDescription, negativeInstruction, jsonFormat);
     }
 

@@ -25,6 +25,10 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
+import java.time.LocalDate;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * 排课服务
@@ -319,5 +323,133 @@ public class ScheduleService {
             total += scheduleRepository.deleteByCondition(timetableId, req);
         }
         return total;
+    }
+
+    public List<ScheduleInfo> parseTextWithRules(String text, String type) {
+        List<ScheduleInfo> scheduleInfoList = new ArrayList<>();
+        String[] lines = text.split("\\r?\\n");
+
+        for (String line : lines) {
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            scheduleInfoList.addAll(parseSingleLine(line, type));
+        }
+        return scheduleInfoList;
+    }
+
+    private List<ScheduleInfo> parseSingleLine(String line, String type) {
+        List<ScheduleInfo> results = new ArrayList<>();
+        // Replace multiple spaces and different delimiters with a single comma
+        String standardizedLine = line.trim().replaceAll("\\s+", ",").replaceAll("，", ",");
+        String[] parts = standardizedLine.split(",");
+
+        if (parts.length < 3) {
+            return results; // Not enough info
+        }
+
+        String studentName = parts[0];
+        List<String> days = parseDays(parts[1], type);
+        String timeRange = parseTime(parts[2]);
+
+        for (String day : days) {
+            if ("WEEKLY".equalsIgnoreCase(type)) {
+                results.add(new ScheduleInfo(studentName, timeRange, day, null, "格式解析"));
+            } else { // DATE_RANGE
+                results.add(new ScheduleInfo(studentName, timeRange, null, day, "格式解析"));
+            }
+        }
+        return results;
+    }
+
+    private List<String> parseDays(String dayPart, String type) {
+        dayPart = dayPart.trim().replaceAll("周", "").replaceAll("星期", "");
+        if ("WEEKLY".equalsIgnoreCase(type)) {
+            return parseDayOfWeekRanges(dayPart);
+        } else {
+            return parseDateRanges(dayPart);
+        }
+    }
+
+    private List<String> parseDayOfWeekRanges(String part) {
+        Map<String, DayOfWeek> weekDayMap = new LinkedHashMap<>();
+        weekDayMap.put("一", DayOfWeek.MONDAY);
+        weekDayMap.put("1", DayOfWeek.MONDAY);
+        weekDayMap.put("二", DayOfWeek.TUESDAY);
+        weekDayMap.put("2", DayOfWeek.TUESDAY);
+        weekDayMap.put("三", DayOfWeek.WEDNESDAY);
+        weekDayMap.put("3", DayOfWeek.WEDNESDAY);
+        weekDayMap.put("四", DayOfWeek.THURSDAY);
+        weekDayMap.put("4", DayOfWeek.THURSDAY);
+        weekDayMap.put("五", DayOfWeek.FRIDAY);
+        weekDayMap.put("5", DayOfWeek.FRIDAY);
+        weekDayMap.put("六", DayOfWeek.SATURDAY);
+        weekDayMap.put("6", DayOfWeek.SATURDAY);
+        weekDayMap.put("日", DayOfWeek.SUNDAY);
+        weekDayMap.put("天", DayOfWeek.SUNDAY);
+        weekDayMap.put("7", DayOfWeek.SUNDAY);
+        
+        List<String> resultDays = new ArrayList<>();
+        String[] dayParts = part.split("[-~至]");
+
+        if (dayParts.length == 2) {
+            DayOfWeek startDay = weekDayMap.get(dayParts[0]);
+            DayOfWeek endDay = weekDayMap.get(dayParts[1]);
+            if (startDay != null && endDay != null && startDay.getValue() <= endDay.getValue()) {
+                for (int i = startDay.getValue(); i <= endDay.getValue(); i++) {
+                    resultDays.add(DayOfWeek.of(i).toString());
+                }
+            }
+        } else if (dayParts.length == 1 && weekDayMap.containsKey(dayParts[0])) {
+             resultDays.add(weekDayMap.get(dayParts[0]).toString());
+        } else {
+            // Handle single entries not in map or invalid ranges
+        }
+        return resultDays;
+    }
+
+    private List<String> parseDateRanges(String part) {
+        List<String> resultDates = new ArrayList<>();
+        String[] dateParts = part.split("[-~至]");
+        int currentYear = LocalDate.now().getYear();
+
+        if (dateParts.length == 2) {
+            LocalDate startDate = parseSingleDate(dateParts[0], currentYear);
+            LocalDate endDate = parseSingleDate(dateParts[1], currentYear);
+            if (startDate != null && endDate != null && !startDate.isAfter(endDate)) {
+                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                    resultDates.add(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+                }
+            }
+        } else if (dateParts.length == 1) {
+            LocalDate date = parseSingleDate(dateParts[0], currentYear);
+            if (date != null) {
+                resultDates.add(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+            }
+        }
+        return resultDates;
+    }
+
+    private LocalDate parseSingleDate(String dateStr, int year) {
+        try {
+            String[] parts = dateStr.trim().split("[月./]");
+            int month = Integer.parseInt(parts[0]);
+            int day = Integer.parseInt(parts[1]);
+            return LocalDate.of(year, month, day);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String parseTime(String timePart) {
+        timePart = timePart.trim().replaceAll("[~]", "-");
+        if (timePart.matches("\\d{1,2}")) {
+            int startHour = Integer.parseInt(timePart);
+            return String.format("%02d:00-%02d:00", startHour, startHour + 1);
+        }
+        if (timePart.matches("\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}")) {
+            return timePart;
+        }
+        return "09:00-10:00"; // Fallback
     }
 } 
