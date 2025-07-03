@@ -111,26 +111,19 @@ public class ScheduleService {
     /**
      * 通过语音输入创建排课
      */
-    public List<ScheduleInfo> createScheduleByVoice(Long timetableId, MultipartFile audioFile) throws Exception {
+    public Mono<List<ScheduleInfo>> createScheduleByVoice(Long timetableId, MultipartFile audioFile, String type) {
         Timetables timetable = timetableRepository.findById(timetableId);
         if (timetable == null) {
-            throw new IllegalArgumentException("Timetable not found");
+            return Mono.error(new IllegalArgumentException("Timetable not found"));
         }
 
-        try {
-            // 第一步：调用语音转文字API
-            String transcribedText = siliconFlowService.transcribeAudio(audioFile);
-            
-            // 第二步：调用聊天completion API进行信息提取
-            // MySQL的BOOLEAN/TINYINT(1)映射为Byte, 1=true, 0=false
-            String type = timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1 ? "WEEKLY" : "DATE_RANGE";
-            return siliconFlowService.extractScheduleInfoFromText(transcribedText, type)
-                .block(); // Blocking for simplicity, consider async handling
-            
-        } catch (Exception e) {
-            // 如果AI处理失败，返回一个包含错误信息的列表
-            return Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage()));
-        }
+        return siliconFlowService.transcribeAudio(audioFile)
+                .flatMap(transcribedText -> 
+                    aiNlpService.extractScheduleInfoFromText(transcribedText, type)
+                )
+                .onErrorResume(e -> 
+                    Mono.just(Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage())))
+                );
     }
     
     /**
@@ -202,7 +195,7 @@ public class ScheduleService {
         // 简单的规则解析（可以根据需要扩展）
         schedule.setStudentName(extractStudentName(text));
         schedule.setSubject(extractSubject(text));
-        schedule.setDayOfWeek(extractDayOfWeek(text));
+        schedule.setDayOfWeek(extractDayOfWeek(text).name());
         
         LocalTime[] times = extractTimes(text);
         schedule.setStartTime(times[0]);
@@ -248,15 +241,14 @@ public class ScheduleService {
     /**
      * 从文本中提取星期
      */
-    private String extractDayOfWeek(String text) {
-        if (text.contains("周一") || text.contains("星期一")) return DayOfWeek.MONDAY.name();
-        if (text.contains("周二") || text.contains("星期二")) return DayOfWeek.TUESDAY.name();
-        if (text.contains("周三") || text.contains("星期三")) return DayOfWeek.WEDNESDAY.name();
-        if (text.contains("周四") || text.contains("星期四")) return DayOfWeek.THURSDAY.name();
-        if (text.contains("周五") || text.contains("星期五")) return DayOfWeek.FRIDAY.name();
-        if (text.contains("周六") || text.contains("星期六")) return DayOfWeek.SATURDAY.name();
-        if (text.contains("周日") || text.contains("星期日") || text.contains("周天") || text.contains("星期天")) return DayOfWeek.SUNDAY.name();
-        return DayOfWeek.MONDAY.name(); // 默认周一
+    private DayOfWeek extractDayOfWeek(String text) {
+        String[] days = {"周一", "星期一", "周二", "星期二", "周三", "星期三", "周四", "星期四", "周五", "星期五", "周六", "星期六", "周日", "星期日", "周天"};
+        for (String day : days) {
+            if (text.contains(day)) {
+                return DayOfWeek.valueOf(day.replace("星期", "").replace("周", "").replace("天", ""));
+            }
+        }
+        return DayOfWeek.MONDAY;
     }
     
     /**
@@ -283,7 +275,7 @@ public class ScheduleService {
      * 通过文本输入提取排课信息
      */
     public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, String type) {
-        return aiNlpService.extractScheduleInfo(text, type);
+        return aiNlpService.extractScheduleInfoFromText(text, type);
     }
     
     /**
