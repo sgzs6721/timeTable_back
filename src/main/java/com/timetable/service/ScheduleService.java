@@ -38,9 +38,9 @@ import java.time.temporal.TemporalAdjusters;
  */
 @Service
 public class ScheduleService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ScheduleService.class);
-    
+
     private final ScheduleRepository scheduleRepository;
     private final AiNlpService aiNlpService;
     private final TimetableRepository timetableRepository;
@@ -67,7 +67,7 @@ public class ScheduleService {
     }
 
     @Autowired
-    public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService, 
+    public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService,
                           TimetableRepository timetableRepository, SiliconFlowService siliconFlowService) {
         this.scheduleRepository = scheduleRepository;
         this.aiNlpService = aiNlpService;
@@ -75,7 +75,7 @@ public class ScheduleService {
         this.siliconFlowService = siliconFlowService;
         this.objectMapper = new ObjectMapper();
     }
-    
+
     /**
      * 获取课表的排课列表
      */
@@ -105,18 +105,18 @@ public class ScheduleService {
 
             // Find the Monday of the week where the timetable officially starts. This is our anchor for all week calculations.
             LocalDate anchorMonday = timetableStartDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-            
+
             // Calculate the start and end date for the requested week (N).
             LocalDate weekStartDate = anchorMonday.plusWeeks(week - 1);
             LocalDate weekEndDate = weekStartDate.plusDays(6); // Monday + 6 days = Sunday
-            
+
             return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, weekStartDate, weekEndDate);
         }
-        
+
         // If 'week' is not provided for a date-range timetable, return all its schedules.
         return scheduleRepository.findByTimetableId(timetableId);
     }
-    
+
     /**
      * 创建新排课
      */
@@ -128,7 +128,7 @@ public class ScheduleService {
         schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
-        
+
         // For date-range timetables, weekNumber from request is ignored and set to null.
         // For weekly timetables, we use the one from the request.
         Timetables timetable = timetableRepository.findById(timetableId);
@@ -137,13 +137,13 @@ public class ScheduleService {
         } else {
             schedule.setWeekNumber(request.getWeekNumber());
         }
-        
+
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
         scheduleRepository.save(schedule);
         return schedule;
     }
-    
+
     /**
      * 更新排课
      */
@@ -152,7 +152,7 @@ public class ScheduleService {
         if (schedule == null) {
             return null;
         }
-        
+
         schedule.setStudentName(request.getStudentName());
         schedule.setSubject(request.getSubject());
         schedule.setDayOfWeek(request.getDayOfWeek() == null ? null : request.getDayOfWeek().name());
@@ -165,7 +165,7 @@ public class ScheduleService {
         scheduleRepository.update(schedule);
         return schedule;
     }
-    
+
     /**
      * 删除排课
      */
@@ -173,11 +173,11 @@ public class ScheduleService {
         if (!scheduleRepository.existsByIdAndTimetableId(scheduleId, timetableId)) {
             return false;
         }
-        
+
         scheduleRepository.deleteById(scheduleId);
         return true;
     }
-    
+
     /**
      * 通过语音输入创建排课
      */
@@ -198,7 +198,7 @@ public class ScheduleService {
                     return Mono.just(Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage())));
                 });
     }
-    
+
     /**
      * 解析AI返回的JSON响应并创建排课记录
      */
@@ -207,39 +207,39 @@ public class ScheduleService {
             // 尝试从AI响应中提取JSON
             String jsonStr = extractJsonFromAiResponse(aiResponse);
             JsonNode jsonNode = objectMapper.readTree(jsonStr);
-            
+
             // 创建排课对象
             Schedules schedule = new Schedules();
             schedule.setTimetableId(timetableId);
             schedule.setStudentName(jsonNode.path("studentName").asText("未知学生"));
             schedule.setSubject(jsonNode.path("subject").asText("未知科目"));
-            
+
             // 解析星期
             String dayOfWeekStr = jsonNode.path("dayOfWeek").asText("MONDAY");
             schedule.setDayOfWeek(dayOfWeekStr);
-            
+
             // 解析时间
             String startTimeStr = jsonNode.path("startTime").asText("09:00");
             String endTimeStr = jsonNode.path("endTime").asText("10:00");
             schedule.setStartTime(LocalTime.parse(startTimeStr, DateTimeFormatter.ofPattern("HH:mm")));
             schedule.setEndTime(LocalTime.parse(endTimeStr, DateTimeFormatter.ofPattern("HH:mm")));
-            
+
             // 设置备注
             String note = jsonNode.path("note").asText("");
             schedule.setNote("语音输入: " + originalText + (note.isEmpty() ? "" : " | 备注: " + note));
             schedule.setCreatedAt(LocalDateTime.now());
             schedule.setUpdatedAt(LocalDateTime.now());
-            
+
             // 保存到数据库
             scheduleRepository.save(schedule);
             return schedule;
-            
+
         } catch (Exception e) {
             // 如果JSON解析失败，尝试使用规则解析
             return parseTextWithRulesAndCreate(timetableId, originalText);
         }
     }
-    
+
     /**
      * 从AI响应中提取JSON字符串
      */
@@ -247,14 +247,14 @@ public class ScheduleService {
         // 查找JSON开始和结束标记
         int startIndex = aiResponse.indexOf("{");
         int endIndex = aiResponse.lastIndexOf("}");
-        
+
         if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
             return aiResponse.substring(startIndex, endIndex + 1);
         }
-        
+
         throw new RuntimeException("无法从AI响应中提取JSON");
     }
-    
+
     /**
      * 使用规则解析文本并创建排课
      */
@@ -264,27 +264,27 @@ public class ScheduleService {
         schedule.setNote("语音输入: " + text);
         schedule.setCreatedAt(LocalDateTime.now());
         schedule.setUpdatedAt(LocalDateTime.now());
-        
+
         // 简单的规则解析（可以根据需要扩展）
         schedule.setStudentName(extractStudentName(text));
         schedule.setSubject(extractSubject(text));
         schedule.setDayOfWeek(extractDayOfWeek(text).name());
-        
+
         LocalTime[] times = extractTimes(text);
         schedule.setStartTime(times[0]);
         schedule.setEndTime(times[1]);
-        
+
         scheduleRepository.save(schedule);
         return schedule;
     }
-    
+
     /**
      * 创建备用排课记录（当所有解析都失败时使用）
      */
     private ScheduleInfo createFallbackScheduleInfo(String errorMsg) {
         return new ScheduleInfo("待确认", "09:00-10:00", "MONDAY", null, errorMsg);
     }
-    
+
     /**
      * 从文本中提取学生姓名
      */
@@ -297,7 +297,7 @@ public class ScheduleService {
         }
         return "未知学生";
     }
-    
+
     /**
      * 从文本中提取科目
      */
@@ -310,7 +310,7 @@ public class ScheduleService {
         }
         return "未知科目";
     }
-    
+
     /**
      * 从文本中提取星期
      */
@@ -323,23 +323,23 @@ public class ScheduleService {
         }
         return DayOfWeek.MONDAY;
     }
-    
+
     /**
      * 从文本中提取时间
      */
     private LocalTime[] extractTimes(String text) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(\\d{1,2})[:.：]?(\\d{0,2})\\s*[至到\\-~]\\s*(\\d{1,2})[:.：]?(\\d{0,2})");
         java.util.regex.Matcher matcher = pattern.matcher(text);
-        
+
         if (matcher.find()) {
             int startHour = Integer.parseInt(matcher.group(1));
             int startMin = matcher.group(2).isEmpty() ? 0 : Integer.parseInt(matcher.group(2));
             int endHour = Integer.parseInt(matcher.group(3));
             int endMin = matcher.group(4).isEmpty() ? 0 : Integer.parseInt(matcher.group(4));
-            
+
             return new LocalTime[]{LocalTime.of(startHour, startMin), LocalTime.of(endHour, endMin)};
         }
-        
+
         // 默认时间
         return new LocalTime[]{LocalTime.of(9, 0), LocalTime.of(10, 0)};
     }
@@ -350,14 +350,14 @@ public class ScheduleService {
     public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, String type) {
         return aiNlpService.extractScheduleInfoFromText(text, type);
     }
-    
+
     /**
      * 检查排课是否属于指定课表
      */
     public boolean isScheduleInTimetable(Long scheduleId, Long timetableId) {
         return scheduleRepository.existsByIdAndTimetableId(scheduleId, timetableId);
     }
-    
+
     /**
      * 批量创建排课
      */
@@ -368,14 +368,14 @@ public class ScheduleService {
         }
         return result;
     }
-    
+
     /**
      * 按条件批量删除排课
      */
     public int deleteSchedulesByCondition(Long timetableId, ScheduleRequest request) {
         return scheduleRepository.deleteByCondition(timetableId, request);
     }
-    
+
     /**
      * 批量按条件删除排课
      */
@@ -397,15 +397,17 @@ public class ScheduleService {
             }
             scheduleInfoList.addAll(parseSingleLine(line, type));
         }
-        return scheduleInfoList;
+
+        // 对时间进行平铺处理
+        return expandTimeSlots(scheduleInfoList);
     }
 
     private List<ScheduleInfo> parseSingleLine(String line, String type) {
         List<ScheduleInfo> results = new ArrayList<>();
         String[] parts = line.trim().split("[\\s，,]+");
 
-        if (parts.length != 3) {
-            return results; // Expect exactly three parts: name, day/date, and time
+        if (parts.length < 2 || parts.length > 4) {
+            return results; // Expect 2-4 parts
         }
 
         List<String> partList = new ArrayList<>(Arrays.asList(parts));
@@ -424,24 +426,35 @@ public class ScheduleService {
         }
 
         // Identify Day/Date Part
-        if (timePart != null) { // Only proceed if time was found
-            for (Iterator<String> iterator = partList.iterator(); iterator.hasNext();) {
-                String part = iterator.next();
-                if (isDayPart(part, type)) {
-                    dayPart = part;
-                    iterator.remove();
-                    break;
-                }
+        for (Iterator<String> iterator = partList.iterator(); iterator.hasNext();) {
+            String part = iterator.next();
+            if (isDayPart(part, type)) {
+                dayPart = part;
+                iterator.remove();
+                break;
             }
         }
-        
-        // The remaining part must be the student name
-        if (partList.size() == 1) {
-            studentName = partList.get(0);
+
+        // The remaining parts should be the student name (could be multiple parts)
+        if (!partList.isEmpty()) {
+            studentName = String.join("", partList); // Join remaining parts as student name
         }
 
-        if (studentName == null || dayPart == null || timePart == null) {
-            return results; // Failed to identify all three components
+        // If we couldn't identify day/date part, but we have time and name,
+        // try to use a default or infer from context
+        if (dayPart == null && timePart != null && studentName != null) {
+            // For DATE_RANGE type, if no specific date is found, we might need to handle this differently
+            // For now, let's skip this case
+            return results;
+        }
+
+        if (studentName == null || timePart == null) {
+            return results; // Must have at least student name and time
+        }
+
+        // If dayPart is null, we might be dealing with a different format
+        if (dayPart == null) {
+            return results;
         }
 
         List<String> days = parseDays(dayPart, type);
@@ -615,6 +628,61 @@ public class ScheduleService {
         return "09:00-10:00"; // Fallback if no valid interpretation found
     }
 
+    /**
+     * 将时间范围平铺为1小时的时间段
+     */
+    private List<ScheduleInfo> expandTimeSlots(List<ScheduleInfo> scheduleInfoList) {
+        List<ScheduleInfo> expandedList = new ArrayList<>();
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        for (ScheduleInfo schedule : scheduleInfoList) {
+            if (schedule.getTime() == null || !schedule.getTime().contains("-")) {
+                expandedList.add(schedule); // Add as is if no time or invalid format
+                continue;
+            }
+
+            try {
+                String[] timeParts = schedule.getTime().split("-");
+                LocalTime startTime = LocalTime.parse(timeParts[0].trim());
+                LocalTime endTime = LocalTime.parse(timeParts[1].trim());
+
+                if (startTime.isAfter(endTime) || startTime.equals(endTime)) {
+                    logger.warn("Invalid time range (start is not before end): {}. Adding schedule as is.", schedule.getTime());
+                    expandedList.add(schedule);
+                    continue;
+                }
+
+                LocalTime currentTime = startTime;
+                while (currentTime.isBefore(endTime)) {
+                    LocalTime nextHour = currentTime.plusHours(1);
+
+                    // Ensure we don't go past the original end time
+                    if (nextHour.isAfter(endTime)) {
+                        nextHour = endTime;
+                    }
+
+                    // Create a new ScheduleInfo for the one-hour slot
+                    ScheduleInfo newSchedule = new ScheduleInfo(
+                        schedule.getStudentName(),
+                        currentTime.format(timeFormatter) + "-" + nextHour.format(timeFormatter),
+                        schedule.getDayOfWeek(),
+                        schedule.getDate(),
+                        null // No error message for successful parsing
+                    );
+                    expandedList.add(newSchedule);
+
+                    currentTime = nextHour;
+                }
+            } catch (DateTimeParseException | ArrayIndexOutOfBoundsException e) {
+                // Log the error and add the original schedule
+                logger.warn("Could not parse time slot: '{}'. Adding schedule as is.", schedule.getTime(), e);
+                expandedList.add(schedule);
+            }
+        }
+
+        return expandedList;
+    }
+
     public boolean deleteSingleSchedule(Long scheduleId) {
         try {
             scheduleRepository.deleteById(scheduleId);
@@ -624,4 +692,4 @@ public class ScheduleService {
             return false;
         }
     }
-} 
+}
