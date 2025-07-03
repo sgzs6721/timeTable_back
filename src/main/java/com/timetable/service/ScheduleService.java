@@ -432,11 +432,17 @@ public class ScheduleService {
             return true;
         } else { // DATE_RANGE
             String[] dateTokens = part.split("[-~至]");
-            if (dateTokens.length < 1 || dateTokens.length > 2) return false;
-            for (String token : dateTokens) {
-                if (!token.matches("^\\d{1,2}[月./]\\d{1,2}$")) return false;
+            if (dateTokens.length == 1) {
+                // A single date part must be in M.D format
+                return dateTokens[0].matches("^\\d{1,2}[月./]\\d{1,2}$");
             }
-            return true;
+            if (dateTokens.length == 2) {
+                // For a range, the start must be M.D, the end can be M.D or just D.
+                boolean startOk = dateTokens[0].matches("^\\d{1,2}[月./]\\d{1,2}$");
+                boolean endOk = dateTokens[1].matches("^\\d{1,2}[月./]\\d{1,2}$") || dateTokens[1].matches("^\\d{1,2}$");
+                return startOk && endOk;
+            }
+            return false;
         }
     }
 
@@ -474,10 +480,23 @@ public class ScheduleService {
 
         if (dateParts.length == 2) {
             LocalDate startDate = parseSingleDate(dateParts[0], currentYear);
-            LocalDate endDate = parseSingleDate(dateParts[1], currentYear);
-            if (startDate != null && endDate != null && !startDate.isAfter(endDate)) {
-                for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-                    resultDates.add(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+            if (startDate != null) {
+                LocalDate endDate;
+                // If end date is just a number, assume it's a day in the same month as the start date.
+                if (dateParts[1].matches("^\\d{1,2}$")) {
+                    try {
+                        endDate = LocalDate.of(startDate.getYear(), startDate.getMonth(), Integer.parseInt(dateParts[1]));
+                    } catch (Exception e) {
+                        endDate = null;
+                    }
+                } else {
+                    endDate = parseSingleDate(dateParts[1], currentYear);
+                }
+
+                if (endDate != null && !startDate.isAfter(endDate)) {
+                    for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                        resultDates.add(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+                    }
                 }
             }
         } else if (dateParts.length == 1) {
