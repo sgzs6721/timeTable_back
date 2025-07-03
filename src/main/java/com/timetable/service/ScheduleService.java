@@ -389,7 +389,7 @@ public class ScheduleService {
                     conflict.setConflictType(request.getStudentName().equals(existing.getStudentName()) ?
                         "STUDENT_TIME_CONFLICT" : "TIME_SLOT_CONFLICT");
                     conflict.setConflictDescription(generateConflictDescription(request, existing));
-                    conflict.setNewScheduleRequest(request);
+                    conflict.setNewSchedule(request);
                     conflict.setExistingSchedule(existing);
                     conflicts.add(conflict);
                     hasConflict = true;
@@ -405,7 +405,7 @@ public class ScheduleService {
                         conflict.setConflictType(request.getStudentName().equals(created.getStudentName()) ?
                             "STUDENT_TIME_CONFLICT" : "TIME_SLOT_CONFLICT");
                         conflict.setConflictDescription(generateConflictDescription(request, created));
-                        conflict.setNewScheduleRequest(request);
+                        conflict.setNewSchedule(request);
                         conflict.setExistingSchedule(created);
                         conflicts.add(conflict);
                         hasConflict = true;
@@ -427,7 +427,7 @@ public class ScheduleService {
                     ConflictInfo conflict = new ConflictInfo();
                     conflict.setConflictType("CREATION_ERROR");
                     conflict.setConflictDescription("创建失败: " + e.getMessage());
-                    conflict.setNewScheduleRequest(request);
+                    conflict.setNewSchedule(request);
                     conflicts.add(conflict);
                 }
             }
