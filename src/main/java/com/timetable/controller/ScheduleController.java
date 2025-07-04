@@ -5,6 +5,7 @@ import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.TextInputRequest;
 import com.timetable.dto.ConflictCheckResult;
 import com.timetable.dto.ai.ScheduleInfo;
+import com.timetable.dto.UpdateScheduleRequest;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.ScheduleService;
@@ -111,7 +112,7 @@ public class ScheduleController {
     public ResponseEntity<ApiResponse<Schedules>> updateSchedule(
             @PathVariable Long timetableId,
             @PathVariable Long scheduleId,
-            @Valid @RequestBody ScheduleRequest request,
+            @Valid @RequestBody UpdateScheduleRequest request,
             Authentication authentication) {
 
         Users user = userService.findByUsername(authentication.getName());
@@ -125,8 +126,9 @@ public class ScheduleController {
             return ResponseEntity.notFound().build();
         }
 
-        // 验证时间逻辑
-        if (request.getStartTime().isAfter(request.getEndTime())) {
+        // 如果同时提供了开始和结束时间，则验证逻辑
+        if (request.getStartTime() != null && request.getEndTime() != null &&
+                request.getStartTime().isAfter(request.getEndTime())) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("开始时间不能晚于结束时间"));
         }

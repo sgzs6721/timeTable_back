@@ -166,6 +166,45 @@ public class ScheduleService {
     }
 
     /**
+     * 部分更新排课，仅修改传入的字段
+     */
+    public Schedules updateSchedule(Long timetableId, Long scheduleId, com.timetable.dto.UpdateScheduleRequest request) {
+        Schedules schedule = scheduleRepository.findByIdAndTimetableId(scheduleId, timetableId);
+        if (schedule == null) {
+            return null;
+        }
+
+        if (request.getStudentName() != null) {
+            schedule.setStudentName(request.getStudentName());
+        }
+        if (request.getSubject() != null) {
+            schedule.setSubject(request.getSubject());
+        }
+        if (request.getDayOfWeek() != null) {
+            schedule.setDayOfWeek(request.getDayOfWeek().name());
+        }
+        if (request.getStartTime() != null) {
+            schedule.setStartTime(request.getStartTime());
+        }
+        if (request.getEndTime() != null) {
+            schedule.setEndTime(request.getEndTime());
+        }
+        if (request.getWeekNumber() != null) {
+            schedule.setWeekNumber(request.getWeekNumber());
+        }
+        if (request.getScheduleDate() != null) {
+            schedule.setScheduleDate(request.getScheduleDate());
+        }
+        if (request.getNote() != null) {
+            schedule.setNote(request.getNote());
+        }
+
+        schedule.setUpdatedAt(LocalDateTime.now());
+        scheduleRepository.update(schedule);
+        return schedule;
+    }
+
+    /**
      * 删除排课
      */
     public boolean deleteSchedule(Long timetableId, Long scheduleId) {
