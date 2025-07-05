@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 管理员控制器
@@ -90,5 +91,38 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(ApiResponse.success("合并课表成功", mergedTimetable));
+    }
+    
+    /**
+     * 获取所有用户列表
+     */
+    @GetMapping("/users")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers() {
+        List<Map<String, Object>> users = userService.getAllUsersForAdmin();
+        return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", users));
+    }
+    
+    /**
+     * 更新用户权限
+     */
+    @PutMapping("/users/{userId}/role")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserRole(
+            @PathVariable Long userId,
+            @Valid @RequestBody Map<String, String> request) {
+        
+        String newRole = request.get("role");
+        if (newRole == null || (!newRole.equals("USER") && !newRole.equals("ADMIN"))) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("角色必须是USER或ADMIN"));
+        }
+        
+        Map<String, Object> updatedUser = userService.updateUserRole(userId, newRole);
+        
+        if (updatedUser == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在或更新失败"));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success("用户权限更新成功", updatedUser));
     }
 } 

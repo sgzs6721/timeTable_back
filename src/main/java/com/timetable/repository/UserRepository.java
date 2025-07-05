@@ -6,6 +6,8 @@ import com.timetable.generated.tables.pojos.Users;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * 用户Repository - 数据库实现
  */
@@ -64,5 +66,16 @@ public class UserRepository {
      */
     public void deleteById(Long id) {
         usersDao.deleteById(id);
+    }
+    
+    /**
+     * 获取所有活跃用户（未被软删除的用户）
+     */
+    public List<Users> findAllActiveUsers() {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
     }
 } 

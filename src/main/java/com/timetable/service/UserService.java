@@ -14,7 +14,9 @@ import org.jooq.DSLContext;
 import com.timetable.generated.tables.pojos.Users;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户服务
@@ -149,5 +151,48 @@ public class UserService implements UserDetailsService {
         userRepository.update(user);
         
         return true;
+    }
+    
+    /**
+     * 获取所有用户列表（管理员用）
+     */
+    public List<Map<String, Object>> getAllUsersForAdmin() {
+        List<Users> users = userRepository.findAllActiveUsers();
+        List<Map<String, Object>> userDTOs = new ArrayList<>();
+        
+        for (Users user : users) {
+            userDTOs.add(convertUserToDTO(user));
+        }
+        
+        return userDTOs;
+    }
+    
+    /**
+     * 更新用户权限
+     */
+    public Map<String, Object> updateUserRole(Long userId, String newRole) {
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            return null;
+        }
+        
+        user.setRole(newRole);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        
+        return convertUserToDTO(user);
+    }
+    
+    /**
+     * 转换用户对象为DTO（不包含敏感信息）
+     */
+    private Map<String, Object> convertUserToDTO(Users user) {
+        Map<String, Object> userDTO = new HashMap<>();
+        userDTO.put("id", user.getId());
+        userDTO.put("username", user.getUsername());
+        userDTO.put("role", user.getRole());
+        userDTO.put("createdAt", user.getCreatedAt());
+        userDTO.put("updatedAt", user.getUpdatedAt());
+        return userDTO;
     }
 } 
