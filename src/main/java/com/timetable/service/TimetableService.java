@@ -30,14 +30,10 @@ public class TimetableService {
     private UserService userService;
     
     /**
-     * 获取用户的课表列表（过滤已软删除的课表）
+     * 获取用户的课表列表
      */
     public List<Timetables> getUserTimetables(Long userId) {
-        List<Timetables> allTimetables = timetableRepository.findByUserId(userId);
-        // 过滤掉已软删除的课表（名称以[DELETED_开头的）
-        return allTimetables.stream()
-                .filter(t -> t.getName() != null && !t.getName().startsWith("[DELETED_"))
-                .collect(java.util.stream.Collectors.toList());
+        return timetableRepository.findByUserId(userId);
     }
     
     /**
@@ -60,12 +56,7 @@ public class TimetableService {
      * 获取课表详情
      */
     public Timetables getTimetable(Long timetableId, Long userId) {
-        Timetables timetable = timetableRepository.findByIdAndUserId(timetableId, userId);
-        // 检查是否已软删除
-        if (timetable != null && timetable.getName() != null && timetable.getName().startsWith("[DELETED_")) {
-            return null;  // 软删除的课表不返回
-        }
-        return timetable;
+        return timetableRepository.findByIdAndUserId(timetableId, userId);
     }
     
     /**
@@ -84,11 +75,6 @@ public class TimetableService {
             return null;
         }
         
-        // 检查是否已软删除
-        if (timetable.getName() != null && timetable.getName().startsWith("[DELETED_")) {
-            return null;  // 软删除的课表不能修改
-        }
-        
         timetable.setName(request.getName());
         timetable.setDescription(request.getDescription());
         timetable.setIsWeekly((byte) (request.getType() == TimetableRequest.TimetableType.WEEKLY ? 1 : 0));
@@ -100,7 +86,7 @@ public class TimetableService {
     }
     
     /**
-     * 软删除课表（临时实现，使用name字段标记）
+     * 软删除课表
      */
     public boolean deleteTimetable(Long timetableId, Long userId) {
         Timetables timetable = timetableRepository.findByIdAndUserId(timetableId, userId);
@@ -109,34 +95,26 @@ public class TimetableService {
         }
         
         // 检查是否已经软删除
-        if (timetable.getName() != null && timetable.getName().startsWith("[DELETED_")) {
+        if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) {
             return false;  // 已经删除了
         }
         
-        // 使用课表名称前缀标记为已删除，同时记录删除时间
-        String deletedName = "[DELETED_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + "] " + timetable.getName();
-        timetable.setName(deletedName);
+        // 软删除：将is_deleted字段置为1
+        timetable.setIsDeleted((byte) 1);
+        timetable.setDeletedAt(LocalDateTime.now());
         timetable.setUpdatedAt(LocalDateTime.now());
         
-        // 软删除相关的排课（也使用类似的标记方式）
-        scheduleRepository.softDeleteByTimetableId(timetableId);
-        
-        // 保存修改后的课表
+        // 保存修改
         timetableRepository.save(timetable);
         
         return true;
     }
     
     /**
-     * 检查课表是否存在且属于用户（不包括已软删除的）
+     * 检查课表是否存在且属于用户
      */
     public boolean isUserTimetable(Long timetableId, Long userId) {
-        Timetables timetable = timetableRepository.findByIdAndUserId(timetableId, userId);
-        if (timetable == null) {
-            return false;
-        }
-        // 检查是否已软删除
-        return timetable.getName() == null || !timetable.getName().startsWith("[DELETED_");
+        return timetableRepository.existsByIdAndUserId(timetableId, userId);
     }
     
     /**
@@ -146,15 +124,7 @@ public class TimetableService {
         return timetableRepository.findAll();
     }
     
-    /**
-     * 获取有效课表（管理员功能）- 不包括已软删除的课表
-     */
-    public List<Timetables> getActiveTimetables() {
-        List<Timetables> allTimetables = timetableRepository.findAll();
-        return allTimetables.stream()
-                .filter(t -> t.getName() == null || !t.getName().startsWith("[DELETED_"))
-                .collect(java.util.stream.Collectors.toList());
-    }
+
     
     /**
      * 合并课表（管理员功能）
@@ -166,14 +136,7 @@ public class TimetableService {
             return null;
         }
         
-        // 过滤掉已软删除的课表
-        timetablesToMerge = timetablesToMerge.stream()
-                .filter(t -> t.getName() == null || !t.getName().startsWith("[DELETED_"))
-                .collect(java.util.stream.Collectors.toList());
-        
-        if (timetablesToMerge.isEmpty()) {
-            return null;
-        }
+
         
         // 创建新的合并课表
         Timetables mergedTimetable = new Timetables();
@@ -187,10 +150,6 @@ public class TimetableService {
         // 将所有相关的排课复制到新课表
         List<Schedules> allSchedules = scheduleRepository.findByTimetableIdIn(timetableIds);
         for (Schedules schedule : allSchedules) {
-            // 跳过已软删除的排课
-            if (schedule.getNote() != null && schedule.getNote().contains("[DELETED_")) {
-                continue;
-            }
             
             Schedules newSchedule = new Schedules();
             newSchedule.setTimetableId(mergedTimetable.getId());
@@ -218,7 +177,7 @@ public class TimetableService {
      * 获取所有课表并附带用户名、课程数量（管理员功能）
      */
     public List<AdminTimetableDTO> getAllTimetablesWithUser() {
-        List<Timetables> timetables = getActiveTimetables(); // 只显示有效课表
+        List<Timetables> timetables = getAllTimetables(); // 获取所有有效课表
         return timetables.stream().map(t -> {
             String username = null;
             try {
@@ -230,11 +189,7 @@ public class TimetableService {
 
             int scheduleCount = 0;
             try {
-                // 统计有效的排课数量（不包括软删除的）
-                List<Schedules> schedules = scheduleRepository.findByTimetableId(t.getId());
-                scheduleCount = (int) schedules.stream()
-                        .filter(s -> s.getNote() == null || !s.getNote().contains("[DELETED_"))
-                        .count();
+                scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
             } catch (Exception ignored) {}
 
             return new AdminTimetableDTO(
@@ -256,10 +211,6 @@ public class TimetableService {
      */
     public List<AdminTimetableDTO> getTimetablesByIds(List<Long> timetableIds) {
         List<Timetables> timetables = timetableRepository.findByIdIn(timetableIds);
-        // 过滤掉已软删除的课表
-        timetables = timetables.stream()
-                .filter(t -> t.getName() == null || !t.getName().startsWith("[DELETED_"))
-                .collect(java.util.stream.Collectors.toList());
                 
         return timetables.stream().map(t -> {
             String username = null;
@@ -272,11 +223,7 @@ public class TimetableService {
 
             int scheduleCount = 0;
             try {
-                // 统计有效的排课数量（不包括软删除的）
-                List<Schedules> schedules = scheduleRepository.findByTimetableId(t.getId());
-                scheduleCount = (int) schedules.stream()
-                        .filter(s -> s.getNote() == null || !s.getNote().contains("[DELETED_"))
-                        .count();
+                scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
             } catch (Exception ignored) {}
 
             return new AdminTimetableDTO(

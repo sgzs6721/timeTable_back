@@ -132,22 +132,22 @@ public class UserService implements UserDetailsService {
      * 软删除用户账号（暂时注释，等数据库迁移完成后启用）
      */
     public boolean deactivateUser(String username) {
-        // TODO: 执行数据库迁移V5后，重新生成jOOQ代码，然后启用此功能
-        // Users user = userRepository.findByUsername(username);
-        // if (user == null) {
-        //     return false;
-        // }
-        // 
-        // // 设置软删除标识
-        // user.setIsDeleted((byte) 1);
-        // user.setDeletedAt(java.time.LocalDateTime.now());
-        // user.setUpdatedAt(java.time.LocalDateTime.now());
-        // userRepository.update(user);
-        // 
-        // // 同时软删除用户的所有课表
-        // timetableRepository.softDeleteByUserId(user.getId());
+        Users user = userRepository.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
         
-        // 暂时返回false，表示功能未实现
-        return false;
+        // 检查是否已经软删除
+        if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+            return false;  // 已经删除了
+        }
+        
+        // 软删除：将is_deleted字段置为1
+        user.setIsDeleted((byte) 1);
+        user.setDeletedAt(java.time.LocalDateTime.now());
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        
+        return true;
     }
 } 

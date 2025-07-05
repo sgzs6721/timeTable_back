@@ -22,11 +22,13 @@ public class TimetableRepository {
     private DSLContext dsl;
     
     /**
-     * 根据用户ID查找课表列表
+     * 根据用户ID查找课表列表（过滤已软删除的）
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findByUserId(Long userId) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
-                .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
@@ -40,12 +42,14 @@ public class TimetableRepository {
     }
     
     /**
-     * 根据ID和用户ID查找课表
+     * 根据ID和用户ID查找课表（过滤已软删除的）
      */
     public com.timetable.generated.tables.pojos.Timetables findByIdAndUserId(Long id, Long userId) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetchOneInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
@@ -90,30 +94,36 @@ public class TimetableRepository {
     }
     
     /**
-     * 检查课表是否属于指定用户
+     * 检查课表是否属于指定用户（过滤已软删除的）
      */
     public boolean existsByIdAndUserId(Long id, Long userId) {
         return dsl.fetchExists(
             dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
         );
     }
     
     /**
-     * 获取所有课表（管理员功能）
+     * 获取所有课表（管理员功能）- 过滤已软删除的
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findAll() {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
     /**
-     * 根据ID列表查找课表
+     * 根据ID列表查找课表（过滤已软删除的）
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findByIdIn(List<Long> ids) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
-                .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids))
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
 } 

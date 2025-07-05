@@ -118,49 +118,7 @@ public class ScheduleRepository {
                 .fetchInto(Schedules.class);
     }
 
-    /**
-     * 软删除课表下的所有排课（临时实现，使用note字段标记）
-     */
-    public void softDeleteByTimetableId(Long timetableId) {
-        List<Schedules> schedules = findByTimetableId(timetableId);
-        String deletedTimestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        
-        for (Schedules schedule : schedules) {
-            // 检查是否已经软删除
-            if (schedule.getNote() != null && schedule.getNote().contains("[DELETED_")) {
-                continue; // 已经删除了，跳过
-            }
-            
-            // 在note字段中添加删除标记
-            String currentNote = schedule.getNote() != null ? schedule.getNote() : "";
-            String deletedNote = "[DELETED_" + deletedTimestamp + "] " + currentNote;
-            schedule.setNote(deletedNote);
-            schedule.setUpdatedAt(java.time.LocalDateTime.now());
-            
-            // 更新排课
-            update(schedule);
-        }
-    }
 
-    /**
-     * 获取课表下的有效排课（过滤掉已软删除的排课）
-     */
-    public List<Schedules> findActiveTimetableSchedules(Long timetableId) {
-        List<Schedules> allSchedules = findByTimetableId(timetableId);
-        return allSchedules.stream()
-                .filter(s -> s.getNote() == null || !s.getNote().contains("[DELETED_"))
-                .collect(java.util.stream.Collectors.toList());
-    }
-
-    /**
-     * 获取课表下指定周的有效排课（过滤掉已软删除的排课）
-     */
-    public List<Schedules> findActiveTimetableSchedulesByWeek(Long timetableId, Integer weekNumber) {
-        List<Schedules> allSchedules = findByTimetableIdAndWeekNumber(timetableId, weekNumber);
-        return allSchedules.stream()
-                .filter(s -> s.getNote() == null || !s.getNote().contains("[DELETED_"))
-                .collect(java.util.stream.Collectors.toList());
-    }
 
     // 可根据业务扩展更多jOOQ查询
 } 
