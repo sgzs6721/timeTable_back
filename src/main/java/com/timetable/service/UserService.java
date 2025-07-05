@@ -105,6 +105,8 @@ public class UserService implements UserDetailsService {
         }
         
         user.setUsername(newUsername);
+        // 手动设置更新时间
+        user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.update(user);
         return userRepository.findByUsername(newUsername);
     }
@@ -120,28 +122,32 @@ public class UserService implements UserDetailsService {
         
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPasswordHash(encodedPassword);
+        // 手动设置更新时间
+        user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.update(user);
-        return (byte) 1;
+        return true;
     }
     
     /**
-     * 软删除用户账号
+     * 软删除用户账号（暂时注释，等数据库迁移完成后启用）
      */
     public boolean deactivateUser(String username) {
-        Users user = userRepository.findByUsername(username);
-        if (user == null) {
-            return false;
-        }
+        // TODO: 执行数据库迁移V5后，重新生成jOOQ代码，然后启用此功能
+        // Users user = userRepository.findByUsername(username);
+        // if (user == null) {
+        //     return false;
+        // }
+        // 
+        // // 设置软删除标识
+        // user.setIsDeleted((byte) 1);
+        // user.setDeletedAt(java.time.LocalDateTime.now());
+        // user.setUpdatedAt(java.time.LocalDateTime.now());
+        // userRepository.update(user);
+        // 
+        // // 同时软删除用户的所有课表
+        // timetableRepository.softDeleteByUserId(user.getId());
         
-        // 设置软删除标识
-        user.setIsDeleted((byte) 1);
-        user.setDeletedAt(java.time.LocalDateTime.now());
-        user.setUpdatedAt(java.time.LocalDateTime.now());
-        userRepository.update(user);
-        
-        // 同时软删除用户的所有课表
-        timetableRepository.softDeleteByUserId(user.getId());
-        
-        return (byte) 1;
+        // 暂时返回false，表示功能未实现
+        return false;
     }
 } 
