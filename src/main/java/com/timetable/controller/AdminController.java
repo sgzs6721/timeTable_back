@@ -125,4 +125,33 @@ public class AdminController {
         
         return ResponseEntity.ok(ApiResponse.success("用户权限更新成功", updatedUser));
     }
+    
+    /**
+     * 重置用户密码
+     */
+    @PutMapping("/users/{userId}/password")
+    public ResponseEntity<ApiResponse<Void>> resetUserPassword(
+            @PathVariable Long userId,
+            @Valid @RequestBody Map<String, String> request) {
+        
+        String newPassword = request.get("password");
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("密码不能为空"));
+        }
+        
+        if (newPassword.length() < 6) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("密码至少6个字符"));
+        }
+        
+        boolean success = userService.resetUserPassword(userId, newPassword);
+        
+        if (!success) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在或重置失败"));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success("密码重置成功"));
+    }
 } 

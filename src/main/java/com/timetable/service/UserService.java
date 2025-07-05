@@ -184,6 +184,23 @@ public class UserService implements UserDetailsService {
     }
     
     /**
+     * 重置用户密码
+     */
+    public boolean resetUserPassword(Long userId, String newPassword) {
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            return false;
+        }
+        
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPasswordHash(encodedPassword);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        
+        return true;
+    }
+    
+    /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
     private Map<String, Object> convertUserToDTO(Users user) {
