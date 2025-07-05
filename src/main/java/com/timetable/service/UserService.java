@@ -90,4 +90,33 @@ public class UserService implements UserDetailsService {
     public boolean validatePassword(String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
+    
+    /**
+     * 更新用户名
+     */
+    public Users updateUsername(String currentUsername, String newUsername) {
+        Users user = userRepository.findByUsername(currentUsername);
+        if (user == null) {
+            return null;
+        }
+        
+        user.setUsername(newUsername);
+        userRepository.update(user);
+        return userRepository.findByUsername(newUsername);
+    }
+    
+    /**
+     * 更新密码
+     */
+    public boolean updatePassword(String username, String newPassword) {
+        Users user = userRepository.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+        
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPasswordHash(encodedPassword);
+        userRepository.update(user);
+        return true;
+    }
 } 

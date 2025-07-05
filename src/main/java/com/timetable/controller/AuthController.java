@@ -212,6 +212,123 @@ public class AuthController {
     }
     
     /**
+     * 更新用户资料
+     */
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateProfile(@Valid @RequestBody Map<String, String> profileData) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户未登录"));
+            }
+            
+            String currentUsername = authentication.getName();
+            String newUsername = profileData.get("username");
+            
+            if (newUsername == null || newUsername.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户名不能为空"));
+            }
+            
+            // 检查新用户名是否已存在（除了当前用户）
+            if (!newUsername.equals(currentUsername) && userService.existsByUsername(newUsername)) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户名已存在"));
+            }
+            
+            // 更新用户名
+            Users updatedUser = userService.updateUsername(currentUsername, newUsername);
+            
+            if (updatedUser == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("更新失败"));
+            }
+            
+            // 如果用户名发生了变化，需要生成新的token
+            String newToken = null;
+            if (!newUsername.equals(currentUsername)) {
+                newToken = jwtUtil.generateToken(newUsername);
+            }
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("user", convertUserToDTO(updatedUser));
+            if (newToken != null) {
+                data.put("token", newToken);
+            }
+            
+            logger.info("用户资料更新成功: {} -> {}", currentUsername, newUsername);
+            return ResponseEntity.ok(ApiResponse.success("用户资料更新成功", data));
+            
+        } catch (Exception e) {
+            logger.error("更新用户资料过程中发生错误", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("更新失败，请稍后重试"));
+        }
+    }
+    
+    /**
+     * 更新密码
+     */
+    @PutMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> updatePassword(@Valid @RequestBody Map<String, String> passwordData) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户未登录"));
+            }
+            
+            String username = authentication.getName();
+            String oldPassword = passwordData.get("oldPassword");
+            String newPassword = passwordData.get("newPassword");
+            
+            if (oldPassword == null || oldPassword.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("请输入当前密码"));
+            }
+            
+            if (newPassword == null || newPassword.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("请输入新密码"));
+            }
+            
+            if (newPassword.length() < 6) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("新密码至少6个字符"));
+            }
+            
+            // 验证当前密码
+            Users user = userService.findByUsername(username);
+            if (user == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户不存在"));
+            }
+            
+            if (!userService.validatePassword(oldPassword, user.getPasswordHash())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("当前密码不正确"));
+            }
+            
+            // 更新密码
+            boolean updated = userService.updatePassword(username, newPassword);
+            
+            if (updated) {
+                logger.info("用户密码更新成功: {}", username);
+                return ResponseEntity.ok(ApiResponse.success("密码更新成功"));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("密码更新失败"));
+            }
+            
+        } catch (Exception e) {
+            logger.error("更新密码过程中发生错误", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("密码更新失败，请稍后重试"));
+        }
+    }
+    
+    /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
     private Map<String, Object> convertUserToDTO(Users user) {
