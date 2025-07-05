@@ -3,6 +3,7 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.MergeTimetablesRequest;
 import com.timetable.dto.AdminTimetableDTO;
+import com.timetable.dto.BatchTimetableInfoRequest;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.service.TimetableService;
@@ -39,6 +40,22 @@ public class AdminController {
     public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getAllTimetables() {
         List<AdminTimetableDTO> timetables = timetableService.getAllTimetablesWithUser();
         return ResponseEntity.ok(ApiResponse.success("获取所有课表成功", timetables));
+    }
+    
+    /**
+     * 批量获取课表信息（包含用户信息）- 用于合并预览
+     */
+    @PostMapping("/timetables/batch-info")
+    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getBatchTimetablesInfo(
+            @Valid @RequestBody BatchTimetableInfoRequest request) {
+        
+        if (request.getTimetableIds().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("课表ID列表不能为空"));
+        }
+        
+        List<AdminTimetableDTO> timetables = timetableService.getTimetablesByIds(request.getTimetableIds());
+        return ResponseEntity.ok(ApiResponse.success("获取课表信息成功", timetables));
     }
     
     /**

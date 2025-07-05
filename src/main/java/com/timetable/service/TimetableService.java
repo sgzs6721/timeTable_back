@@ -191,4 +191,37 @@ public class TimetableService {
             );
         }).collect(java.util.stream.Collectors.toList());
     }
+    
+    /**
+     * 根据ID列表批量获取课表信息（包含用户信息）
+     */
+    public List<AdminTimetableDTO> getTimetablesByIds(List<Long> timetableIds) {
+        List<Timetables> timetables = timetableRepository.findByIdIn(timetableIds);
+        return timetables.stream().map(t -> {
+            String username = null;
+            try {
+                com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
+                if (u != null) {
+                    username = u.getUsername();
+                }
+            } catch (Exception ignored) {}
+
+            int scheduleCount = 0;
+            try {
+                scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
+            } catch (Exception ignored) {}
+
+            return new AdminTimetableDTO(
+                    t.getId(),
+                    t.getUserId(),
+                    username,
+                    t.getName(),
+                    t.getIsWeekly() != null && t.getIsWeekly() == 1,
+                    t.getStartDate(),
+                    t.getEndDate(),
+                    scheduleCount,
+                    t.getCreatedAt()
+            );
+        }).collect(java.util.stream.Collectors.toList());
+    }
 } 
