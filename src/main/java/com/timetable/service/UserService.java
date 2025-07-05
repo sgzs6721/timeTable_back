@@ -121,7 +121,7 @@ public class UserService implements UserDetailsService {
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPasswordHash(encodedPassword);
         userRepository.update(user);
-        return true;
+        return (byte) 1;
     }
     
     /**
@@ -134,7 +134,7 @@ public class UserService implements UserDetailsService {
         }
         
         // 设置软删除标识
-        user.setIsDeleted(true);
+        user.setIsDeleted((byte) 1);
         user.setDeletedAt(java.time.LocalDateTime.now());
         user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.update(user);
@@ -142,6 +142,6 @@ public class UserService implements UserDetailsService {
         // 同时软删除用户的所有课表
         timetableRepository.softDeleteByUserId(user.getId());
         
-        return true;
+        return (byte) 1;
     }
 } 

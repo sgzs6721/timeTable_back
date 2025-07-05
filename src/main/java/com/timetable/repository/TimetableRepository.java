@@ -27,7 +27,7 @@ public class TimetableRepository {
     public List<com.timetable.generated.tables.pojos.Timetables> findByUserId(Long userId) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
@@ -37,7 +37,7 @@ public class TimetableRepository {
     public com.timetable.generated.tables.pojos.Timetables findById(Long id) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
                 .fetchOneInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
@@ -48,7 +48,7 @@ public class TimetableRepository {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id)
                         .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
                 .fetchOneInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
@@ -87,7 +87,7 @@ public class TimetableRepository {
      */
     public void softDeleteById(Long id) {
         dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
-                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED, true)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED, (byte) 1)
                 .set(com.timetable.generated.tables.Timetables.TIMETABLES.DELETED_AT, LocalDateTime.now())
                 .set(com.timetable.generated.tables.Timetables.TIMETABLES.UPDATED_AT, LocalDateTime.now())
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id))
@@ -99,11 +99,11 @@ public class TimetableRepository {
      */
     public void softDeleteByUserId(Long userId) {
         dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
-                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED, true)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED, (byte) 1)
                 .set(com.timetable.generated.tables.Timetables.TIMETABLES.DELETED_AT, LocalDateTime.now())
                 .set(com.timetable.generated.tables.Timetables.TIMETABLES.UPDATED_AT, LocalDateTime.now())
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
                 .execute();
     }
     
@@ -114,7 +114,7 @@ public class TimetableRepository {
         return dsl.fetchExists(
             dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
         );
     }
     
@@ -126,7 +126,7 @@ public class TimetableRepository {
             dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.eq(id)
                         .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
         );
     }
     
@@ -135,7 +135,7 @@ public class TimetableRepository {
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findAll() {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
-                .where(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false))
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
@@ -145,7 +145,7 @@ public class TimetableRepository {
     public List<com.timetable.generated.tables.pojos.Timetables> findByIdIn(List<Long> ids) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq(false)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
 } 
