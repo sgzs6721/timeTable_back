@@ -1,6 +1,7 @@
 package com.timetable.service;
 
 import com.timetable.repository.UserRepository;
+import com.timetable.repository.TimetableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,6 +24,9 @@ public class UserService implements UserDetailsService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private TimetableRepository timetableRepository;
     
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
@@ -117,6 +121,27 @@ public class UserService implements UserDetailsService {
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPasswordHash(encodedPassword);
         userRepository.update(user);
+        return true;
+    }
+    
+    /**
+     * 软删除用户账号
+     */
+    public boolean deactivateUser(String username) {
+        Users user = userRepository.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+        
+        // 设置软删除标识
+        user.setIsDeleted(true);
+        user.setDeletedAt(java.time.LocalDateTime.now());
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        
+        // 同时软删除用户的所有课表
+        timetableRepository.softDeleteByUserId(user.getId());
+        
         return true;
     }
 } 

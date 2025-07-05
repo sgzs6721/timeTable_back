@@ -329,6 +329,39 @@ public class AuthController {
     }
     
     /**
+     * 注销账号（软删除）
+     */
+    @DeleteMapping("/deactivate")
+    public ResponseEntity<ApiResponse<Void>> deactivateAccount() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户未登录"));
+            }
+            
+            String username = authentication.getName();
+            
+            // 注销账号（软删除）
+            boolean deactivated = userService.deactivateUser(username);
+            if (deactivated) {
+                // 清除安全上下文
+                SecurityContextHolder.clearContext();
+                logger.info("用户账号已注销: {}", username);
+                return ResponseEntity.ok(ApiResponse.success("账号已成功注销"));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("账号注销失败"));
+            }
+            
+        } catch (Exception e) {
+            logger.error("注销账号过程中发生错误", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("账号注销失败"));
+        }
+    }
+    
+    /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
     private Map<String, Object> convertUserToDTO(Users user) {
@@ -337,6 +370,7 @@ public class AuthController {
         userDTO.put("username", user.getUsername());
         userDTO.put("role", user.getRole());
         userDTO.put("createdAt", user.getCreatedAt());
+        userDTO.put("updatedAt", user.getUpdatedAt());
         return userDTO;
     }
-} 
+}

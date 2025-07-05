@@ -18,28 +18,33 @@ public class UserRepository {
     private UsersDao usersDao;
     
     /**
-     * 根据用户名查找用户
+     * 根据用户名查找用户（排除已软删除的用户）
      */
     public Users findByUsername(String username) {
         return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
-                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
+                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username)
+                        .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq(false)))
                 .fetchOneInto(Users.class);
     }
     
     /**
-     * 根据ID查找用户
+     * 根据ID查找用户（排除已软删除的用户）
      */
     public Users findById(Long id) {
-        return usersDao.findById(id);
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.ID.eq(id)
+                        .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq(false)))
+                .fetchOneInto(Users.class);
     }
     
     /**
-     * 检查用户名是否存在
+     * 检查用户名是否存在（排除已软删除的用户）
      */
     public boolean existsByUsername(String username) {
         return dsl.fetchExists(
             dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
-                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
+                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username)
+                        .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq(false)))
         );
     }
     
