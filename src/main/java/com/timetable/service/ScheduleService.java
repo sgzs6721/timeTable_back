@@ -88,9 +88,9 @@ public class ScheduleService {
         // For WEEKLY timetables, week-based filtering is based on the week_number field.
         if (timetable.getIsWeekly() == 1) {
             if (week != null && week > 0) {
-                return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
+                return scheduleRepository.findActiveTimetableSchedulesByWeek(timetableId, week);
             }
-            return scheduleRepository.findByTimetableId(timetableId);
+            return scheduleRepository.findActiveTimetableSchedules(timetableId);
         }
 
         // For DATE-RANGE timetables, a "week" is defined as the calendar week (Monday-Sunday) that contains the timetable's start date.
@@ -415,8 +415,8 @@ public class ScheduleService {
         List<Schedules> createdSchedules = new ArrayList<>();
         List<ConflictInfo> conflicts = new ArrayList<>();
 
-        // 获取现有排课
-        List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+        // 获取现有有效排课（过滤软删除的）
+        List<Schedules> existingSchedules = scheduleRepository.findActiveTimetableSchedules(timetableId);
 
         for (ScheduleRequest request : requests) {
             boolean hasConflict = false;
@@ -488,8 +488,8 @@ public class ScheduleService {
     public List<Schedules> createSchedulesWithOverride(Long timetableId, List<ScheduleRequest> requests) {
         List<Schedules> result = new ArrayList<>();
 
-        // 获取现有的排课数据
-        List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+        // 获取现有的有效排课数据（过滤软删除的）
+        List<Schedules> existingSchedules = scheduleRepository.findActiveTimetableSchedules(timetableId);
 
         for (ScheduleRequest request : requests) {
             // 查找与当前请求冲突的现有排课
