@@ -59,6 +59,13 @@ public class TimetableService {
     }
     
     /**
+     * 管理员直接按ID获取课表，不校验用户
+     */
+    public Timetables getTimetableById(Long id) {
+        return timetableRepository.findById(id);
+    }
+    
+    /**
      * 更新课表
      */
     public Timetables updateTimetable(Long timetableId, Long userId, TimetableRequest request) {

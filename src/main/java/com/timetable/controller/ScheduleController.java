@@ -66,9 +66,10 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         List<Schedules> schedules = scheduleService.getTimetableSchedules(timetableId, week);
@@ -90,9 +91,10 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         // 验证时间逻辑
@@ -121,9 +123,10 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         // 如果同时提供了开始和结束时间，则验证逻辑
@@ -157,9 +160,10 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         boolean deleted = scheduleService.deleteSchedule(timetableId, scheduleId);
@@ -187,8 +191,10 @@ public class ScheduleController {
                     .body(ApiResponse.<List<ScheduleInfo>>error("用户不存在", null)));
         }
 
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return Mono.just(ResponseEntity.notFound().build());
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return Mono.just(ResponseEntity.notFound().build());
+            }
         }
 
         if (audioFile.isEmpty()) {
@@ -224,9 +230,10 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         try {
@@ -258,9 +265,10 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         try {
@@ -287,9 +295,10 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
         // 校验每个排课的时间
         for (ScheduleRequest request : requests) {
@@ -315,9 +324,10 @@ public class ScheduleController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
 
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
 
         // 校验每个排课的时间
@@ -359,9 +369,10 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        // 检查课表是否属于当前用户
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
         // 校验每个排课的时间
         for (ScheduleRequest request : requests) {
@@ -392,8 +403,10 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
         int deleted = scheduleService.deleteSchedulesByCondition(timetableId, request);
         return ResponseEntity.ok(ApiResponse.success("删除排课成功", deleted));
@@ -411,8 +424,10 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-            return ResponseEntity.notFound().build();
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
         }
         int deleted = scheduleService.deleteSchedulesBatch(timetableId, requests);
         return ResponseEntity.ok(ApiResponse.success("批量删除排课成功", deleted));

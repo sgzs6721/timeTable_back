@@ -85,7 +85,12 @@ public class TimetableController {
                     .body(ApiResponse.error("用户不存在"));
         }
         
-        Timetables timetable = timetableService.getTimetable(id, user.getId());
+        Timetables timetable;
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            timetable = timetableService.getTimetableById(id);
+        } else {
+            timetable = timetableService.getTimetable(id, user.getId());
+        }
         
         if (timetable == null) {
             return ResponseEntity.notFound()
