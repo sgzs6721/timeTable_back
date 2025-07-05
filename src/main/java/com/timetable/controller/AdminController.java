@@ -2,6 +2,7 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.MergeTimetablesRequest;
+import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.service.TimetableService;
@@ -35,8 +36,8 @@ public class AdminController {
      * 获取所有用户的课表
      */
     @GetMapping("/timetables")
-    public ResponseEntity<ApiResponse<List<Timetables>>> getAllTimetables() {
-        List<Timetables> timetables = timetableService.getAllTimetables();
+    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getAllTimetables() {
+        List<AdminTimetableDTO> timetables = timetableService.getAllTimetablesWithUser();
         return ResponseEntity.ok(ApiResponse.success("获取所有课表成功", timetables));
     }
     

@@ -58,6 +58,13 @@ public class UserService implements UserDetailsService {
     }
     
     /**
+     * 根据用户ID查找用户
+     */
+    public Users findById(Long id) {
+        return userRepository.findById(id);
+    }
+    
+    /**
      * 检查用户名是否存在
      */
     public boolean existsByUsername(String username) {

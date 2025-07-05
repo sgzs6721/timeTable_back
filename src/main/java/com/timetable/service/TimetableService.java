@@ -5,6 +5,8 @@ import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.dto.AdminTimetableDTO;
+import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,9 @@ public class TimetableService {
     
     @Autowired
     private ScheduleRepository scheduleRepository;
+    
+    @Autowired
+    private UserService userService;
     
     /**
      * 获取用户的课表列表
@@ -145,5 +150,38 @@ public class TimetableService {
         }
         
         return mergedTimetable;
+    }
+    
+    /**
+     * 获取所有课表并附带用户名、课程数量（管理员功能）
+     */
+    public List<AdminTimetableDTO> getAllTimetablesWithUser() {
+        List<Timetables> timetables = timetableRepository.findAll();
+        return timetables.stream().map(t -> {
+            String username = null;
+            try {
+                com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
+                if (u != null) {
+                    username = u.getUsername();
+                }
+            } catch (Exception ignored) {}
+
+            int scheduleCount = 0;
+            try {
+                scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
+            } catch (Exception ignored) {}
+
+            return new AdminTimetableDTO(
+                    t.getId(),
+                    t.getUserId(),
+                    username,
+                    t.getName(),
+                    t.getIsWeekly() != null && t.getIsWeekly() == 1,
+                    t.getStartDate(),
+                    t.getEndDate(),
+                    scheduleCount,
+                    t.getCreatedAt()
+            );
+        }).collect(java.util.stream.Collectors.toList());
     }
 } 
