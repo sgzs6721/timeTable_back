@@ -126,52 +126,7 @@ public class TimetableService {
     
 
     
-    /**
-     * 合并课表（管理员功能）
-     */
-    public Timetables mergeTimetables(List<Long> timetableIds, String mergedName, String description, Long adminUserId) {
-        List<Timetables> timetablesToMerge = timetableRepository.findByIdIn(timetableIds);
-        
-        if (timetablesToMerge.isEmpty()) {
-            return null;
-        }
-        
 
-        
-        // 创建新的合并课表
-        Timetables mergedTimetable = new Timetables();
-        mergedTimetable.setUserId(adminUserId);
-        mergedTimetable.setName(mergedName);
-        mergedTimetable.setDescription(description);
-        mergedTimetable.setIsWeekly((byte) 1); // 合并后的课表默认为周固定
-        
-        mergedTimetable = timetableRepository.save(mergedTimetable);
-        
-        // 将所有相关的排课复制到新课表
-        List<Schedules> allSchedules = scheduleRepository.findByTimetableIdIn(timetableIds);
-        for (Schedules schedule : allSchedules) {
-            
-            Schedules newSchedule = new Schedules();
-            newSchedule.setTimetableId(mergedTimetable.getId());
-            newSchedule.setStudentName(schedule.getStudentName());
-            newSchedule.setSubject(schedule.getSubject());
-            newSchedule.setDayOfWeek(schedule.getDayOfWeek());
-            newSchedule.setStartTime(schedule.getStartTime());
-            newSchedule.setEndTime(schedule.getEndTime());
-            newSchedule.setWeekNumber(schedule.getWeekNumber());
-            newSchedule.setScheduleDate(schedule.getScheduleDate());
-            newSchedule.setNote(schedule.getNote() + " [来自: " + 
-                    timetablesToMerge.stream()
-                            .filter(t -> t.getId().equals(schedule.getTimetableId()))
-                            .findFirst()
-                            .map(Timetables::getName)
-                            .orElse("未知课表") + "]");
-            
-            scheduleRepository.save(newSchedule);
-        }
-        
-        return mergedTimetable;
-    }
     
     /**
      * 获取所有课表并附带用户名、课程数量（管理员功能）

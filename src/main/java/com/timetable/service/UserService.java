@@ -86,6 +86,9 @@ public class UserService implements UserDetailsService {
         user.setUsername(username);
         user.setPasswordHash(encodedPassword);
         user.setRole(role);
+        // 设置创建和更新时间
+        user.setCreatedAt(java.time.LocalDateTime.now());
+        user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.save(user);
         return userRepository.findByUsername(username);
     }

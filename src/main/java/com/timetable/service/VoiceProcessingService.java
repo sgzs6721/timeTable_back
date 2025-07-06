@@ -170,6 +170,9 @@ public class VoiceProcessingService {
             schedule.setDayOfWeek(dayOfWeek.name());
             schedule.setStartTime(startTime);
             schedule.setEndTime(endTime);
+            // 设置创建和更新时间
+            schedule.setCreatedAt(java.time.LocalDateTime.now());
+            schedule.setUpdatedAt(java.time.LocalDateTime.now());
             schedules.add(schedule);
         }
         
@@ -217,6 +220,9 @@ public class VoiceProcessingService {
                 schedule.setDayOfWeek(dayOfWeek.name());
                 schedule.setStartTime(startTime);
                 schedule.setEndTime(endTime);
+                // 设置创建和更新时间
+                schedule.setCreatedAt(java.time.LocalDateTime.now());
+                schedule.setUpdatedAt(java.time.LocalDateTime.now());
                 return schedule;
             }
         } catch (Exception e) {

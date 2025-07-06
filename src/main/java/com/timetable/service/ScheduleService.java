@@ -139,6 +139,9 @@ public class ScheduleService {
 
         schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
+        // 设置创建和更新时间
+        schedule.setCreatedAt(LocalDateTime.now());
+        schedule.setUpdatedAt(LocalDateTime.now());
         scheduleRepository.save(schedule);
         return schedule;
     }
