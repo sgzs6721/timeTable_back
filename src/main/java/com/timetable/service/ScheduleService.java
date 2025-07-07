@@ -31,6 +31,10 @@ import java.util.LinkedHashMap;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.time.temporal.TemporalAdjusters;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * 排课服务
@@ -63,6 +67,34 @@ public class ScheduleService {
         weekDayMap.put("日", DayOfWeek.SUNDAY);
         weekDayMap.put("天", DayOfWeek.SUNDAY);
         weekDayMap.put("7", DayOfWeek.SUNDAY);
+    }
+
+    private static class ChineseNumberConverter {
+        private static final Map<Character, Integer> CN_NUM_MAP = new HashMap<>();
+        static {
+            CN_NUM_MAP.put('零', 0); CN_NUM_MAP.put('一', 1); CN_NUM_MAP.put('二', 2);
+            CN_NUM_MAP.put('三', 3); CN_NUM_MAP.put('四', 4); CN_NUM_MAP.put('五', 5);
+            CN_NUM_MAP.put('六', 6); CN_NUM_MAP.put('日', 7); CN_NUM_MAP.put('天', 7); // '日'和'天'在星期中特殊处理
+            CN_NUM_MAP.put('七', 7); CN_NUM_MAP.put('八', 8); CN_NUM_MAP.put('九', 9);
+            CN_NUM_MAP.put('十', 10);
+
+            CN_NUM_MAP.put('壹', 1); CN_NUM_MAP.put('贰', 2); CN_NUM_MAP.put('叁', 3);
+            CN_NUM_MAP.put('肆', 4); CN_NUM_MAP.put('伍', 5); CN_NUM_MAP.put('陆', 6);
+            CN_NUM_MAP.put('柒', 7); CN_NUM_MAP.put('捌', 8); CN_NUM_MAP.put('玖', 9);
+            CN_NUM_MAP.put('拾', 10);
+        }
+
+        public static String convert(String chineseNumber) {
+            StringBuilder sb = new StringBuilder();
+            for (char c : chineseNumber.toCharArray()) {
+                if (CN_NUM_MAP.containsKey(c)) {
+                    sb.append(CN_NUM_MAP.get(c));
+                } else {
+                    sb.append(c);
+                }
+            }
+            return sb.toString();
+        }
     }
 
     @Autowired
@@ -600,7 +632,9 @@ public class ScheduleService {
 
     public List<ScheduleInfo> parseTextWithRules(String text, String type) {
         List<ScheduleInfo> scheduleInfoList = new ArrayList<>();
-        String[] lines = text.split("\\r?\\n");
+        // 预处理：替换所有分隔符和关键词，并将中文数字转为阿拉伯数字
+        String preprocessedText = preprocessText(text);
+        String[] lines = preprocessedText.split("\\r?\\n");
 
         for (String line : lines) {
             if (line.trim().isEmpty()) {
@@ -613,106 +647,88 @@ public class ScheduleService {
         return expandTimeSlots(scheduleInfoList);
     }
 
+    private String preprocessText(String text) {
+        return ChineseNumberConverter.convert(text)
+                .replaceAll("[至到~——]", "-") // 统一范围分隔符
+                .replaceAll("[，]", ",") // 统一逗号
+                .replaceAll("周|星期", ""); // 移除星期的前缀
+    }
+
     private List<ScheduleInfo> parseSingleLine(String line, String type) {
         List<ScheduleInfo> results = new ArrayList<>();
-        String[] parts = line.trim().split("[\\s，,]+");
+        String originalLine = line;
 
-        if (parts.length < 2 || parts.length > 4) {
-            return results; // Expect 2-4 parts
+        // 1. Extract all time parts
+        List<String> timeParts = new ArrayList<>();
+        Pattern timePattern = Pattern.compile("(\\d{1,2}(:\\d{2})?-\\d{1,2}(:\\d{2})?|\\d{1,2}-\\d{1,2}|\\d{1,2})");
+        Matcher timeMatcher = timePattern.matcher(line);
+        while (timeMatcher.find()) {
+            timeParts.add(timeMatcher.group());
         }
+        line = timeMatcher.replaceAll("").trim(); // Remove time parts from line
 
-        List<String> partList = new ArrayList<>(Arrays.asList(parts));
-        String timePart = null;
-        String dayPart = null;
-        String studentName = null;
+        // 2. Extract all day/date parts
+        List<String> dayParts = new ArrayList<>();
+        Pattern dayPattern = "WEEKLY".equalsIgnoreCase(type)
+                ? Pattern.compile("\\b([1-7](-[1-7])?)\\b")
+                : Pattern.compile("(\\d{1,2}[./]\\d{1,2}(-\\d{1,2}([./]\\d{1,2})?)?)");
+        Matcher dayMatcher = dayPattern.matcher(line);
+        while (dayMatcher.find()) {
+            dayParts.add(dayMatcher.group());
+        }
+        line = dayMatcher.replaceAll("").trim(); // Remove day parts
 
-        // Identify Time Part
-        for (Iterator<String> iterator = partList.iterator(); iterator.hasNext();) {
-            String part = iterator.next();
-            if (isTimePart(part)) {
-                timePart = part;
-                iterator.remove();
-                break;
+        // 3. The rest is student name
+        String studentName = line.replaceAll("[,\\s]+", "");
+
+        boolean isSuccess = !studentName.isEmpty() && !timeParts.isEmpty() && !dayParts.isEmpty();
+
+        if (isSuccess) {
+            // 4. Generate combinations for successful parsing
+            List<String> parsedDays = dayParts.stream()
+                    .flatMap(dayPart -> parseDays(dayPart, type).stream())
+                    .collect(Collectors.toList());
+
+            List<String> parsedTimes = timeParts.stream()
+                    .map(this::parseTime)
+                    .collect(Collectors.toList());
+
+            for (String day : parsedDays) {
+                for (String time : parsedTimes) {
+                    if ("WEEKLY".equalsIgnoreCase(type)) {
+                        results.add(new ScheduleInfo(studentName, time, day, null, null));
+                    } else { // DATE_RANGE
+                        results.add(new ScheduleInfo(studentName, time, null, day, null));
+                    }
+                }
             }
-        }
+        } else if (!originalLine.trim().isEmpty()) {
+            // 5. Handle parsing failure and generate a detailed error message
+            StringBuilder errorMsg = new StringBuilder("解析失败: ");
+            List<String> missing = new ArrayList<>();
+            if (studentName.isEmpty()) missing.add("姓名");
+            if (dayParts.isEmpty()) missing.add("日期/星期");
+            if (timeParts.isEmpty()) missing.add("时间");
+            errorMsg.append("缺失 [").append(String.join(", ", missing)).append("] 信息。");
 
-        // Identify Day/Date Part
-        for (Iterator<String> iterator = partList.iterator(); iterator.hasNext();) {
-            String part = iterator.next();
-            if (isDayPart(part, type)) {
-                dayPart = part;
-                iterator.remove();
-                break;
+            List<String> found = new ArrayList<>();
+            if (!studentName.isEmpty()) found.add("姓名: " + studentName);
+            if (!dayParts.isEmpty()) found.add("日期/星期: " + String.join(", ", dayParts));
+            if (!timeParts.isEmpty()) found.add("时间: " + String.join(", ", timeParts));
+
+            if (!found.isEmpty()) {
+                errorMsg.append(" (已识别: ").append(String.join("; ", found)).append(")");
             }
+            
+            // Create a special ScheduleInfo object to carry the error
+            ScheduleInfo errorInfo = new ScheduleInfo(originalLine, null, null, null, errorMsg.toString());
+            results.add(errorInfo);
         }
 
-        // The remaining parts should be the student name (could be multiple parts)
-        if (!partList.isEmpty()) {
-            studentName = String.join("", partList); // Join remaining parts as student name
-        }
-
-        // If we couldn't identify day/date part, but we have time and name,
-        // try to use a default or infer from context
-        if (dayPart == null && timePart != null && studentName != null) {
-            // For DATE_RANGE type, if no specific date is found, we might need to handle this differently
-            // For now, let's skip this case
-            return results;
-        }
-
-        if (studentName == null || timePart == null) {
-            return results; // Must have at least student name and time
-        }
-
-        // If dayPart is null, we might be dealing with a different format
-        if (dayPart == null) {
-            return results;
-        }
-
-        List<String> days = parseDays(dayPart, type);
-        String timeRange = parseTime(timePart);
-
-        for (String day : days) {
-            if ("WEEKLY".equalsIgnoreCase(type)) {
-                results.add(new ScheduleInfo(studentName, timeRange, day, null, "格式解析"));
-            } else { // DATE_RANGE
-                results.add(new ScheduleInfo(studentName, timeRange, null, day, "格式解析"));
-            }
-        }
         return results;
     }
 
-    private boolean isTimePart(String part) {
-        String cleanPart = part.trim().replaceAll("点", "");
-        return cleanPart.matches("^\\d{1,2}([-~]\\d{1,2})?$") || cleanPart.matches("^\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}$");
-    }
-
-    private boolean isDayPart(String part, String type) {
-        if ("WEEKLY".equalsIgnoreCase(type)) {
-            String cleanPart = part.trim().replaceAll("周|星期", "");
-            String[] dayTokens = cleanPart.split("[-~至]");
-            if (dayTokens.length < 1 || dayTokens.length > 2) return false;
-            for (String token : dayTokens) {
-                if (!weekDayMap.containsKey(token)) return false;
-            }
-            return true;
-        } else { // DATE_RANGE
-            String[] dateTokens = part.split("[-~至到]");
-            if (dateTokens.length == 1) {
-                // A single date part must be in M.D format
-                return dateTokens[0].matches("^\\d{1,2}[月./]\\d{1,2}$");
-            }
-            if (dateTokens.length == 2) {
-                // For a range, the start must be M.D, the end can be M.D or just D.
-                boolean startOk = dateTokens[0].matches("^\\d{1,2}[月./]\\d{1,2}$");
-                boolean endOk = dateTokens[1].matches("^\\d{1,2}[月./]\\d{1,2}$") || dateTokens[1].matches("^\\d{1,2}$");
-                return startOk && endOk;
-            }
-            return false;
-        }
-    }
-
     private List<String> parseDays(String dayPart, String type) {
-        dayPart = dayPart.trim().replaceAll("周", "").replaceAll("星期", "");
         if ("WEEKLY".equalsIgnoreCase(type)) {
             return parseDayOfWeekRanges(dayPart);
         } else {
@@ -722,60 +738,61 @@ public class ScheduleService {
 
     private List<String> parseDayOfWeekRanges(String part) {
         List<String> resultDays = new ArrayList<>();
-        String[] dayParts = part.split("[-~至到]");
+        String[] dayParts = part.split("-");
 
-        if (dayParts.length == 2) {
-            DayOfWeek startDay = weekDayMap.get(dayParts[0]);
-            DayOfWeek endDay = weekDayMap.get(dayParts[1]);
-            if (startDay != null && endDay != null && startDay.getValue() <= endDay.getValue()) {
-                for (int i = startDay.getValue(); i <= endDay.getValue(); i++) {
-                    resultDays.add(DayOfWeek.of(i).toString());
+        try {
+            if (dayParts.length == 2) {
+                DayOfWeek startDay = weekDayMap.get(dayParts[0]);
+                DayOfWeek endDay = weekDayMap.get(dayParts[1]);
+                if (startDay != null && endDay != null && startDay.getValue() <= endDay.getValue()) {
+                    for (int i = startDay.getValue(); i <= endDay.getValue(); i++) {
+                        resultDays.add(DayOfWeek.of(i).toString());
+                    }
                 }
+            } else if (dayParts.length == 1 && weekDayMap.containsKey(dayParts[0])) {
+                resultDays.add(weekDayMap.get(dayParts[0]).toString());
             }
-        } else if (dayParts.length == 1 && weekDayMap.containsKey(dayParts[0])) {
-             resultDays.add(weekDayMap.get(dayParts[0]).toString());
+        } catch (Exception e) {
+             logger.error("Error parsing day of week range: {}", part, e);
         }
         return resultDays;
     }
 
     private List<String> parseDateRanges(String part) {
         List<String> resultDates = new ArrayList<>();
-        String[] dateParts = part.split("[-~至到]");
+        String[] dateParts = part.split("-");
         int currentYear = LocalDate.now().getYear();
 
-        if (dateParts.length == 2) {
-            LocalDate startDate = parseSingleDate(dateParts[0], currentYear);
-            if (startDate != null) {
-                LocalDate endDate;
-                // If end date is just a number, assume it's a day in the same month as the start date.
-                if (dateParts[1].matches("^\\d{1,2}$")) {
-                    try {
+        try {
+            if (dateParts.length >= 1) {
+                LocalDate startDate = parseSingleDate(dateParts[0], currentYear);
+                LocalDate endDate = startDate; // Default to single day
+
+                if (dateParts.length == 2) {
+                    // If end date is just a number, assume it's a day in the same month.
+                    if (dateParts[1].matches("^\\d{1,2}$")) {
                         endDate = LocalDate.of(startDate.getYear(), startDate.getMonth(), Integer.parseInt(dateParts[1]));
-                    } catch (Exception e) {
-                        endDate = null;
+                    } else {
+                        endDate = parseSingleDate(dateParts[1], currentYear);
                     }
-                } else {
-                    endDate = parseSingleDate(dateParts[1], currentYear);
                 }
 
-                if (endDate != null && !startDate.isAfter(endDate)) {
+                if (startDate != null && endDate != null && !startDate.isAfter(endDate)) {
                     for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
                         resultDates.add(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
                     }
                 }
             }
-        } else if (dateParts.length == 1) {
-            LocalDate date = parseSingleDate(dateParts[0], currentYear);
-            if (date != null) {
-                resultDates.add(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
-            }
+        } catch (Exception e) {
+            logger.error("Error parsing date range: {}", part, e);
         }
         return resultDates;
     }
 
     private LocalDate parseSingleDate(String dateStr, int year) {
         try {
-            String[] parts = dateStr.trim().split("[月./]");
+            String[] parts = dateStr.trim().split("[./]");
+            if (parts.length != 2) return null;
             int month = Integer.parseInt(parts[0]);
             int day = Integer.parseInt(parts[1]);
             return LocalDate.of(year, month, day);
@@ -785,58 +802,39 @@ public class ScheduleService {
     }
 
     private String parseTime(String timePart) {
-        timePart = timePart.trim().replaceAll("点", "").replaceAll("[~]", "-");
-
-        // Handles "15:00-16:00" - pass through for now
+        // Handles "15:00-16:00"
         if (timePart.matches("\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}")) {
             return timePart;
         }
 
         final int MIN_HOUR = 8;
-        final int MAX_HOUR = 20;
+        final int MAX_HOUR = 21; // Can end at 21:00
 
         try {
-            int startHourInput, endHourInput;
+            int startHour, endHour;
 
-            if (timePart.matches("\\d{1,2}-\\d{1,2}")) {
+            if (timePart.contains("-")) {
                 String[] parts = timePart.split("-");
-                startHourInput = Integer.parseInt(parts[0]);
-                endHourInput = Integer.parseInt(parts[1]);
-            } else if (timePart.matches("\\d{1,2}")) {
-                startHourInput = Integer.parseInt(timePart);
-                endHourInput = startHourInput + 1;
+                startHour = Integer.parseInt(parts[0]);
+                endHour = Integer.parseInt(parts[1]);
             } else {
-                return "09:00-10:00"; // Fallback for unknown format
+                startHour = Integer.parseInt(timePart);
+                endHour = startHour + 1;
             }
 
-            // --- Disambiguation Logic ---
+            // Disambiguation: 1-8 are likely PM
+            if (startHour >= 1 && startHour <= 8) startHour += 12;
+            if (endHour >= 1 && endHour <= 9) endHour += 12; // 9 might mean 9pm (21:00)
 
-            // Interpretation 1: PM-preferred (e.g., 3 -> 15:00, 8 -> 20:00)
-            int start1 = (startHourInput >= 1 && startHourInput <= 8) ? startHourInput + 12 : startHourInput;
-            int end1 = (endHourInput >= 1 && endHourInput <= 8) ? endHourInput + 12 : endHourInput;
-            if (end1 < start1) { // Adjust for ranges like "8-9" -> 20:00-21:00
-                end1 += 12;
-            }
-
-            // Check if Interpretation 1 is valid
-            if (start1 >= MIN_HOUR && end1 <= MAX_HOUR) {
-                return String.format("%02d:00-%02d:00", start1, end1);
-            }
-
-            // Interpretation 2: As-is / AM-preferred (e.g., 8 -> 08:00)
-            int start2 = startHourInput;
-            int end2 = endHourInput;
-
-            // Check if Interpretation 2 is valid
-            if (start2 >= MIN_HOUR && end2 <= MAX_HOUR) {
-                return String.format("%02d:00-%02d:00", start2, end2);
+            if (startHour >= MIN_HOUR && endHour <= MAX_HOUR && startHour < endHour) {
+                 return String.format("%02d:00-%02d:00", startHour, endHour);
             }
 
         } catch (NumberFormatException e) {
-            // Fallthrough to default if parsing fails
+            logger.error("Error parsing time part: {}", timePart, e);
         }
 
-        return "09:00-10:00"; // Fallback if no valid interpretation found
+        return "09:00-10:00"; // Fallback
     }
 
     /**
