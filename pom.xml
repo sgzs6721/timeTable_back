@@ -226,7 +226,7 @@
             </build>
             <properties>
                 <db.url>jdbc:mysql://localhost:3306/timetable_db</db.url>
-                <db.user>timetable_db</db.user>
+                <db.user>timetable</db.user>
                 <db.password>Leilei*0217</db.password>
                 <db.schema>timetable_db</db.schema>
             </properties>
@@ -238,7 +238,7 @@
             </build>
             <properties>
                 <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
-                <db.user>timetable_db</db.user>
+                <db.user>timetable</db.user>
                 <db.password>Leilei*0217</db.password>
                 <db.schema>timetable_db</db.schema>
             </properties>
