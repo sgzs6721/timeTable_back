@@ -206,29 +206,38 @@
     <profiles>
         <profile>
             <id>dev</id>
+            <build>
+                <finalName>timetable-backend-dev</finalName>
+            </build>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
-                <db.user>timetable</db.user>
+                <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db_dev</db.url>
+                <db.user>timetable_dev</db.user>
                 <db.password>Leilei*0217</db.password>
             </properties>
         </profile>
         <profile>
             <id>test</id>
+            <build>
+                <finalName>timetable-backend-test</finalName>
+            </build>
             <properties>
-                <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
-                <db.user>timetable</db.user>
+                <db.url>jdbc:mysql://localhost:3306/timetable_db</db.url>
+                <db.user>timetable_db</db.user>
                 <db.password>Leilei*0217</db.password>
             </properties>
         </profile>
         <profile>
             <id>prod</id>
+            <build>
+                <finalName>timetable-backend-prod</finalName>
+            </build>
             <properties>
-                <db.url>jdbc:mysql://prod-server:3306/timetable_db</db.url>
-                <db.user>timetable_prod</db.user>
-                <db.password>prod_password</db.password>
+                <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
+                <db.user>timetable_db</db.user>
+                <db.password>Leilei*0217</db.password>
             </properties>
         </profile>
     </profiles>

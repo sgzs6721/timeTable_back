@@ -1,11 +1,11 @@
-name: deploy_master_back
+name: deploy_dev_back
 on:
   push:
     branches:
-      - master
+      - dev
 
 jobs:
-  master-timeTable-back:
+  dev-timeTable-back:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
@@ -23,9 +23,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - name: Flyway Clean
         if: ${{ vars.FLYWAY_CLEAN == '1' }}
-        run: mvn flyway:clean -P prod
+        run: mvn flyway:clean -P dev
       - name: Build application lesson_web_back
-        run: mvn flyway:repair -P prod && mvn flyway:migrate -P prod && mvn jooq-codegen:generate -P prod && mvn clean compile -P prod && mvn install -P prod -Dmaven.test.skip=true
+        run: mvn flyway:repair -P dev && mvn flyway:migrate -P dev && mvn jooq-codegen:generate -P dev && mvn clean compile -P dev && mvn install -P dev -Dmaven.test.skip=true
       - name: Scp jar To HW Server
         uses: appleboy/scp-action@master
         with:
@@ -43,4 +43,4 @@ jobs:
           host: ${{ secrets.HW_TEST_SERVER }}
           user: ${{ secrets.HW_SERVER_USERNAME }}
           pass: ${{ secrets.HW_SERVER_PWD }}
-          args: "-tt"
+          args: "-tt" 
