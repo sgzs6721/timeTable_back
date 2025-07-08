@@ -132,7 +132,7 @@ public class TimetableRepository {
      */
     public void clearActiveForUser(Long userId) {
         dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
-            .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ACTIVE, false)
+            .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ACTIVE, (byte) 0)
             .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
             .execute();
     }
@@ -143,7 +143,7 @@ public class TimetableRepository {
     public List<com.timetable.generated.tables.pojos.Timetables> findArchivedByUserId(Long userId) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)
-                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq(true))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq((byte) 1))
                         .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
                                 .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);

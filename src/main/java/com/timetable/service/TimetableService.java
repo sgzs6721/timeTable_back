@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 课表服务
@@ -52,11 +53,11 @@ public class TimetableService {
         timetable.setUpdatedAt(LocalDateTime.now());
         // 判断是否已有活动课表
         List<Timetables> userTables = timetableRepository.findByUserId(userId)
-            .stream().filter(t -> Boolean.TRUE.equals(t.getIsActive())).toList();
+            .stream().filter(t -> t.getIsActive() != null && t.getIsActive() == 1).collect(Collectors.toList());
         if (userTables.isEmpty()) {
-            timetable.setIsActive(true);
+            timetable.setIsActive((byte) 1);
         } else {
-            timetable.setIsActive(false);
+            timetable.setIsActive((byte) 0);
         }
         return timetableRepository.save(timetable);
     }
@@ -141,7 +142,7 @@ public class TimetableService {
         Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
         timetableRepository.clearActiveForUser(userId);
-        t.setIsActive(true);
+        t.setIsActive((byte) 1);
         t.setUpdatedAt(java.time.LocalDateTime.now());
         timetableRepository.save(t);
         return true;
@@ -153,7 +154,7 @@ public class TimetableService {
     public boolean archiveTimetable(Long timetableId, Long userId) {
         Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
-        t.setIsArchived(true);
+        t.setIsArchived((byte) 1);
         t.setUpdatedAt(java.time.LocalDateTime.now());
         timetableRepository.save(t);
         return true;
@@ -165,7 +166,7 @@ public class TimetableService {
     public boolean restoreTimetable(Long timetableId, Long userId) {
         Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
-        t.setIsArchived(false);
+        t.setIsArchived((byte) 0);
         t.setUpdatedAt(java.time.LocalDateTime.now());
         timetableRepository.save(t);
         return true;
