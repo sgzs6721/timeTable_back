@@ -183,7 +183,7 @@
                     <generator>
                         <database>
                             <name>org.jooq.meta.mysql.MySQLDatabase</name>
-                            <inputSchema>timetable_db</inputSchema>
+                            <inputSchema>${db.schema}</inputSchema>
                             <includes>.*</includes>
                             <excludes></excludes>
                         </database>
@@ -216,6 +216,7 @@
                 <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db_dev</db.url>
                 <db.user>timetable_dev</db.user>
                 <db.password>Leilei*0217</db.password>
+                <db.schema>timetable_db_dev</db.schema>
             </properties>
         </profile>
         <profile>
@@ -227,6 +228,7 @@
                 <db.url>jdbc:mysql://localhost:3306/timetable_db</db.url>
                 <db.user>timetable_db</db.user>
                 <db.password>Leilei*0217</db.password>
+                <db.schema>timetable_db</db.schema>
             </properties>
         </profile>
         <profile>
@@ -238,6 +240,7 @@
                 <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
                 <db.user>timetable_db</db.user>
                 <db.password>Leilei*0217</db.password>
+                <db.schema>timetable_db</db.schema>
             </properties>
         </profile>
     </profiles>
