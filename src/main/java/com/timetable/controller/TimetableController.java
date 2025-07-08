@@ -155,4 +155,58 @@ public class TimetableController {
         
         return ResponseEntity.ok(ApiResponse.success("课表删除成功"));
     }
+
+    /**
+     * 设为活动课表
+     */
+    @PutMapping("/{id}/active")
+    public ResponseEntity<ApiResponse<String>> setActiveTimetable(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        boolean ok = timetableService.setActiveTimetable(id, user.getId());
+        if (!ok) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("设置失败，课表不存在或已删除"));
+        }
+        return ResponseEntity.ok(ApiResponse.success("已设为活动课表"));
+    }
+
+    /**
+     * 归档课表
+     */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<ApiResponse<String>> archiveTimetable(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        boolean ok = timetableService.archiveTimetable(id, user.getId());
+        if (!ok) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("归档失败，课表不存在或已删除"));
+        }
+        return ResponseEntity.ok(ApiResponse.success("课表已归档"));
+    }
+
+    /**
+     * 恢复归档课表
+     */
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<String>> restoreTimetable(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        boolean ok = timetableService.restoreTimetable(id, user.getId());
+        if (!ok) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("恢复失败，课表不存在或已删除"));
+        }
+        return ResponseEntity.ok(ApiResponse.success("课表已恢复"));
+    }
 } 

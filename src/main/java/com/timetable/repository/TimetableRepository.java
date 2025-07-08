@@ -126,4 +126,26 @@ public class TimetableRepository {
                                 .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
+
+    /**
+     * 清除用户所有课表的活动状态
+     */
+    public void clearActiveForUser(Long userId) {
+        dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
+            .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ACTIVE, false)
+            .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
+            .execute();
+    }
+
+    /**
+     * 查找用户归档课表
+     */
+    public List<com.timetable.generated.tables.pojos.Timetables> findArchivedByUserId(Long userId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq(true))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
+                .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
+    }
 } 

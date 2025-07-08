@@ -9,6 +9,7 @@ import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -49,6 +50,14 @@ public class TimetableService {
         timetable.setEndDate(request.getEndDate());
         timetable.setCreatedAt(LocalDateTime.now());
         timetable.setUpdatedAt(LocalDateTime.now());
+        // 判断是否已有活动课表
+        List<Timetables> userTables = timetableRepository.findByUserId(userId)
+            .stream().filter(t -> Boolean.TRUE.equals(t.getIsActive())).toList();
+        if (userTables.isEmpty()) {
+            timetable.setIsActive(true);
+        } else {
+            timetable.setIsActive(false);
+        }
         return timetableRepository.save(timetable);
     }
     
@@ -124,9 +133,43 @@ public class TimetableService {
         return timetableRepository.findAll();
     }
     
+    /**
+     * 设为活动课表（每个用户只能有一个活动课表）
+     */
+    @Transactional
+    public boolean setActiveTimetable(Long timetableId, Long userId) {
+        Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
+        if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
+        timetableRepository.clearActiveForUser(userId);
+        t.setIsActive(true);
+        t.setUpdatedAt(java.time.LocalDateTime.now());
+        timetableRepository.save(t);
+        return true;
+    }
 
-    
+    /**
+     * 归档课表
+     */
+    public boolean archiveTimetable(Long timetableId, Long userId) {
+        Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
+        if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
+        t.setIsArchived(true);
+        t.setUpdatedAt(java.time.LocalDateTime.now());
+        timetableRepository.save(t);
+        return true;
+    }
 
+    /**
+     * 恢复归档课表
+     */
+    public boolean restoreTimetable(Long timetableId, Long userId) {
+        Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
+        if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
+        t.setIsArchived(false);
+        t.setUpdatedAt(java.time.LocalDateTime.now());
+        timetableRepository.save(t);
+        return true;
+    }
     
     /**
      * 获取所有课表并附带用户名、课程数量（管理员功能）
