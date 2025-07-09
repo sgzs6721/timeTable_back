@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 课表控制器
@@ -221,7 +222,9 @@ public class TimetableController {
         }
         List<Timetables> list;
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-            list = timetableService.getAllTimetables().stream().filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1).toList();
+            list = timetableService.getAllTimetables().stream()
+                    .filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1)
+                    .collect(Collectors.toList());
         } else {
             list = timetableService.findArchivedByUserId(user.getId());
         }

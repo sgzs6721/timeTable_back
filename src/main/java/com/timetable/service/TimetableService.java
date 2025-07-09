@@ -238,4 +238,8 @@ public class TimetableService {
             );
         }).collect(java.util.stream.Collectors.toList());
     }
+
+    public List<com.timetable.generated.tables.pojos.Timetables> findArchivedByUserId(Long userId) {
+        return timetableRepository.findArchivedByUserId(userId);
+    }
 }
