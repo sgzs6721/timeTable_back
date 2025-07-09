@@ -4,8 +4,6 @@ server:
     context-path: /timetable/api
 
 spring:
-  profiles:
-    active: dev
   application:
     name: timetable-backend
 

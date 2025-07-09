@@ -1,7 +1,7 @@
 @token = eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZ3pzIiwiZXhwIjoxODM3OTU3MzIwLCJpYXQiOjE3NTE1NTczMjB9.pQCo8mQNjuCcE6zPlSklO7nD0EC978Gm4UwbJImJCR6uuvXUtq-pg_s7pRavxQdhb9Dp8ytrOVHXCTf8oK9eMw
 
 ### 用户登录
-POST http://localhost:8088/timetable/api/auth/login
+POST http://localhost:8089/timetable/api/auth/login
 Content-Type: application/json
 
 {
@@ -10,7 +10,7 @@ Content-Type: application/json
 }
 
 ### 用户注册
-POST http://localhost:8088/timetable/api/auth/register
+POST http://localhost:8089/timetable/api/auth/register
 Content-Type: application/json
 
 {
@@ -19,7 +19,7 @@ Content-Type: application/json
 }
 
 ### 验证Token
-GET http://localhost:8088/timetable/api/auth/validate
+GET http://localhost:8089/timetable/api/auth/validate
 Authorization: Bearer {{token}}
 
 ### 获取当前用户信息

@@ -5,7 +5,8 @@ server:
 spring:
   application:
     name: timetable-backend
-
+  profiles:
+    active: dev
 
   # H2控制台配置
   h2:
@@ -59,12 +60,12 @@ logging:
   file:
     name: logs/timetable.log
 
-
-
 ---
 # 开发环境配置
 spring:
-  profiles: dev
+  config:
+    activate:
+      on-profile: dev
   datasource:
     url: jdbc:mysql://localhost:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
     username: timetable
@@ -79,7 +80,9 @@ logging:
 ---
 # 测试环境配置
 spring:
-  profiles: test
+  config:
+    activate:
+      on-profile: test
   datasource:
     url: jdbc:mysql://121.36.91.199:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
     username: timetable
@@ -94,7 +97,9 @@ logging:
 ---
 # 生产环境配置
 spring:
-  profiles: prod
+  config:
+    activate:
+      on-profile: prod
   datasource:
     url: jdbc:mysql://prod-server:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
     username: timetable_prod

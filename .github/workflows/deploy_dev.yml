@@ -39,7 +39,16 @@ jobs:
       - name: Run Java Service Of timetable-back on HW Server
         uses: fifsky/ssh-action@master
         with:
-          command: supervisorctl status timetable-back-dev | awk '{print $2}' | while read line; do if [ $line == 'RUNNING' ]; then supervisorctl restart timetable-back-dev;else supervisorctl start timetable-back-dev; fi done
+          command: |
+            # 设置环境变量指定Spring profile
+            export SPRING_PROFILES_ACTIVE=dev
+            supervisorctl status timetable-back-dev | awk '{print $2}' | while read line; do 
+              if [ $line == 'RUNNING' ]; then 
+                supervisorctl restart timetable-back-dev
+              else 
+                supervisorctl start timetable-back-dev
+              fi 
+            done
           host: ${{ secrets.HW_TEST_SERVER }}
           user: ${{ secrets.HW_SERVER_USERNAME }}
           pass: ${{ secrets.HW_SERVER_PWD }}
