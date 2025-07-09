@@ -1,5 +1,5 @@
 server:
-  port: 8089
+  port: 8088
   servlet:
     context-path: /timetable/api
 
@@ -8,8 +8,8 @@ spring:
     name: timetable-backend
 
   datasource:
-    url: jdbc:mysql://121.36.91.199:3306/timetable_db_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
-    username: timetable_dev
+    url: jdbc:mysql://121.36.91.199:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
+    username: timetable
     password: Leilei*0217
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:

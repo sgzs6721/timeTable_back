@@ -1,5 +1,4 @@
 server:
-  port: 8088
   servlet:
     context-path: /timetable/api
 
@@ -7,17 +6,6 @@ spring:
   application:
     name: timetable-backend
 
-  datasource:
-    url: jdbc:mysql://121.36.91.199:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
-    username: timetable
-    password: Leilei*0217
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
 
   # H2控制台配置
   h2:
