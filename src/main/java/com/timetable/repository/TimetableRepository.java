@@ -138,6 +138,36 @@ public class TimetableRepository {
     }
 
     /**
+     * 批量软删除课表
+     */
+    public int batchDeleteByIdsAndUserId(List<Long> ids, Long userId) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED, (byte) 1)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.DELETED_AT, LocalDateTime.now())
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)))
+                .execute();
+    }
+
+    /**
+     * 批量恢复归档课表
+     */
+    public int batchRestoreByIdsAndUserId(List<Long> ids, Long userId) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED, (byte) 0)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.UPDATED_AT, LocalDateTime.now())
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)))
+                .execute();
+    }
+
+    /**
      * 查找用户归档课表
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findArchivedByUserId(Long userId) {

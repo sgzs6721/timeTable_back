@@ -200,9 +200,7 @@ public class TimetableService {
                     t.getStartDate(),
                     t.getEndDate(),
                     scheduleCount,
-                    t.getCreatedAt(),
-                    t.getIsActive(),
-                    t.getIsArchived()
+                    t.getCreatedAt()
             );
         }).collect(java.util.stream.Collectors.toList());
     }
@@ -236,36 +234,22 @@ public class TimetableService {
                     t.getStartDate(),
                     t.getEndDate(),
                     scheduleCount,
-                    t.getCreatedAt(),
-                    t.getIsActive(),
-                    t.getIsArchived()
+                    t.getCreatedAt()
             );
         }).collect(java.util.stream.Collectors.toList());
     }
 
-    public List<AdminTimetableDTO> findArchivedByUserId(Long userId) {
-        List<Timetables> timetables = timetableRepository.findArchivedByUserId(userId);
-        String username = null;
-        try {
-            com.timetable.generated.tables.pojos.Users u = userService.findById(userId);
-            if (u != null) {
-                username = u.getUsername();
-            }
-        } catch (Exception ignored) {}
+    /**
+     * 批量删除课表
+     */
+    public int batchDeleteTimetables(List<Long> ids, Long userId) {
+        return timetableRepository.batchDeleteByIdsAndUserId(ids, userId);
+    }
 
-        String finalUsername = username;
-        return timetables.stream().map(t -> new AdminTimetableDTO(
-                t.getId(),
-                t.getUserId(),
-                finalUsername,
-                t.getName(),
-                t.getIsWeekly() != null && t.getIsWeekly() == 1,
-                t.getStartDate(),
-                t.getEndDate(),
-                0, // scheduleCount not needed for this view
-                t.getCreatedAt(),
-                t.getIsActive(),
-                t.getIsArchived()
-        )).collect(Collectors.toList());
+    /**
+     * 批量恢复课表
+     */
+    public int batchRestoreTimetables(List<Long> ids, Long userId) {
+        return timetableRepository.batchRestoreByIdsAndUserId(ids, userId);
     }
 }

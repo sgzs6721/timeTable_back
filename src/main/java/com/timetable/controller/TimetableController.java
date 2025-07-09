@@ -2,6 +2,7 @@ package com.timetable.controller;
 
 import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.dto.ApiResponse;
+import com.timetable.dto.BatchTimetableRequest;
 import com.timetable.dto.TimetableRequest;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.generated.tables.pojos.Users;
@@ -230,5 +231,35 @@ public class TimetableController {
             list = timetableService.findArchivedByUserId(user.getId());
         }
         return ResponseEntity.ok(ApiResponse.success("获取归档课表成功", list));
+    }
+
+    /**
+     * 批量恢复归档课表
+     */
+    @PostMapping("/batch-restore")
+    public ResponseEntity<ApiResponse<String>> batchRestoreTimetables(
+            @Valid @RequestBody BatchTimetableRequest request,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        int count = timetableService.batchRestoreTimetables(request.getIds(), user.getId());
+        return ResponseEntity.ok(ApiResponse.success(count + " 个课表已恢复"));
+    }
+
+    /**
+     * 批量彻底删除课表
+     */
+    @PostMapping("/batch-delete")
+    public ResponseEntity<ApiResponse<String>> batchDeleteTimetables(
+            @Valid @RequestBody BatchTimetableRequest request,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        int count = timetableService.batchDeleteTimetables(request.getIds(), user.getId());
+        return ResponseEntity.ok(ApiResponse.success(count + " 个课表已删除"));
     }
 } 
