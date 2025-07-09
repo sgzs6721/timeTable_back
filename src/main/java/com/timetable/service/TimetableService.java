@@ -173,6 +173,13 @@ public class TimetableService {
      * 恢复归档课表
      */
     public boolean restoreTimetable(Long timetableId, Long userId) {
+        long nonArchivedCount = timetableRepository.findByUserId(userId).stream()
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .count();
+        if (nonArchivedCount >= 5) {
+            throw new IllegalStateException("无法恢复，非归档课表数量已达上限 (5个)");
+        }
+
         Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
         t.setIsArchived((byte) 0);
@@ -289,6 +296,24 @@ public class TimetableService {
      * 批量恢复课表
      */
     public int batchRestoreTimetables(List<Long> ids, Long userId) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        long nonArchivedCount = timetableRepository.findByUserId(userId).stream()
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .count();
+        if (nonArchivedCount + ids.size() > 5) {
+            throw new IllegalStateException("无法恢复，操作后非归档课表将超过数量上限 (5个)");
+        }
         return timetableRepository.batchRestoreByIdsAndUserId(ids, userId);
+    }
+
+    /**
+     * 计算用户非归档课表数量
+     */
+    public long countNonArchivedByUserId(Long userId) {
+        return timetableRepository.findByUserId(userId).stream()
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .count();
     }
 }

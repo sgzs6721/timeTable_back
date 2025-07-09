@@ -15,7 +15,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -210,31 +212,44 @@ public class TimetableController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        boolean ok = timetableService.restoreTimetable(id, user.getId());
-        if (!ok) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("恢复失败，课表不存在或已删除"));
+        try {
+            boolean ok = timetableService.restoreTimetable(id, user.getId());
+            if (!ok) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("恢复失败，课表不存在或已删除"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("课表已恢复"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
-        return ResponseEntity.ok(ApiResponse.success("课表已恢复"));
     }
 
     /**
      * 获取归档课表列表
      */
     @GetMapping("/archived")
-    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getArchivedTimetables(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getArchivedTimetables(Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         List<AdminTimetableDTO> list;
+        long nonArchivedCount;
+
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
             list = timetableService.getAllTimetablesWithUser().stream()
                     .filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1)
                     .collect(Collectors.toList());
+            nonArchivedCount = 0; // For admin, this limit does not apply in the same way.
         } else {
             list = timetableService.findArchivedByUserId(user.getId());
+            nonArchivedCount = timetableService.countNonArchivedByUserId(user.getId());
         }
-        return ResponseEntity.ok(ApiResponse.success("获取归档课表成功", list));
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("archivedList", list);
+        responseData.put("nonArchivedCount", nonArchivedCount);
+
+        return ResponseEntity.ok(ApiResponse.success("获取归档课表成功", responseData));
     }
 
     /**
@@ -248,8 +263,12 @@ public class TimetableController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        int count = timetableService.batchRestoreTimetables(request.getIds(), user.getId());
-        return ResponseEntity.ok(ApiResponse.success(count + " 个课表已恢复"));
+        try {
+            int count = timetableService.batchRestoreTimetables(request.getIds(), user.getId());
+            return ResponseEntity.ok(ApiResponse.success(count + " 个课表已恢复"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     /**
