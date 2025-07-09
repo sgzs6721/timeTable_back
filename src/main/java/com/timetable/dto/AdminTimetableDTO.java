@@ -13,11 +13,14 @@ public class AdminTimetableDTO {
     private LocalDate endDate;
     private Integer scheduleCount;
     private LocalDateTime createdAt;
+    private Byte isActive;
+    private Byte isArchived;
 
     public AdminTimetableDTO() { }
 
     public AdminTimetableDTO(Long id, Long userId, String username, String name, Boolean isWeekly,
-                              LocalDate startDate, LocalDate endDate, Integer scheduleCount, LocalDateTime createdAt) {
+                              LocalDate startDate, LocalDate endDate, Integer scheduleCount, LocalDateTime createdAt,
+                              Byte isActive, Byte isArchived) {
         this.id = id;
         this.userId = userId;
         this.username = username;
@@ -27,6 +30,8 @@ public class AdminTimetableDTO {
         this.endDate = endDate;
         this.scheduleCount = scheduleCount;
         this.createdAt = createdAt;
+        this.isActive = isActive;
+        this.isArchived = isArchived;
     }
 
     // getters & setters
@@ -48,4 +53,8 @@ public class AdminTimetableDTO {
     public void setScheduleCount(Integer scheduleCount) { this.scheduleCount = scheduleCount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Byte getIsActive() { return isActive; }
+    public void setIsActive(Byte isActive) { this.isActive = isActive; }
+    public Byte getIsArchived() { return isArchived; }
+    public void setIsArchived(Byte isArchived) { this.isArchived = isArchived; }
 } 

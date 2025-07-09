@@ -1,5 +1,6 @@
 package com.timetable.controller;
 
+import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.TimetableRequest;
 import com.timetable.generated.tables.pojos.Timetables;
@@ -215,14 +216,14 @@ public class TimetableController {
      * 获取归档课表列表
      */
     @GetMapping("/archived")
-    public ResponseEntity<ApiResponse<List<Timetables>>> getArchivedTimetables(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getArchivedTimetables(Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        List<Timetables> list;
+        List<AdminTimetableDTO> list;
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-            list = timetableService.getAllTimetables().stream()
+            list = timetableService.getAllTimetablesWithUser().stream()
                     .filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1)
                     .collect(Collectors.toList());
         } else {
