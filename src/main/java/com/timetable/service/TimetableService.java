@@ -314,8 +314,7 @@ public class TimetableService {
     public long countNonArchivedByUserId(Long userId) {
         List<Timetables> allTimetables = timetableRepository.findByUserId(userId);
         long nonArchivedCount = allTimetables.stream()
-                .filter(t -> (t.getIsArchived() == null || t.getIsArchived() == 0) &&
-                           (t.getIsDeleted() == null || t.getIsDeleted() == 0))
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
                 .count();
 
         System.out.println("用户 " + userId + " 的所有课表数量: " + allTimetables.size());
