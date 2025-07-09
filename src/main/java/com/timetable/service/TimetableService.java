@@ -42,6 +42,15 @@ public class TimetableService {
      * 创建新课表
      */
     public Timetables createTimetable(Long userId, TimetableRequest request) {
+        // 检查非归档课表数量
+        long nonArchivedCount = timetableRepository.findByUserId(userId).stream()
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .count();
+
+        if (nonArchivedCount >= 5) {
+            throw new IllegalStateException("每个用户最多只能创建5个非归档课表");
+        }
+
         Timetables timetable = new Timetables();
         timetable.setUserId(userId);
         timetable.setName(request.getName());

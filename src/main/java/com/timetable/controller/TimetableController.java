@@ -70,8 +70,12 @@ public class TimetableController {
                         .body(ApiResponse.error("开始日期不能晚于结束日期"));
             }
         }
-        Timetables timetable = timetableService.createTimetable(user.getId(), request);
-        return ResponseEntity.ok(ApiResponse.success("创建课表成功", timetable));
+        try {
+            Timetables timetable = timetableService.createTimetable(user.getId(), request);
+            return ResponseEntity.ok(ApiResponse.success("创建课表成功", timetable));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
     
     /**
