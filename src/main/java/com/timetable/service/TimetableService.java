@@ -21,23 +21,23 @@ import java.util.stream.Collectors;
  */
 @Service
 public class TimetableService {
-    
+
     @Autowired
     private TimetableRepository timetableRepository;
-    
+
     @Autowired
     private ScheduleRepository scheduleRepository;
-    
+
     @Autowired
     private UserService userService;
-    
+
     /**
      * 获取用户的课表列表
      */
     public List<Timetables> getUserTimetables(Long userId) {
         return timetableRepository.findByUserId(userId);
     }
-    
+
     /**
      * 创建新课表
      */
@@ -70,21 +70,21 @@ public class TimetableService {
         }
         return timetableRepository.save(timetable);
     }
-    
+
     /**
      * 获取课表详情
      */
     public Timetables getTimetable(Long timetableId, Long userId) {
         return timetableRepository.findByIdAndUserId(timetableId, userId);
     }
-    
+
     /**
      * 管理员直接按ID获取课表，不校验用户
      */
     public Timetables getTimetableById(Long id) {
         return timetableRepository.findById(id);
     }
-    
+
     /**
      * 更新课表
      */
@@ -93,17 +93,17 @@ public class TimetableService {
         if (timetable == null) {
             return null;
         }
-        
+
         timetable.setName(request.getName());
         timetable.setDescription(request.getDescription());
         timetable.setIsWeekly((byte) (request.getType() == TimetableRequest.TimetableType.WEEKLY ? 1 : 0));
         timetable.setStartDate(request.getStartDate());
         timetable.setEndDate(request.getEndDate());
         timetable.setUpdatedAt(LocalDateTime.now());
-        
+
         return timetableRepository.save(timetable);
     }
-    
+
     /**
      * 软删除课表
      */
@@ -112,37 +112,37 @@ public class TimetableService {
         if (timetable == null) {
             return false;
         }
-        
+
         // 检查是否已经软删除
         if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) {
             return false;  // 已经删除了
         }
-        
+
         // 软删除：将is_deleted字段置为1
         timetable.setIsDeleted((byte) 1);
         timetable.setDeletedAt(LocalDateTime.now());
         timetable.setUpdatedAt(LocalDateTime.now());
-        
+
         // 保存修改
         timetableRepository.save(timetable);
-        
+
         return true;
     }
-    
+
     /**
      * 检查课表是否存在且属于用户
      */
     public boolean isUserTimetable(Long timetableId, Long userId) {
         return timetableRepository.existsByIdAndUserId(timetableId, userId);
     }
-    
+
     /**
      * 获取所有课表（管理员功能）- 包括已软删除的课表，便于管理员查看
      */
     public List<Timetables> getAllTimetables() {
         return timetableRepository.findAll();
     }
-    
+
     /**
      * 设为活动课表（每个用户只能有一个活动课表）
      */
@@ -187,7 +187,7 @@ public class TimetableService {
         timetableRepository.save(t);
         return true;
     }
-    
+
     /**
      * 获取所有课表并附带用户名、课程数量（管理员功能）
      */
@@ -222,13 +222,13 @@ public class TimetableService {
             );
         }).collect(java.util.stream.Collectors.toList());
     }
-    
+
     /**
      * 根据ID列表批量获取课表信息（包含用户信息）
      */
     public List<AdminTimetableDTO> getTimetablesByIds(List<Long> timetableIds) {
         List<Timetables> timetables = timetableRepository.findByIdIn(timetableIds);
-                
+
         return timetables.stream().map(t -> {
             String username = null;
             try {
@@ -312,8 +312,23 @@ public class TimetableService {
      * 计算用户非归档课表数量
      */
     public long countNonArchivedByUserId(Long userId) {
-        return timetableRepository.findByUserId(userId).stream()
-                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+        List<Timetables> allTimetables = timetableRepository.findByUserId(userId);
+        long nonArchivedCount = allTimetables.stream()
+                .filter(t -> (t.getIsArchived() == null || t.getIsArchived() == 0) &&
+                           (t.getIsDeleted() == null || t.getIsDeleted() == 0))
                 .count();
+
+        System.out.println("用户 " + userId + " 的所有课表数量: " + allTimetables.size());
+        System.out.println("用户 " + userId + " 的非归档课表数量: " + nonArchivedCount);
+
+        // 打印每个课表的状态
+        for (Timetables t : allTimetables) {
+            System.out.println("课表ID: " + t.getId() +
+                             ", 名称: " + t.getName() +
+                             ", 归档状态: " + t.getIsArchived() +
+                             ", 删除状态: " + t.getIsDeleted());
+        }
+
+        return nonArchivedCount;
     }
 }
