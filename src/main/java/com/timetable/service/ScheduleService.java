@@ -659,16 +659,7 @@ public class ScheduleService {
         List<ScheduleInfo> results = new ArrayList<>();
         String originalLine = line;
 
-        // 1. Extract all time parts
-        List<String> timeParts = new ArrayList<>();
-        Pattern timePattern = Pattern.compile("(\\d{1,2}(:\\d{2})?-\\d{1,2}(:\\d{2})?|\\d{1,2}-\\d{1,2}|\\d{1,2})");
-        Matcher timeMatcher = timePattern.matcher(line);
-        while (timeMatcher.find()) {
-            timeParts.add(timeMatcher.group());
-        }
-        line = timeMatcher.replaceAll("").trim(); // Remove time parts from line
-
-        // 2. Extract all day/date parts
+        // 1. Extract all day/date parts
         List<String> dayParts = new ArrayList<>();
         Pattern dayPattern = "WEEKLY".equalsIgnoreCase(type)
                 ? Pattern.compile("\\b([1-7](-[1-7])?)\\b")
@@ -678,6 +669,15 @@ public class ScheduleService {
             dayParts.add(dayMatcher.group());
         }
         line = dayMatcher.replaceAll("").trim(); // Remove day parts
+
+        // 2. Extract all time parts
+        List<String> timeParts = new ArrayList<>();
+        Pattern timePattern = Pattern.compile("(\\d{1,2}(:\\d{2})?-\\d{1,2}(:\\d{2})?|\\d{1,2}-\\d{1,2}|\\d{1,2})");
+        Matcher timeMatcher = timePattern.matcher(line);
+        while (timeMatcher.find()) {
+            timeParts.add(timeMatcher.group());
+        }
+        line = timeMatcher.replaceAll("").trim(); // Remove time parts from line
 
         // 3. The rest is student name
         String studentName = line.replaceAll("[,\\s]+", "");
