@@ -209,4 +209,22 @@ public class TimetableController {
         }
         return ResponseEntity.ok(ApiResponse.success("课表已恢复"));
     }
+
+    /**
+     * 获取归档课表列表
+     */
+    @GetMapping("/archived")
+    public ResponseEntity<ApiResponse<List<Timetables>>> getArchivedTimetables(Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        List<Timetables> list;
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            list = timetableService.getAllTimetables().stream().filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1).toList();
+        } else {
+            list = timetableService.findArchivedByUserId(user.getId());
+        }
+        return ResponseEntity.ok(ApiResponse.success("获取归档课表成功", list));
+    }
 } 
