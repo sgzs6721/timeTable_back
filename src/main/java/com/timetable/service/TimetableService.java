@@ -137,6 +137,32 @@ public class TimetableService {
     }
 
     /**
+     * 设为活动课表（每个用户只能有一个活动课表）
+     */
+    @Transactional
+    public Timetables setTimetableActive(Long timetableId) {
+        Timetables targetTimetable = timetableRepository.findById(timetableId);
+        if (targetTimetable == null) {
+            throw new IllegalArgumentException("课表不存在");
+        }
+
+        // 找到该用户的所有其他活动课表并设为非活动
+        List<Timetables> activeTimetables = timetableRepository.findByUserId(targetTimetable.getUserId())
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1 && !t.getId().equals(timetableId))
+                .collect(Collectors.toList());
+
+        for (Timetables t : activeTimetables) {
+            t.setIsActive((byte) 0);
+            timetableRepository.save(t);
+        }
+
+        // 将目标课表设为活动
+        targetTimetable.setIsActive((byte) 1);
+        return timetableRepository.save(targetTimetable);
+    }
+
+    /**
      * 获取所有课表（管理员功能）- 包括已软删除的课表，便于管理员查看
      */
     public List<Timetables> getAllTimetables() {

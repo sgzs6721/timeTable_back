@@ -57,6 +57,30 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("获取课表信息成功", timetables));
     }
     
+    /**
+     * 更新课表状态（例如，设为活动）
+     */
+    @PutMapping("/timetables/{id}")
+    public ResponseEntity<ApiResponse<Void>> updateTimetableStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+        
+        if (updates.containsKey("isActive")) {
+            boolean isActive = (boolean) updates.get("isActive");
+            if (isActive) {
+                try {
+                    timetableService.setTimetableActive(id);
+                    return ResponseEntity.ok(ApiResponse.success("课表状态更新成功"));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+                }
+            }
+        }
+        
+        // 如果有其他状态需要更新，可以在这里添加逻辑
+        
+        return ResponseEntity.badRequest().body(ApiResponse.error("无效的更新请求"));
+    }
 
     
     /**
