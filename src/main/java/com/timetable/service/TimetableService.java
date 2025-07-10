@@ -308,26 +308,5 @@ public class TimetableService {
         return timetableRepository.batchRestoreByIdsAndUserId(ids, userId);
     }
 
-    /**
-     * 计算用户非归档课表数量
-     */
-    public long countNonArchivedByUserId(Long userId) {
-        List<Timetables> allTimetables = timetableRepository.findByUserId(userId);
-        long nonArchivedCount = allTimetables.stream()
-                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
-                .count();
 
-        System.out.println("用户 " + userId + " 的所有课表数量: " + allTimetables.size());
-        System.out.println("用户 " + userId + " 的非归档课表数量: " + nonArchivedCount);
-
-        // 打印每个课表的状态
-        for (Timetables t : allTimetables) {
-            System.out.println("课表ID: " + t.getId() +
-                             ", 名称: " + t.getName() +
-                             ", 归档状态: " + t.getIsArchived() +
-                             ", 删除状态: " + t.getIsDeleted());
-        }
-
-        return nonArchivedCount;
-    }
 }

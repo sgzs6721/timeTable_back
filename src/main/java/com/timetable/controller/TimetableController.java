@@ -27,13 +27,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/timetables")
 @Validated
 public class TimetableController {
-    
+
     @Autowired
     private TimetableService timetableService;
-    
+
     @Autowired
     private UserService userService;
-    
+
     /**
      * 获取用户的课表列表
      */
@@ -44,11 +44,11 @@ public class TimetableController {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         List<Timetables> timetables = timetableService.getUserTimetables(user.getId());
         return ResponseEntity.ok(ApiResponse.success("获取课表列表成功", timetables));
     }
-    
+
     /**
      * 创建新课表
      */
@@ -79,7 +79,7 @@ public class TimetableController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
-    
+
     /**
      * 获取课表详情
      */
@@ -87,28 +87,28 @@ public class TimetableController {
     public ResponseEntity<ApiResponse<Timetables>> getTimetable(
             @PathVariable Long id,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         Timetables timetable;
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
             timetable = timetableService.getTimetableById(id);
         } else {
             timetable = timetableService.getTimetable(id, user.getId());
         }
-        
+
         if (timetable == null) {
             return ResponseEntity.notFound()
                     .build();
         }
-        
+
         return ResponseEntity.ok(ApiResponse.success("获取课表详情成功", timetable));
     }
-    
+
     /**
      * 更新课表
      */
@@ -140,7 +140,7 @@ public class TimetableController {
         }
         return ResponseEntity.ok(ApiResponse.success("更新课表成功", timetable));
     }
-    
+
     /**
      * 删除课表
      */
@@ -148,20 +148,20 @@ public class TimetableController {
     public ResponseEntity<ApiResponse<String>> deleteTimetable(
             @PathVariable Long id,
             Authentication authentication) {
-        
+
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
-        
+
         boolean deleted = timetableService.deleteTimetable(id, user.getId());
-        
+
         if (!deleted) {
             return ResponseEntity.notFound()
                     .build();
         }
-        
+
         return ResponseEntity.ok(ApiResponse.success("课表删除成功"));
     }
 
@@ -233,21 +233,17 @@ public class TimetableController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         List<AdminTimetableDTO> list;
-        long nonArchivedCount;
 
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
             list = timetableService.getAllTimetablesWithUser().stream()
                     .filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1)
                     .collect(Collectors.toList());
-            nonArchivedCount = 0; // For admin, this limit does not apply in the same way.
         } else {
             list = timetableService.findArchivedByUserId(user.getId());
-            nonArchivedCount = timetableService.countNonArchivedByUserId(user.getId());
         }
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("archivedList", list);
-        responseData.put("nonArchivedCount", nonArchivedCount);
 
         return ResponseEntity.ok(ApiResponse.success("获取归档课表成功", responseData));
     }
@@ -285,4 +281,4 @@ public class TimetableController {
         int count = timetableService.batchDeleteTimetables(request.getIds(), user.getId());
         return ResponseEntity.ok(ApiResponse.success(count + " 个课表已删除"));
     }
-} 
+}
