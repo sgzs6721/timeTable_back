@@ -2,6 +2,12 @@ server:
   servlet:
     context-path: /timetable/api
 
+spring:
+  application:
+    name: timetable-backend
+  profiles:
+    active: prod
+
   # H2控制台配置
   h2:
     console:

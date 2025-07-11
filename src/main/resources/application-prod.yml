@@ -3,12 +3,6 @@ server:
   servlet:
     context-path: /timetable/api
 
-spring:
-  profiles:
-    active: prod
-  application:
-    name: timetable-backend
-
   datasource:
     url: jdbc:mysql://121.36.91.199:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
     username: timetable
