@@ -67,8 +67,8 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:mysql://localhost:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
-    username: timetable
+    url: jdbc:mysql://localhost:3306/timetable_db_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
+    username: timetable_dev
     password: Leilei*0217
   jpa:
     show-sql: true
@@ -102,8 +102,8 @@ spring:
       on-profile: prod
   datasource:
     url: jdbc:mysql://prod-server:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
-    username: timetable_prod
-    password: prod_password
+    username: timetable
+    password: Leilei*0217
   jpa:
     show-sql: false
 
