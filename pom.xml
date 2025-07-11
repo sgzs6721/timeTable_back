@@ -209,9 +209,6 @@
             <build>
                 <finalName>timetable-backend-dev</finalName>
             </build>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
             <properties>
                 <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db_dev</db.url>
                 <db.user>timetable_dev</db.user>
@@ -236,6 +233,9 @@
             <build>
                 <finalName>timetable-backend-prod</finalName>
             </build>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <db.url>jdbc:mysql://121.36.91.199:3306/timetable_db</db.url>
                 <db.user>timetable</db.user>
