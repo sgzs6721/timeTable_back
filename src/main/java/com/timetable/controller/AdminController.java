@@ -144,4 +144,18 @@ public class AdminController {
         
         return ResponseEntity.ok(ApiResponse.success("密码重置成功"));
     }
+    
+    /**
+     * 软删除用户
+     */
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long userId, Authentication authentication) {
+        String currentUsername = authentication.getName();
+        try {
+            userService.softDeleteUser(userId, currentUsername);
+            return ResponseEntity.ok(ApiResponse.success("用户删除成功"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
 } 

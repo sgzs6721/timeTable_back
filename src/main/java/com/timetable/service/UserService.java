@@ -202,6 +202,38 @@ public class UserService implements UserDetailsService {
         
         return true;
     }
+
+
+    /**
+     * 软删除用户
+     */
+    public void softDeleteUser(Long userId, String currentUsername) {
+        Users userToDelete = userRepository.findById(userId);
+        if (userToDelete == null) {
+            throw new IllegalArgumentException("要删除的用户不存在");
+        }
+
+        Users currentUser = userRepository.findByUsername(currentUsername);
+        if (currentUser == null) {
+            // 正常情况下，执行此操作的用户肯定存在
+            throw new IllegalArgumentException("操作用户不存在");
+        }
+
+        // 检查是否在尝试删除自己
+        if (userToDelete.getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("不能删除自己的账户");
+        }
+
+        // 检查是否在尝试删除另一个ADMIN
+        if ("ADMIN".equals(userToDelete.getRole())) {
+            throw new IllegalArgumentException("不能删除管理员账户");
+        }
+
+        userToDelete.setIsDeleted((byte) 1);
+        userToDelete.setDeletedAt(java.time.LocalDateTime.now());
+        userToDelete.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(userToDelete);
+    }
     
     /**
      * 转换用户对象为DTO（不包含敏感信息）
