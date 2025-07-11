@@ -6,7 +6,7 @@ spring:
   application:
     name: timetable-backend
   profiles:
-    active: dev
+    active: prod
 
   # H2控制台配置
   h2:
