@@ -101,7 +101,7 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:mysql://prod-server:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
+    url: jdbc:mysql://121.36.91.199:3306:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true
     username: timetable
     password: Leilei*0217
   jpa:
