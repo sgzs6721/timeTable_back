@@ -258,6 +258,7 @@ public class TimetableService {
     /**
      * 恢复归档课表
      */
+    @Transactional
     public boolean restoreTimetable(Long timetableId, Long userId) {
         long nonArchivedCount = timetableRepository.findByUserId(userId).stream()
                 .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
@@ -268,7 +269,18 @@ public class TimetableService {
 
         Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
+        
+        // 检查用户是否有活动课表
+        boolean hasActiveTimetable = timetableRepository.findByUserId(userId).stream()
+                .anyMatch(timetable -> timetable.getIsActive() != null && timetable.getIsActive() == 1);
+        
         t.setIsArchived((byte) 0);
+        
+        // 如果用户没有活动课表，将恢复的课表设为活动状态
+        if (!hasActiveTimetable) {
+            t.setIsActive((byte) 1);
+        }
+        
         t.setUpdatedAt(java.time.LocalDateTime.now());
         timetableRepository.save(t);
         return true;
@@ -417,6 +429,7 @@ public class TimetableService {
     /**
      * 批量恢复课表
      */
+    @Transactional
     public int batchRestoreTimetables(List<Long> ids, Long userId) {
         if (ids == null || ids.isEmpty()) {
             return 0;
@@ -427,7 +440,25 @@ public class TimetableService {
         if (nonArchivedCount + ids.size() > 5) {
             throw new IllegalStateException("无法恢复，操作后非归档课表将超过数量上限 (5个)");
         }
-        return timetableRepository.batchRestoreByIdsAndUserId(ids, userId);
+        
+        // 检查用户是否有活动课表
+        boolean hasActiveTimetable = timetableRepository.findByUserId(userId).stream()
+                .anyMatch(timetable -> timetable.getIsActive() != null && timetable.getIsActive() == 1);
+        
+        // 执行批量恢复
+        int restoredCount = timetableRepository.batchRestoreByIdsAndUserId(ids, userId);
+        
+        // 如果用户没有活动课表且恢复成功，设置第一个恢复的课表为活动状态
+        if (!hasActiveTimetable && restoredCount > 0) {
+            Timetables firstRestored = timetableRepository.findById(ids.get(0));
+            if (firstRestored != null && firstRestored.getUserId().equals(userId)) {
+                firstRestored.setIsActive((byte) 1);
+                firstRestored.setUpdatedAt(LocalDateTime.now());
+                timetableRepository.save(firstRestored);
+            }
+        }
+        
+        return restoredCount;
     }
 
 
