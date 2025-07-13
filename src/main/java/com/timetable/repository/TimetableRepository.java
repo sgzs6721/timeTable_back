@@ -146,6 +146,7 @@ public class TimetableRepository {
         }
         return dsl.update(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED, (byte) 1)
+                .set(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ACTIVE, (byte) 0)
                 .set(com.timetable.generated.tables.Timetables.TIMETABLES.DELETED_AT, LocalDateTime.now())
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids)
                         .and(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)))

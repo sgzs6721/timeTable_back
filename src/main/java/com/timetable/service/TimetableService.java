@@ -107,6 +107,7 @@ public class TimetableService {
     /**
      * 软删除课表
      */
+    @Transactional
     public boolean deleteTimetable(Long timetableId, Long userId) {
         Timetables timetable = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (timetable == null) {
@@ -118,13 +119,40 @@ public class TimetableService {
             return false;  // 已经删除了
         }
 
+        // 检查是否为活动课表
+        boolean isActiveTimetable = timetable.getIsActive() != null && timetable.getIsActive() == 1;
+
         // 软删除：将is_deleted字段置为1
         timetable.setIsDeleted((byte) 1);
         timetable.setDeletedAt(LocalDateTime.now());
         timetable.setUpdatedAt(LocalDateTime.now());
+        
+        // 如果删除的是活动课表，需要清除活动状态
+        if (isActiveTimetable) {
+            timetable.setIsActive((byte) 0);
+        }
 
         // 保存修改
         timetableRepository.save(timetable);
+
+        // 如果删除的是活动课表，需要设置另一个课表为活动状态
+        if (isActiveTimetable) {
+            // 获取该用户的所有非归档、非删除的课表
+            List<Timetables> availableTimetables = timetableRepository.findByUserId(userId)
+                    .stream()
+                    .filter(t -> !t.getId().equals(timetableId)) // 排除刚删除的课表
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0) // 非归档
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0) // 非删除
+                    .collect(Collectors.toList());
+
+            // 如果还有其他课表，设置第一个为活动状态
+            if (!availableTimetables.isEmpty()) {
+                Timetables newActiveTimetable = availableTimetables.get(0);
+                newActiveTimetable.setIsActive((byte) 1);
+                newActiveTimetable.setUpdatedAt(LocalDateTime.now());
+                timetableRepository.save(newActiveTimetable);
+            }
+        }
 
         return true;
     }
@@ -186,12 +214,44 @@ public class TimetableService {
     /**
      * 归档课表
      */
+    @Transactional
     public boolean archiveTimetable(Long timetableId, Long userId) {
         Timetables t = timetableRepository.findByIdAndUserId(timetableId, userId);
         if (t == null || Boolean.TRUE.equals(t.getIsDeleted())) return false;
+        
+        // 检查是否为活动课表
+        boolean isActiveTimetable = t.getIsActive() != null && t.getIsActive() == 1;
+        
+        // 归档操作
         t.setIsArchived((byte) 1);
+        
+        // 如果归档的是活动课表，需要清除活动状态
+        if (isActiveTimetable) {
+            t.setIsActive((byte) 0);
+        }
+        
         t.setUpdatedAt(java.time.LocalDateTime.now());
         timetableRepository.save(t);
+        
+        // 如果归档的是活动课表，需要设置另一个课表为活动状态
+        if (isActiveTimetable) {
+            // 获取该用户的所有非归档、非删除的课表
+            List<Timetables> availableTimetables = timetableRepository.findByUserId(userId)
+                    .stream()
+                    .filter(t2 -> !t2.getId().equals(timetableId)) // 排除刚归档的课表
+                    .filter(t2 -> t2.getIsArchived() == null || t2.getIsArchived() == 0) // 非归档
+                    .filter(t2 -> t2.getIsDeleted() == null || t2.getIsDeleted() == 0) // 非删除
+                    .collect(Collectors.toList());
+
+            // 如果还有其他课表，设置第一个为活动状态
+            if (!availableTimetables.isEmpty()) {
+                Timetables newActiveTimetable = availableTimetables.get(0);
+                newActiveTimetable.setIsActive((byte) 1);
+                newActiveTimetable.setUpdatedAt(java.time.LocalDateTime.now());
+                timetableRepository.save(newActiveTimetable);
+            }
+        }
+        
         return true;
     }
 
@@ -314,8 +374,44 @@ public class TimetableService {
     /**
      * 批量删除课表
      */
+    @Transactional
     public int batchDeleteTimetables(List<Long> ids, Long userId) {
-        return timetableRepository.batchDeleteByIdsAndUserId(ids, userId);
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        
+        // 检查是否有活动课表要被删除
+        List<Timetables> timetablesToDelete = timetableRepository.findByIdIn(ids)
+                .stream()
+                .filter(t -> t.getUserId().equals(userId))
+                .collect(Collectors.toList());
+        
+        boolean hasActiveTimetable = timetablesToDelete.stream()
+                .anyMatch(t -> t.getIsActive() != null && t.getIsActive() == 1);
+        
+        // 执行批量删除
+        int deletedCount = timetableRepository.batchDeleteByIdsAndUserId(ids, userId);
+        
+        // 如果删除了活动课表，需要设置另一个课表为活动状态
+        if (hasActiveTimetable && deletedCount > 0) {
+            // 获取该用户的所有非归档、非删除的课表
+            List<Timetables> availableTimetables = timetableRepository.findByUserId(userId)
+                    .stream()
+                    .filter(t -> !ids.contains(t.getId())) // 排除刚删除的课表
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0) // 非归档
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0) // 非删除
+                    .collect(Collectors.toList());
+
+            // 如果还有其他课表，设置第一个为活动状态
+            if (!availableTimetables.isEmpty()) {
+                Timetables newActiveTimetable = availableTimetables.get(0);
+                newActiveTimetable.setIsActive((byte) 1);
+                newActiveTimetable.setUpdatedAt(LocalDateTime.now());
+                timetableRepository.save(newActiveTimetable);
+            }
+        }
+        
+        return deletedCount;
     }
 
     /**
