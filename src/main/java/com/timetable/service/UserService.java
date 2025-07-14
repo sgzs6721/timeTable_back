@@ -115,6 +115,37 @@ public class UserService implements UserDetailsService {
         userRepository.update(user);
         return userRepository.findByUsername(newUsername);
     }
+
+    /**
+     * 更新用户昵称
+     */
+    public Users updateNickname(String username, String nickname) {
+        Users user = userRepository.findByUsername(username);
+        if (user == null) {
+            return null;
+        }
+        
+        user.setNickname(nickname);
+        // 手动设置更新时间
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        return user;
+    }
+
+    /**
+     * 管理员更新用户昵称
+     */
+    public Users updateUserNickname(Long userId, String nickname) {
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            return null;
+        }
+        
+        user.setNickname(nickname);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        return user;
+    }
     
     /**
      * 更新密码
@@ -242,6 +273,7 @@ public class UserService implements UserDetailsService {
         Map<String, Object> userDTO = new HashMap<>();
         userDTO.put("id", user.getId());
         userDTO.put("username", user.getUsername());
+        userDTO.put("nickname", user.getNickname());
         userDTO.put("role", user.getRole());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());

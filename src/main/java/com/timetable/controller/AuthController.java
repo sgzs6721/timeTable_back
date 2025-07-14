@@ -225,6 +225,7 @@ public class AuthController {
             
             String currentUsername = authentication.getName();
             String newUsername = profileData.get("username");
+            String nickname = profileData.get("nickname");
             
             if (newUsername == null || newUsername.trim().isEmpty()) {
                 return ResponseEntity.badRequest()
@@ -243,6 +244,11 @@ public class AuthController {
             if (updatedUser == null) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.error("更新失败"));
+            }
+            
+            // 如果提供了昵称，也更新昵称
+            if (nickname != null) {
+                updatedUser = userService.updateNickname(updatedUser.getUsername(), nickname.trim());
             }
             
             // 如果用户名发生了变化，需要生成新的token
@@ -368,6 +374,7 @@ public class AuthController {
         Map<String, Object> userDTO = new HashMap<>();
         userDTO.put("id", user.getId());
         userDTO.put("username", user.getUsername());
+        userDTO.put("nickname", user.getNickname());
         userDTO.put("role", user.getRole());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());

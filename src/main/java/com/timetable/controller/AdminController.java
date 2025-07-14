@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -143,6 +144,38 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(ApiResponse.success("密码重置成功"));
+    }
+
+    /**
+     * 更新用户昵称
+     */
+    @PutMapping("/users/{userId}/nickname")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserNickname(
+            @PathVariable Long userId,
+            @Valid @RequestBody Map<String, String> request) {
+        
+        String nickname = request.get("nickname");
+        if (nickname != null && nickname.length() > 50) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("昵称长度不能超过50个字符"));
+        }
+        
+        Users updatedUser = userService.updateUserNickname(userId, nickname);
+        
+        if (updatedUser == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在或更新失败"));
+        }
+        
+        Map<String, Object> userDTO = new HashMap<>();
+        userDTO.put("id", updatedUser.getId());
+        userDTO.put("username", updatedUser.getUsername());
+        userDTO.put("nickname", updatedUser.getNickname());
+        userDTO.put("role", updatedUser.getRole());
+        userDTO.put("createdAt", updatedUser.getCreatedAt());
+        userDTO.put("updatedAt", updatedUser.getUpdatedAt());
+        
+        return ResponseEntity.ok(ApiResponse.success("昵称更新成功", userDTO));
     }
     
     /**
