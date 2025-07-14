@@ -84,7 +84,7 @@ public class TimetableController {
      * 获取课表详情
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Timetables>> getTimetable(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getTimetable(
             @PathVariable Long id,
             Authentication authentication) {
 
@@ -106,7 +106,20 @@ public class TimetableController {
                     .build();
         }
 
-        return ResponseEntity.ok(ApiResponse.success("获取课表详情成功", timetable));
+        // 获取课表所属用户信息
+        Users timetableOwner = userService.findById(timetable.getUserId());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timetable", timetable);
+        if (timetableOwner != null) {
+            Map<String, Object> ownerInfo = new HashMap<>();
+            ownerInfo.put("id", timetableOwner.getId());
+            ownerInfo.put("username", timetableOwner.getUsername());
+            ownerInfo.put("nickname", timetableOwner.getNickname());
+            response.put("owner", ownerInfo);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success("获取课表详情成功", response));
     }
 
     /**
