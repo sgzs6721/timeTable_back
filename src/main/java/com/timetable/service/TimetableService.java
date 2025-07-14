@@ -293,10 +293,12 @@ public class TimetableService {
         List<Timetables> timetables = getAllTimetables(); // 获取所有有效课表
         return timetables.stream().map(t -> {
             String username = null;
+            String nickname = null;
             try {
                 com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
                 if (u != null) {
                     username = u.getUsername();
+                    nickname = u.getNickname();
                 }
             } catch (Exception ignored) {}
 
@@ -309,6 +311,7 @@ public class TimetableService {
                     t.getId(),
                     t.getUserId(),
                     username,
+                    nickname,
                     t.getName(),
                     t.getIsWeekly() != null && t.getIsWeekly() == 1,
                     t.getStartDate(),
@@ -329,10 +332,12 @@ public class TimetableService {
 
         return timetables.stream().map(t -> {
             String username = null;
+            String nickname = null;
             try {
                 com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
                 if (u != null) {
                     username = u.getUsername();
+                    nickname = u.getNickname();
                 }
             } catch (Exception ignored) {}
 
@@ -345,6 +350,7 @@ public class TimetableService {
                     t.getId(),
                     t.getUserId(),
                     username,
+                    nickname,
                     t.getName(),
                     t.getIsWeekly() != null && t.getIsWeekly() == 1,
                     t.getStartDate(),
@@ -360,18 +366,22 @@ public class TimetableService {
     public List<AdminTimetableDTO> findArchivedByUserId(Long userId) {
         List<Timetables> timetables = timetableRepository.findArchivedByUserId(userId);
         String username = null;
+        String nickname = null;
         try {
             com.timetable.generated.tables.pojos.Users u = userService.findById(userId);
             if (u != null) {
                 username = u.getUsername();
+                nickname = u.getNickname();
             }
         } catch (Exception ignored) {}
 
         String finalUsername = username;
+        String finalNickname = nickname;
         return timetables.stream().map(t -> new AdminTimetableDTO(
                 t.getId(),
                 t.getUserId(),
                 finalUsername,
+                finalNickname,
                 t.getName(),
                 t.getIsWeekly() != null && t.getIsWeekly() == 1,
                 t.getStartDate(),

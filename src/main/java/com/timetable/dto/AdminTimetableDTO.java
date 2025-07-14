@@ -7,6 +7,7 @@ public class AdminTimetableDTO {
     private Long id;
     private Long userId;
     private String username;
+    private String nickname;
     private String name;
     private Boolean isWeekly;
     private LocalDate startDate;
@@ -18,12 +19,13 @@ public class AdminTimetableDTO {
 
     public AdminTimetableDTO() { }
 
-    public AdminTimetableDTO(Long id, Long userId, String username, String name, Boolean isWeekly,
+    public AdminTimetableDTO(Long id, Long userId, String username, String nickname, String name, Boolean isWeekly,
                               LocalDate startDate, LocalDate endDate, Integer scheduleCount, LocalDateTime createdAt,
                               Byte isActive, Byte isArchived) {
         this.id = id;
         this.userId = userId;
         this.username = username;
+        this.nickname = nickname;
         this.name = name;
         this.isWeekly = isWeekly;
         this.startDate = startDate;
@@ -41,6 +43,8 @@ public class AdminTimetableDTO {
     public void setUserId(Long userId) { this.userId = userId; }
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public Boolean getIsWeekly() { return isWeekly; }
