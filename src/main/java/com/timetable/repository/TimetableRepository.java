@@ -107,23 +107,27 @@ public class TimetableRepository {
     }
     
     /**
-     * 获取所有课表（管理员功能）- 过滤已软删除的
+     * 获取所有课表（管理员功能）- 过滤已软删除和已归档的
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findAll() {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
                         .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
+                .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.isNull()
+                        .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq((byte) 0)))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
     
     /**
-     * 根据ID列表查找课表（过滤已软删除的）
+     * 根据ID列表查找课表（过滤已软删除和已归档的）
      */
     public List<com.timetable.generated.tables.pojos.Timetables> findByIdIn(List<Long> ids) {
         return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
                 .where(com.timetable.generated.tables.Timetables.TIMETABLES.ID.in(ids)
                         .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
-                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq((byte) 0))))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
 
