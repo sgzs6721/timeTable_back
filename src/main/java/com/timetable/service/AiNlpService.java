@@ -2,6 +2,7 @@ package com.timetable.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.timetable.dto.ai.ChatMessage;
 import com.timetable.dto.ai.ChatRequest;
 import com.timetable.dto.ai.ChatResponse;
@@ -38,23 +39,31 @@ public class AiNlpService {
     @Value("${ai.nlp.model}")
     private String model;
 
+    @Value("${ai.nlp.provider}")
+    private String provider;
+
     public AiNlpService(WebClient webClient, ObjectMapper objectMapper) {
         this.webClient = webClient;
         this.objectMapper = objectMapper;
     }
 
     public Mono<List<ScheduleInfo>> extractScheduleInfoFromText(String text, String timetableType) {
-        String prompt = buildPrompt(text, timetableType);
+        if ("gemini".equalsIgnoreCase(provider)) {
+            return extractScheduleInfoWithGemini(text, timetableType);
+        } else {
+            // Default to siliconflow or other providers
+            return extractScheduleInfoWithSiliconFlow(text, timetableType);
+        }
+    }
 
-        ChatRequest request = new ChatRequest(
-                model,
-                Collections.singletonList(new ChatMessage("user", prompt))
-        );
+    private Mono<List<ScheduleInfo>> extractScheduleInfoWithSiliconFlow(String text, String timetableType) {
+        String prompt = buildPrompt(text, timetableType);
+        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", prompt)));
 
         try {
-            logger.info("Sending AI request with body: {}", objectMapper.writeValueAsString(request));
+            logger.info("Sending SiliconFlow AI request with body: {}", objectMapper.writeValueAsString(request));
         } catch (IOException e) {
-            logger.error("Error serializing AI request body", e);
+            logger.error("Error serializing SiliconFlow AI request body", e);
         }
 
         return webClient.post()
@@ -65,53 +74,118 @@ public class AiNlpService {
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
                 .doOnError(WebClientResponseException.class, ex -> {
-                    logger.error("AI API call failed with status code: {}", ex.getRawStatusCode());
-                    logger.error("AI API response body: {}", ex.getResponseBodyAsString());
+                    logger.error("SiliconFlow API call failed with status code: {}", ex.getRawStatusCode());
+                    logger.error("SiliconFlow API response body: {}", ex.getResponseBodyAsString());
                 })
                 .map(ChatResponse::getFirstChoiceContent)
                 .flatMap(this::parseResponseToList);
     }
 
+    private Mono<List<ScheduleInfo>> extractScheduleInfoWithGemini(String text, String timetableType) {
+        String prompt = buildPrompt(text, timetableType);
+        
+        // Gemini-specific request structure
+        String geminiApiUrl = apiUrl + "/v1beta/models/" + model + ":generateContent?key=" + apiKey;
+        
+        Object geminiRequest = new Object() {
+            public final Object[] contents = {
+                new Object() {
+                    public final Object[] parts = {
+                        new Object() {
+                            public final String text = prompt;
+                        }
+                    };
+                }
+            };
+        };
+
+        try {
+            logger.info("Sending Gemini AI request with body: {}", objectMapper.writeValueAsString(geminiRequest));
+        } catch (IOException e) {
+            logger.error("Error serializing Gemini AI request body", e);
+        }
+
+        return webClient.post()
+                .uri(geminiApiUrl)
+                .header("Content-Type", "application/json")
+                .bodyValue(geminiRequest)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .doOnError(WebClientResponseException.class, ex -> {
+                    logger.error("Gemini API call failed with status code: {}", ex.getRawStatusCode());
+                    logger.error("Gemini API response body: {}", ex.getResponseBodyAsString());
+                })
+                .map(responseNode -> {
+                    // Extract text from Gemini's response structure
+                    JsonNode candidates = responseNode.path("candidates");
+                    if (candidates.isArray() && candidates.size() > 0) {
+                        JsonNode content = candidates.get(0).path("content");
+                        if (content.has("parts")) {
+                            JsonNode parts = content.path("parts");
+                            if (parts.isArray() && parts.size() > 0) {
+                                return parts.get(0).path("text").asText();
+                            }
+                        }
+                    }
+                    logger.warn("Could not extract text from Gemini response: {}", responseNode.toString());
+                    return "[]";
+                })
+                .flatMap(this::parseResponseToList);
+    }
+
+
+    public Mono<List<ScheduleInfo>> extractScheduleInfo(String prompt, String type) {
+        // This method is now a wrapper. The logic is moved to provider-specific methods.
+        return extractScheduleInfoFromText(prompt, type);
+    }
+
     private String buildPrompt(String text, String type) {
         String jsonFormat;
         String typeDescription;
-        String negativeInstruction;
-        
-        String commonPrompt = "你是一个严格的课程安排解析助手。请从以下文本中提取所有课程安排信息: \\\"%s\\\"\\n\\n" +
-                "### 任务要求\\n" +
-                "1. **课表类型**: %s\\n" +
-                "2. **用户输入内容**: 用户的输入通常只会包含**日期、星期、时间和人名**相关的信息。请专注于从这些信息中解析。\\n" +
-                "3. **时间解析规则**:\\n" +
-                "   - **上课时间范围**: 课程只可能在**上午9点到晚上8点（20:00）**之间。\\n" +
-                "   - **12/24小时制**: 用户可能会输入'3'或'5点'，请正确解析为24小时格式的时间。例如，'3-4'应解析为 `15:00-16:00`。\\n" +
-                "   - **模糊时间推断**: 上课时间多为下午和晚上。如果用户输入如\\\"4-5\\\"这样不明确的时间，应优先理解为 `16:00-17:00`。\\n" +
-                "4. **多行处理**: 文本中的每一行都代表一个独立学员的排课安排，请分别解析。\\n" +
-                "5. **关键指令**: %s\\n" +
-                "6. **输出格式**: 必须是严格的JSON数组格式，数组中的每个对象代表一个排课。不要返回任何其他说明文字或代码标记。\\n" +
-                "7. **无关内容**: 如果文本与课程无关，请返回一个空的JSON数组 `[]`。\\n\\n" +
-                "### JSON对象格式\\n%s";
+        String positiveInstruction;
+
+        String commonPrompt = "你是一个严格的课程安排解析助手。你的任务是从用户提供的文本中，精准地提取出排课信息。\n\n" +
+                "### 用户文本\n" +
+                "```text\n" +
+                "%s\n" + // user input text
+                "```\n\n" +
+                "### 解析规则\n" +
+                "1. **课表类型**: %s\n" +
+                "2. **核心解析任务**: %s\n" + // This will be the new positive instruction
+                "3. **时间解析**: \n" +
+                "   - **有效范围**: 只处理上午9点到晚上8点(20:00)之间的时间。\n" +
+                "   - **智能识别**: '3-4' 应解析为 `15:00-16:00`。'9-11' 应解析为 `09:00-11:00`。\n" +
+                "4. **输出要求**: 必须返回一个严格的JSON数组。如果无法解析或内容无关，返回空数组 `[]`。不要添加任何解释。\n\n" +
+                "### JSON输出格式\n" +
+                "```json\n" +
+                "%s\n" + // json format
+                "```";
 
         if ("WEEKLY".equalsIgnoreCase(type)) {
             typeDescription = "这是一个**周固定课表**。";
-            negativeInstruction = "你**只能**提取 `dayOfWeek` (星期几)，**绝对不能**包含 `date` (日期) 字段。如果用户提到了具体的日期（如\\\"8月15日\\\"），请忽略它，只关注星期几。";
-            jsonFormat = "{\\n" +
-                         "  \\\"studentName\\\": \\\"学生姓名\\\",\\n" +
-                         "  \\\"time\\\": \\\"HH:mm-HH:mm\\\",\\n" +
-                         "  \\\"dayOfWeek\\\": \\\"MONDAY\\\"\\n" +
-                         "}";
+            positiveInstruction = "你需要为每个学员解析出他们的 **姓名 (studentName)**、**上课星期 (dayOfWeek)** 和 **时间 (time)**。";
+            jsonFormat = "[\n" +
+                         "  {\n" +
+                         "    \"studentName\": \"学生姓名\",\n" +
+                         "    \"dayOfWeek\": \"MONDAY\",\n" +
+                         "    \"time\": \"HH:mm-HH:mm\"\n" +
+                         "  }\n" +
+                         "]";
         } else { // DATE_RANGE
             typeDescription = "这是一个**日期范围课表**。";
-            negativeInstruction = "你**只能**提取 `date` (具体日期)，**绝对不能**包含 `dayOfWeek` (星期几) 字段。如果用户提到了星期几（如\\\"周三\\\"），请忽略它，专注于识别具体的日期。";
-            jsonFormat = "{\\n" +
-                         "  \\\"studentName\\\": \\\"学生姓名\\\",\\n" +
-                         "  \\\"time\\\": \\\"HH:mm-HH:mm\\\",\\n" +
-                         "  \\\"date\\\": \\\"YYYY-MM-DD\\\"\\n" +
-                         "}";
+            positiveInstruction = "你需要为每个学员解析出他们的 **姓名 (studentName)**、**上课日期 (date)** 和 **时间 (time)**。";
+            jsonFormat = "[\n" +
+                         "  {\n" +
+                         "    \"studentName\": \"学生姓名\",\n" +
+                         "    \"date\": \"YYYY-MM-DD\",\n" +
+                         "    \"time\": \"HH:mm-HH:mm\"\n" +
+                         "  }\n" +
+                         "]";
         }
 
         return String.format(
                 commonPrompt,
-                text, typeDescription, negativeInstruction, jsonFormat);
+                text, typeDescription, positiveInstruction, jsonFormat);
     }
 
     private Mono<List<ScheduleInfo>> parseResponseToList(String jsonResponse) {
