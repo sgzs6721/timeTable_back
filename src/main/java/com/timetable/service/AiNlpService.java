@@ -83,53 +83,28 @@ public class AiNlpService {
 
     private Mono<List<ScheduleInfo>> extractScheduleInfoWithGemini(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
-        
-        // Gemini-specific request structure
-        String geminiApiUrl = apiUrl + "/v1beta/models/" + model + ":generateContent?key=" + apiKey;
-        
-        Object geminiRequest = new Object() {
-            public final Object[] contents = {
-                new Object() {
-                    public final Object[] parts = {
-                        new Object() {
-                            public final String text = prompt;
-                        }
-                    };
-                }
-            };
-        };
+        // The request body should now conform to the OpenAI format, which is handled by ChatRequest.
+        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", prompt)));
 
         try {
-            logger.info("Sending Gemini AI request with body: {}", objectMapper.writeValueAsString(geminiRequest));
+            logger.info("Sending Gemini (OpenAI-compatible) AI request with body: {}", objectMapper.writeValueAsString(request));
         } catch (IOException e) {
-            logger.error("Error serializing Gemini AI request body", e);
+            logger.error("Error serializing Gemini (OpenAI-compatible) AI request body", e);
         }
 
+        // The endpoint and headers should be consistent with other OpenAI-compatible services.
         return webClient.post()
-                .uri(geminiApiUrl)
+                .uri(apiUrl + "/v1/chat/completions") // Use the standard chat completions endpoint
+                .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .bodyValue(geminiRequest)
+                .bodyValue(request)
                 .retrieve()
-                .bodyToMono(JsonNode.class)
+                .bodyToMono(ChatResponse.class) // Expect an OpenAI-compatible response
                 .doOnError(WebClientResponseException.class, ex -> {
-                    logger.error("Gemini API call failed with status code: {}", ex.getRawStatusCode());
-                    logger.error("Gemini API response body: {}", ex.getResponseBodyAsString());
+                    logger.error("Gemini (OpenAI-compatible) API call failed with status code: {}", ex.getRawStatusCode());
+                    logger.error("Gemini (OpenAI-compatible) API response body: {}", ex.getResponseBodyAsString());
                 })
-                .map(responseNode -> {
-                    // Extract text from Gemini's response structure
-                    JsonNode candidates = responseNode.path("candidates");
-                    if (candidates.isArray() && candidates.size() > 0) {
-                        JsonNode content = candidates.get(0).path("content");
-                        if (content.has("parts")) {
-                            JsonNode parts = content.path("parts");
-                            if (parts.isArray() && parts.size() > 0) {
-                                return parts.get(0).path("text").asText();
-                            }
-                        }
-                    }
-                    logger.warn("Could not extract text from Gemini response: {}", responseNode.toString());
-                    return "[]";
-                })
+                .map(ChatResponse::getFirstChoiceContent) // Use the same response parsing logic
                 .flatMap(this::parseResponseToList);
     }
 
