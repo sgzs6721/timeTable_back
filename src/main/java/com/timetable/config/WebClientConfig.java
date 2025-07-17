@@ -26,9 +26,11 @@ public class WebClientConfig {
                 .pendingAcquireTimeout(Duration.ofSeconds(60))
                 .evictInBackground(Duration.ofSeconds(120)).build();
 
-        // 配置SSL/TLS
+        // 配置SSL/TLS - 警告：这里使用了不安全的信任管理器，仅用于诊断目的
+        // 这会跳过证书验证，不应在生产环境中使用
         SslContext sslContext = SslContextBuilder
                 .forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE) // 临时禁用证书验证
                 .build();
 
         HttpClient httpClient = HttpClient.create(connectionProvider)
