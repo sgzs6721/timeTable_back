@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.http.protocol.HttpProtocol;
 import reactor.netty.resources.ConnectionProvider;
 
 import javax.net.ssl.SSLException;
@@ -35,9 +34,9 @@ public class WebClientConfig {
                 .build();
 
         HttpClient httpClient = HttpClient.create(connectionProvider)
-                .protocol(HttpProtocol.H2C, HttpProtocol.HTTP11) // 启用 HTTP/2 和 HTTP/1.1
                 .secure(t -> t.sslContext(sslContext)) // 应用SSL配置
-                .responseTimeout(Duration.ofSeconds(120)); // 增加超时到120秒
+                .responseTimeout(Duration.ofSeconds(120)) // 增加超时到120秒
+                .wiretap(true); // 启用详细的网络日志记录
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
