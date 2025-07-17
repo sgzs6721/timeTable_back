@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -103,7 +104,21 @@ public class AiNlpService {
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
                 .timeout(Duration.ofSeconds(30)) // 30秒超时
-                .doOnError(ex -> logger.error("AI API call failed: {}", ex.getMessage()))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+                        .filter(throwable -> {
+                            // 重试网络连接错误
+                            String message = throwable.getMessage();
+                            return message != null && (
+                                message.contains("Connection reset by peer") ||
+                                message.contains("Connection timed out") ||
+                                message.contains("ConnectTimeoutException")
+                            );
+                        })
+                        .doBeforeRetry(retrySignal -> 
+                            logger.warn("Retrying AI API call, attempt: {}, error: {}", 
+                                retrySignal.totalRetries() + 1, 
+                                retrySignal.failure().getMessage())))
+                .doOnError(ex -> logger.error("AI API call failed after retries: {}", ex.getMessage()))
                 .map(ChatResponse::getFirstChoiceContent)
                 .flatMap(this::parseResponseToList);
     }
