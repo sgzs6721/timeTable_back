@@ -16,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -84,47 +85,27 @@ public class AiNlpService {
 
     private Mono<List<ScheduleInfo>> extractScheduleInfoWithGemini(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
-        
-        // 临时使用简单消息测试 502 错误是否与 prompt 大小有关
-        String testPrompt = "Hello";
-        
-        // The request body should now conform to the OpenAI format, which is handled by ChatRequest.
-        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", testPrompt)));
+        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", prompt)));
 
         try {
-            logger.info("Sending Gemini (OpenAI-compatible) AI request with body: {}", objectMapper.writeValueAsString(request));
-            logger.info("Request URI: {}", apiUrl + "/v1/chat/completions");
-            logger.info("API Key (first 10 chars): {}", apiKey.substring(0, Math.min(10, apiKey.length())));
+            logger.info("Sending AI request to: {}/v1/chat/completions", apiUrl);
+            logger.info("Request body size: {} bytes", objectMapper.writeValueAsString(request).length());
         } catch (IOException e) {
-            logger.error("Error serializing Gemini (OpenAI-compatible) AI request body", e);
+            logger.error("Error serializing AI request body", e);
         }
 
-        // The endpoint and headers should be consistent with other OpenAI-compatible services.
         return webClient.post()
-                .uri(apiUrl + "/v1/chat/completions") // Use the standard chat completions endpoint
+                .uri(apiUrl + "/v1/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .header("User-Agent", "Java-WebClient/11") // Add a User-Agent header
-                .header("Host", "velvety-cupcake-6a525e.netlify.app") // 设置正确的Host头用于SSL验证
+                .header("User-Agent", "Timetable-Backend/1.0")
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(ChatResponse.class) // Expect an OpenAI-compatible response
-                .doOnError(WebClientResponseException.class, ex -> {
-                    logger.error("Gemini (OpenAI-compatible) API call failed with status code: {}", ex.getRawStatusCode());
-                    logger.error("Gemini (OpenAI-compatible) API response body: {}", ex.getResponseBodyAsString());
-                })
-                .doOnError(Exception.class, ex -> {
-                    logger.error("Unexpected error during Gemini API call: {}", ex.getMessage(), ex);
-                })
-                .map(ChatResponse::getFirstChoiceContent) // Use the same response parsing logic
-                .flatMap(response -> {
-                    logger.info("Received response from Gemini: {}", response);
-                    // 如果使用测试 prompt，直接返回空列表
-                    if ("Hello".equals(testPrompt)) {
-                        return Mono.just(Collections.emptyList());
-                    }
-                    return parseResponseToList(response);
-                });
+                .bodyToMono(ChatResponse.class)
+                .timeout(Duration.ofSeconds(30)) // 30秒超时
+                .doOnError(ex -> logger.error("AI API call failed: {}", ex.getMessage()))
+                .map(ChatResponse::getFirstChoiceContent)
+                .flatMap(this::parseResponseToList);
     }
 
 

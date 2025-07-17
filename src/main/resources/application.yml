@@ -44,18 +44,16 @@ ai:
   # 自然语言处理API配置
   nlp:
     provider: gemini # 可选: openai, baidu, tencent, aliyun
-    api-url: https://198.20.0.66/edge
+    api-url: https://velvety-cupcake-6a525e.netlify.app/edge
     api-key: AIzaSyCkNAm7njKcgS-xChTWu08YVcGHNnf6P5g
-    model: gemini-2.5-pro
+    model: gemini-2.5-flash
 
 # 日志配置
 logging:
   level:
-    com.timetable: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    reactor.netty: DEBUG
-    reactor.netty.http.client: TRACE
+    com.timetable: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
