@@ -85,8 +85,11 @@ public class AiNlpService {
     private Mono<List<ScheduleInfo>> extractScheduleInfoWithGemini(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
         
+        // 临时使用简单消息测试 502 错误是否与 prompt 大小有关
+        String testPrompt = "Hello";
+        
         // The request body should now conform to the OpenAI format, which is handled by ChatRequest.
-        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", prompt)));
+        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", testPrompt)));
 
         try {
             logger.info("Sending Gemini (OpenAI-compatible) AI request with body: {}", objectMapper.writeValueAsString(request));
@@ -116,6 +119,10 @@ public class AiNlpService {
                 .map(ChatResponse::getFirstChoiceContent) // Use the same response parsing logic
                 .flatMap(response -> {
                     logger.info("Received response from Gemini: {}", response);
+                    // 如果使用测试 prompt，直接返回空列表
+                    if ("Hello".equals(testPrompt)) {
+                        return Mono.just(Collections.emptyList());
+                    }
                     return parseResponseToList(response);
                 });
     }
