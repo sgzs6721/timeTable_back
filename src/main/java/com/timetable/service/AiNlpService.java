@@ -97,6 +97,7 @@ public class AiNlpService {
                 .uri(apiUrl + "/v1/chat/completions") // Use the standard chat completions endpoint
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
+                .header("User-Agent", "Java-WebClient/11") // Add a User-Agent header
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ChatResponse.class) // Expect an OpenAI-compatible response
