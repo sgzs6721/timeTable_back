@@ -86,23 +86,35 @@ public class AiNlpService {
 
     private Mono<List<ScheduleInfo>> extractScheduleInfoWithGemini(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
-        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", prompt)));
-
+        
+        // 创建包含max_tokens参数的完整请求
         try {
-            logger.info("Sending AI request to: {}/v1/chat/completions", apiUrl);
-            logger.info("Request body size: {} bytes", objectMapper.writeValueAsString(request).length());
-        } catch (IOException e) {
-            logger.error("Error serializing AI request body", e);
+            String escapedPrompt = objectMapper.writeValueAsString(prompt);
+            String requestJson = String.format(
+                "{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":%s}],\"max_tokens\":1000,\"temperature\":0.3}",
+                model,
+                escapedPrompt
+            );
+            logger.info("Generated request JSON for Gemini API");
+            return createWebClientRequest(requestJson);
+        } catch (Exception e) {
+            logger.error("Failed to create request JSON", e);
+            return Mono.just(Collections.emptyList());
         }
+    }
+
+    private Mono<List<ScheduleInfo>> createWebClientRequest(String requestJson) {
+        logger.info("Sending AI request to: {}/v1/chat/completions", apiUrl);
 
         return webClient.post()
                 .uri(apiUrl + "/v1/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
                 .header("User-Agent", "Timetable-Backend/1.0")
-                .bodyValue(request)
+                .bodyValue(requestJson)
                 .retrieve()
-                .bodyToMono(ChatResponse.class)
+                .bodyToMono(String.class)
+                .map(this::parseOpenAIResponse)
                 .timeout(Duration.ofSeconds(30)) // 30秒超时
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
                         .filter(throwable -> {
@@ -119,8 +131,30 @@ public class AiNlpService {
                                 retrySignal.totalRetries() + 1, 
                                 retrySignal.failure().getMessage())))
                 .doOnError(ex -> logger.error("AI API call failed after retries: {}", ex.getMessage()))
-                .map(ChatResponse::getFirstChoiceContent)
                 .flatMap(this::parseResponseToList);
+    }
+
+    /**
+     * 解析OpenAI格式的响应
+     */
+    private String parseOpenAIResponse(String responseBody) {
+        try {
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            JsonNode choices = jsonNode.path("choices");
+            
+            if (choices.isArray() && choices.size() > 0) {
+                JsonNode message = choices.get(0).path("message");
+                String content = message.path("content").asText();
+                logger.info("AI response content: {}", content);
+                return content;
+            }
+            
+            logger.warn("No choices found in AI response: {}", responseBody);
+            return "[]";
+        } catch (Exception e) {
+            logger.error("Failed to parse OpenAI response: {}", responseBody, e);
+            return "[]";
+        }
     }
 
 
