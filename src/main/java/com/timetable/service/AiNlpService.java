@@ -70,6 +70,7 @@ public class AiNlpService {
                 .uri(apiUrl + "/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
+                .header("User-Agent", "Java-WebClient/11") // Add a User-Agent header
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ChatResponse.class)
@@ -83,11 +84,17 @@ public class AiNlpService {
 
     private Mono<List<ScheduleInfo>> extractScheduleInfoWithGemini(String text, String timetableType) {
         String prompt = buildPrompt(text, timetableType);
+        
+        // 临时使用简单的测试消息来排除 prompt 复杂度问题
+        String testPrompt = "Hello, please respond with: []";
+        
         // The request body should now conform to the OpenAI format, which is handled by ChatRequest.
-        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", prompt)));
+        ChatRequest request = new ChatRequest(model, Collections.singletonList(new ChatMessage("user", testPrompt)));
 
         try {
             logger.info("Sending Gemini (OpenAI-compatible) AI request with body: {}", objectMapper.writeValueAsString(request));
+            logger.info("Request URI: {}", apiUrl + "/v1/chat/completions");
+            logger.info("API Key (first 10 chars): {}", apiKey.substring(0, Math.min(10, apiKey.length())));
         } catch (IOException e) {
             logger.error("Error serializing Gemini (OpenAI-compatible) AI request body", e);
         }
@@ -105,8 +112,18 @@ public class AiNlpService {
                     logger.error("Gemini (OpenAI-compatible) API call failed with status code: {}", ex.getRawStatusCode());
                     logger.error("Gemini (OpenAI-compatible) API response body: {}", ex.getResponseBodyAsString());
                 })
+                .doOnError(Exception.class, ex -> {
+                    logger.error("Unexpected error during Gemini API call: {}", ex.getMessage(), ex);
+                })
                 .map(ChatResponse::getFirstChoiceContent) // Use the same response parsing logic
-                .flatMap(this::parseResponseToList);
+                .flatMap(response -> {
+                    logger.info("Received response from Gemini: {}", response);
+                    // 如果使用测试 prompt，直接返回空列表
+                    if (testPrompt.equals("Hello, please respond with: []")) {
+                        return Mono.just(Collections.emptyList());
+                    }
+                    return parseResponseToList(response);
+                });
     }
 
 
