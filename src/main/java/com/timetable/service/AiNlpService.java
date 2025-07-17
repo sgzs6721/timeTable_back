@@ -102,6 +102,7 @@ public class AiNlpService {
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
                 .header("User-Agent", "Java-WebClient/11") // Add a User-Agent header
+                .header("Host", "velvety-cupcake-6a525e.netlify.app") // 设置正确的Host头用于SSL验证
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ChatResponse.class) // Expect an OpenAI-compatible response
