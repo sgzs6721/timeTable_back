@@ -201,9 +201,6 @@ public class AiNlpService {
     private String buildPrompt(String text, String type) {
         String jsonFormat;
         String typeDescription;
-        String positiveInstruction;
-
-        String commonPrompt = "提取课程信息：%s\n%s\n时间转换：'3-4'='15:00-16:00'，'17点-18点'='17:00-18:00'\n输出JSON：%s";
 
         if ("WEEKLY".equalsIgnoreCase(type)) {
             typeDescription = "周课表，提取姓名、星期(MONDAY/TUESDAY/WEDNESDAY/THURSDAY/FRIDAY/SATURDAY/SUNDAY)、时间";
@@ -212,6 +209,38 @@ public class AiNlpService {
             typeDescription = "日期课表，提取姓名、日期(YYYY-MM-DD)、时间";
             jsonFormat = "[{\"studentName\":\"姓名\",\"date\":\"2024-08-15\",\"time\":\"10:00-11:00\"}]";
         }
+
+        String commonPrompt = "任务：从以下文本中提取课程安排信息\n" +
+                "输入文本：%s\n\n" +
+                "%s\n\n" +
+                "课程时间范围：上午10:00到晚上20:00（只有这个时间段内的课程有效）\n\n" +
+                "解析示例：\n" +
+                "1. 小王周二三点到四点 -> {\"studentName\":\"小王\",\"dayOfWeek\":\"TUESDAY\",\"time\":\"15:00-16:00\"}\n" +
+                "2. 张三周一十点到十一点 -> {\"studentName\":\"张三\",\"dayOfWeek\":\"MONDAY\",\"time\":\"10:00-11:00\"}\n" +
+                "3. 李四周三七点到八点 -> {\"studentName\":\"李四\",\"dayOfWeek\":\"WEDNESDAY\",\"time\":\"19:00-20:00\"}\n" +
+                "4. 小王周二三点到四点小张周三四点到五点 -> 解析为两个学生的信息\n\n" +
+                "时间转换规则（24小时制，课程时间10:00-20:00）：\n" +
+                "- 十点/10点 = 10:00, 十一点/11点 = 11:00\n" +
+                "- 一点/1点 = 13:00, 二点/2点 = 14:00\n" +
+                "- 三点/3点 = 15:00, 四点/4点 = 16:00\n" +
+                "- 五点/5点 = 17:00, 六点/6点 = 18:00\n" +
+                "- 七点/7点 = 19:00, 八点/8点 = 20:00\n" +
+                "- 九点到十点 = 09:00-10:00（注意：9点在课程时间范围外）\n" +
+                "- 三点到四点 = 15:00-16:00\n" +
+                "- 17-18 = 17:00-18:00\n\n" +
+                "星期转换：\n" +
+                "- 周一/星期一 = MONDAY\n" +
+                "- 周二/星期二 = TUESDAY\n" +
+                "- 周三/星期三 = WEDNESDAY\n" +
+                "- 周四/星期四 = THURSDAY\n" +
+                "- 周五/星期五 = FRIDAY\n" +
+                "- 周六/星期六 = SATURDAY\n" +
+                "- 周日/星期日 = SUNDAY\n\n" +
+                "注意事项：\n" +
+                "1. 如果时间超出10:00-20:00范围，请在errorMessage中说明\n" +
+                "2. 如果多个学生信息连在一起没有分隔符，请仔细识别每个学生的完整信息（姓名+星期+时间）\n" +
+                "3. 所有时间都转换为24小时制格式\n\n" +
+                "请准确提取每个学生的信息，输出严格的JSON格式：\n%s";
 
         return String.format(
                 commonPrompt,
