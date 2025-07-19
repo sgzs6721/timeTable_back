@@ -49,6 +49,7 @@ public class ScheduleService {
     private final AiNlpService aiNlpService;
     private final TimetableRepository timetableRepository;
     private final SiliconFlowService siliconFlowService;
+    private final AIService aiService;
     private final ObjectMapper objectMapper;
 
     private static final Map<String, DayOfWeek> weekDayMap = new LinkedHashMap<>();
@@ -100,11 +101,13 @@ public class ScheduleService {
 
     @Autowired
     public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService,
-                          TimetableRepository timetableRepository, SiliconFlowService siliconFlowService) {
+                          TimetableRepository timetableRepository, SiliconFlowService siliconFlowService,
+                          AIService aiService) {
         this.scheduleRepository = scheduleRepository;
         this.aiNlpService = aiNlpService;
         this.timetableRepository = timetableRepository;
         this.siliconFlowService = siliconFlowService;
+        this.aiService = aiService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -260,7 +263,7 @@ public class ScheduleService {
             return Mono.error(new IllegalArgumentException("Timetable not found"));
         }
 
-        return Mono.fromCallable(() -> siliconFlowService.transcribeAudio(audioFile))
+        return Mono.fromCallable(() -> aiService.transcribeAudio(audioFile))
                 .flatMap(transcribedText -> {
                     if (transcribedText == null || transcribedText.trim().isEmpty()) {
                         return Mono.just(Collections.<ScheduleInfo>emptyList());

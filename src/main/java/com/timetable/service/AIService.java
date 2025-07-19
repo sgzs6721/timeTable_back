@@ -49,66 +49,51 @@ public class AIService {
     }
     
     /**
-     * 使用Google Gemini API进行语音转文字
+     * 使用Netlify代理的OpenAI兼容API进行语音转文字
      */
     public String transcribeAudio(MultipartFile audioFile) throws IOException {
         try {
-            // 将音频文件转换为Base64编码
-            byte[] audioBytes = audioFile.getBytes();
-            String audioBase64 = Base64.getEncoder().encodeToString(audioBytes);
+            logger.info("开始调用Gemini语音转文字API (通过Netlify代理)");
             
-            // 构建请求JSON
-            String requestJson = "{" +
-                    "\"contents\": [{" +
-                    "\"parts\": [{" +
-                    "\"text\": \"请将以下音频文件转换为文字，音频内容是关于课程安排的描述\"" +
-                    "}, {" +
-                    "\"inline_data\": {" +
-                    "\"mime_type\": \"" + audioFile.getContentType() + "\"," +
-                    "\"data\": \"" + audioBase64 + "\"" +
-                    "}" +
-                    "}]" +
-                    "}]" +
-                    "}";
-            
-            // 发送请求
-            String apiUrl = nlpApiUrl + "models/" + nlpModel + ":generateContent?key=" + nlpApiKey;
-            RequestBody body = RequestBody.create(requestJson, MediaType.get("application/json"));
-            Request request = new Request.Builder()
-                    .url(apiUrl)
-                    .post(body)
-                    .addHeader("Content-Type", "application/json")
+            // 使用multipart/form-data格式上传音频文件
+            RequestBody requestBody = new MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("model", "whisper-1") // OpenAI兼容的语音模型名
+                    .addFormDataPart("file", audioFile.getOriginalFilename(),
+                            RequestBody.create(audioFile.getBytes(), MediaType.parse("audio/wav")))
                     .build();
-            
+
+            Request request = new Request.Builder()
+                    .url(speechApiUrl + "/v1/audio/transcriptions")
+                    .post(requestBody)
+                    .addHeader("Authorization", "Bearer " + speechApiKey)
+                    .addHeader("User-Agent", "Timetable-Backend/1.0")
+                    .build();
+
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    logger.error("语音识别API调用失败: {}", response.body().string());
-                    throw new RuntimeException("语音识别失败");
+                    String errorBody = response.body() != null ? response.body().string() : "未知错误";
+                    logger.error("语音转文字API调用失败，状态码: {}, 错误信息: {}", response.code(), errorBody);
+                    throw new RuntimeException("语音转文字失败: " + errorBody);
                 }
-                
+
                 String responseBody = response.body().string();
-                logger.debug("语音识别API响应: {}", responseBody);
-                
-                // 解析响应
+                logger.debug("语音转文字API响应: {}", responseBody);
+
+                // 解析OpenAI格式的响应
                 JsonNode jsonNode = objectMapper.readTree(responseBody);
-                JsonNode candidates = jsonNode.path("candidates");
-                
-                if (candidates.isArray() && candidates.size() > 0) {
-                    JsonNode content = candidates.get(0).path("content");
-                    JsonNode parts = content.path("parts");
-                    
-                    if (parts.isArray() && parts.size() > 0) {
-                        String transcribedText = parts.get(0).path("text").asText();
-                        logger.info("语音识别成功: {}", transcribedText);
-                        return transcribedText;
-                    }
+                String transcribedText = jsonNode.path("text").asText();
+
+                if (transcribedText.isEmpty()) {
+                    throw new RuntimeException("语音转文字结果为空");
                 }
-                
-                throw new RuntimeException("语音识别响应格式异常");
+
+                logger.info("语音转文字成功: {}", transcribedText);
+                return transcribedText;
             }
         } catch (Exception e) {
-            logger.error("语音识别处理失败", e);
-            throw new IOException("语音识别处理失败: " + e.getMessage());
+            logger.error("语音转文字处理失败", e);
+            throw new IOException("语音转文字处理失败: " + e.getMessage());
         }
     }
     

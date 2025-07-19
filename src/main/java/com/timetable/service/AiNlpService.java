@@ -91,7 +91,7 @@ public class AiNlpService {
         try {
             String escapedPrompt = objectMapper.writeValueAsString(prompt);
             String requestJson = String.format(
-                "{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":%s}],\"max_tokens\":1000,\"temperature\":0.3}",
+                "{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":%s}],\"max_tokens\":8000,\"temperature\":0}",
                 model,
                 escapedPrompt
             );
@@ -113,17 +113,34 @@ public class AiNlpService {
                 .header("User-Agent", "Timetable-Backend/1.0")
                 .bodyValue(requestJson)
                 .retrieve()
+                .onStatus(status -> status.is5xxServerError(), response -> {
+                    logger.warn("Server error response: {}", response.statusCode());
+                    return response.bodyToMono(String.class)
+                        .doOnNext(body -> logger.warn("Server error body: {}", body))
+                        .then(Mono.error(new RuntimeException("Server error: " + response.statusCode())));
+                })
                 .bodyToMono(String.class)
+                .doOnNext(responseBody -> {
+                    // 检查响应是否是有效的JSON
+                    if (responseBody.trim().startsWith("The deployment failed") || 
+                        responseBody.trim().startsWith("the edge function timed out")) {
+                        logger.error("Edge function deployment/timeout error: {}", responseBody);
+                        throw new RuntimeException("Edge function error: " + responseBody);
+                    }
+                })
                 .map(this::parseOpenAIResponse)
-                .timeout(Duration.ofSeconds(30)) // 30秒超时
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+                .timeout(Duration.ofSeconds(45)) // 增加到45秒超时
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
                         .filter(throwable -> {
-                            // 重试网络连接错误
+                            // 重试网络连接错误和Edge Function错误
                             String message = throwable.getMessage();
                             return message != null && (
                                 message.contains("Connection reset by peer") ||
                                 message.contains("Connection timed out") ||
-                                message.contains("ConnectTimeoutException")
+                                message.contains("ConnectTimeoutException") ||
+                                message.contains("Edge function error") ||
+                                message.contains("Server error") ||
+                                message.contains("TimeoutException")
                             );
                         })
                         .doBeforeRetry(retrySignal -> 
@@ -131,6 +148,7 @@ public class AiNlpService {
                                 retrySignal.totalRetries() + 1, 
                                 retrySignal.failure().getMessage())))
                 .doOnError(ex -> logger.error("AI API call failed after retries: {}", ex.getMessage()))
+                .onErrorReturn(Collections.emptyList()) // 失败时返回空列表而不是抛异常
                 .flatMap(this::parseResponseToList);
     }
 
@@ -139,12 +157,29 @@ public class AiNlpService {
      */
     private String parseOpenAIResponse(String responseBody) {
         try {
+            // 先检查是否是错误页面
+            if (responseBody.trim().startsWith("<!DOCTYPE html") || 
+                responseBody.trim().startsWith("<html") ||
+                responseBody.trim().startsWith("The deployment failed") ||
+                responseBody.trim().startsWith("the edge function timed out") ||
+                responseBody.trim().contains("Application error")) {
+                logger.error("Received error page instead of JSON: {}", responseBody.substring(0, Math.min(200, responseBody.length())));
+                return "[]";
+            }
+
             JsonNode jsonNode = objectMapper.readTree(responseBody);
             JsonNode choices = jsonNode.path("choices");
             
             if (choices.isArray() && choices.size() > 0) {
                 JsonNode message = choices.get(0).path("message");
                 String content = message.path("content").asText();
+                
+                // 检查content是否为null或"null"
+                if ("null".equals(content) || content == null || content.trim().isEmpty()) {
+                    logger.warn("AI returned null or empty content");
+                    return "[]";
+                }
+                
                 logger.info("AI response content: {}", content);
                 return content;
             }
@@ -152,7 +187,7 @@ public class AiNlpService {
             logger.warn("No choices found in AI response: {}", responseBody);
             return "[]";
         } catch (Exception e) {
-            logger.error("Failed to parse OpenAI response: {}", responseBody, e);
+            logger.error("Failed to parse OpenAI response: {}", responseBody.substring(0, Math.min(500, responseBody.length())), e);
             return "[]";
         }
     }
@@ -168,48 +203,19 @@ public class AiNlpService {
         String typeDescription;
         String positiveInstruction;
 
-        String commonPrompt = "你是一个严格的课程安排解析助手。你的任务是从用户提供的文本中，精准地提取出排课信息。\n\n" +
-                "### 用户文本\n" +
-                "```text\n" +
-                "%s\n" + // user input text
-                "```\n\n" +
-                "### 解析规则\n" +
-                "1. **课表类型**: %s\n" +
-                "2. **核心解析任务**: %s\n" + // This will be the new positive instruction
-                "3. **时间解析**: \n" +
-                "   - **有效范围**: 只处理上午9点到晚上8点(20:00)之间的时间。\n" +
-                "   - **智能识别**: '3-4' 应解析为 `15:00-16:00`。'9-11' 应解析为 `09:00-11:00`。\n" +
-                "4. **输出要求**: 必须返回一个严格的JSON数组。如果无法解析或内容无关，返回空数组 `[]`。不要添加任何解释。\n\n" +
-                "### JSON输出格式\n" +
-                "```json\n" +
-                "%s\n" + // json format
-                "```";
+        String commonPrompt = "提取课程信息：%s\n%s\n时间转换：'3-4'='15:00-16:00'，'17点-18点'='17:00-18:00'\n输出JSON：%s";
 
         if ("WEEKLY".equalsIgnoreCase(type)) {
-            typeDescription = "这是一个**周固定课表**。";
-            positiveInstruction = "你需要为每个学员解析出他们的 **姓名 (studentName)**、**上课星期 (dayOfWeek)** 和 **时间 (time)**。";
-            jsonFormat = "[\n" +
-                         "  {\n" +
-                         "    \"studentName\": \"学生姓名\",\n" +
-                         "    \"dayOfWeek\": \"MONDAY\",\n" +
-                         "    \"time\": \"HH:mm-HH:mm\"\n" +
-                         "  }\n" +
-                         "]";
+            typeDescription = "周课表，提取姓名、星期(MONDAY/TUESDAY/WEDNESDAY/THURSDAY/FRIDAY/SATURDAY/SUNDAY)、时间";
+            jsonFormat = "[{\"studentName\":\"姓名\",\"dayOfWeek\":\"MONDAY\",\"time\":\"10:00-11:00\"}]";
         } else { // DATE_RANGE
-            typeDescription = "这是一个**日期范围课表**。";
-            positiveInstruction = "你需要为每个学员解析出他们的 **姓名 (studentName)**、**上课日期 (date)** 和 **时间 (time)**。";
-            jsonFormat = "[\n" +
-                         "  {\n" +
-                         "    \"studentName\": \"学生姓名\",\n" +
-                         "    \"date\": \"YYYY-MM-DD\",\n" +
-                         "    \"time\": \"HH:mm-HH:mm\"\n" +
-                         "  }\n" +
-                         "]";
+            typeDescription = "日期课表，提取姓名、日期(YYYY-MM-DD)、时间";
+            jsonFormat = "[{\"studentName\":\"姓名\",\"date\":\"2024-08-15\",\"time\":\"10:00-11:00\"}]";
         }
 
         return String.format(
                 commonPrompt,
-                text, typeDescription, positiveInstruction, jsonFormat);
+                text, typeDescription, jsonFormat);
     }
 
     private Mono<List<ScheduleInfo>> parseResponseToList(String jsonResponse) {

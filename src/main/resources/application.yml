@@ -46,7 +46,7 @@ ai:
     provider: gemini # 可选: openai, baidu, tencent, aliyun
     api-url: https://velvety-cupcake-6a525e.netlify.app/edge
     api-key: AIzaSyCkNAm7njKcgS-xChTWu08YVcGHNnf6P5g
-    model: gemini-2.5-flash
+    model: gemini-2.5-pro
 
 # 日志配置
 logging:
