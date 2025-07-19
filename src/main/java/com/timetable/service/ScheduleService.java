@@ -48,7 +48,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final AiNlpService aiNlpService;
     private final TimetableRepository timetableRepository;
-    private final SiliconFlowService siliconFlowService;
+
     private final AIService aiService;
     private final ObjectMapper objectMapper;
 
@@ -101,12 +101,12 @@ public class ScheduleService {
 
     @Autowired
     public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService,
-                          TimetableRepository timetableRepository, SiliconFlowService siliconFlowService,
+                          TimetableRepository timetableRepository,
                           AIService aiService) {
         this.scheduleRepository = scheduleRepository;
         this.aiNlpService = aiNlpService;
         this.timetableRepository = timetableRepository;
-        this.siliconFlowService = siliconFlowService;
+
         this.aiService = aiService;
         this.objectMapper = new ObjectMapper();
     }
@@ -255,26 +255,7 @@ public class ScheduleService {
         return true;
     }
 
-    /**
-     * 通过语音输入创建排课
-     */
-    public Mono<List<ScheduleInfo>> createScheduleByVoice(Long timetableId, MultipartFile audioFile, String type) {
-        if (timetableRepository.findById(timetableId) == null) {
-            return Mono.error(new IllegalArgumentException("Timetable not found"));
-        }
 
-        return Mono.fromCallable(() -> aiService.transcribeAudio(audioFile))
-                .flatMap(transcribedText -> {
-                    if (transcribedText == null || transcribedText.trim().isEmpty()) {
-                        return Mono.just(Collections.<ScheduleInfo>emptyList());
-                    }
-                    return this.extractScheduleInfoFromText(transcribedText, type);
-                })
-                .onErrorResume(e -> {
-                    logger.error("Error processing voice input for timetableId: " + timetableId, e);
-                    return Mono.just(Collections.singletonList(createFallbackScheduleInfo("语音处理失败: " + e.getMessage())));
-                });
-    }
 
     /**
      * 解析AI返回的JSON响应并创建排课记录

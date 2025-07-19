@@ -175,45 +175,7 @@ public class ScheduleController {
         return ResponseEntity.ok(ApiResponse.success("排课删除成功"));
     }
 
-    /**
-     * 通过语音输入创建排课
-     */
-    @PostMapping("/voice")
-    public Mono<ResponseEntity<ApiResponse<List<ScheduleInfo>>>> createScheduleByVoice(
-            @PathVariable Long timetableId,
-            @RequestParam("audio") MultipartFile audioFile,
-            @RequestParam("type") String type,
-            Authentication authentication) {
 
-        Users user = userService.findByUsername(authentication.getName());
-        if (user == null) {
-            return Mono.just(ResponseEntity.badRequest()
-                    .body(ApiResponse.<List<ScheduleInfo>>error("用户不存在", null)));
-        }
-
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
-                return Mono.just(ResponseEntity.notFound().build());
-            }
-        }
-
-        if (audioFile.isEmpty()) {
-            return Mono.just(ResponseEntity.badRequest()
-                    .body(ApiResponse.<List<ScheduleInfo>>error("音频文件不能为空", null)));
-        }
-
-        return scheduleService.createScheduleByVoice(timetableId, audioFile, type)
-            .map(scheduleInfoList -> {
-                if (scheduleInfoList == null || scheduleInfoList.isEmpty()) {
-                    return ResponseEntity.badRequest().body(ApiResponse.<List<ScheduleInfo>>error("无法从语音中解析出排课信息", null));
-                }
-                return ResponseEntity.ok(ApiResponse.success("语音解析成功", scheduleInfoList));
-            })
-            .onErrorResume(e -> Mono.just(
-                ResponseEntity.internalServerError()
-                    .body(ApiResponse.<List<ScheduleInfo>>error("处理音频文件失败: " + e.getMessage(), null))
-            ));
-    }
 
     /**
      * 通过文本输入创建排课

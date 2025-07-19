@@ -129,7 +129,7 @@ public class AiNlpService {
                     }
                 })
                 .map(this::parseOpenAIResponse)
-                .timeout(Duration.ofSeconds(45)) // 增加到45秒超时
+                .timeout(Duration.ofSeconds(60)) // 设置60秒超时
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
                         .filter(throwable -> {
                             // 重试网络连接错误和Edge Function错误

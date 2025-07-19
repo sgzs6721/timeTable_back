@@ -48,54 +48,7 @@ public class AIService {
         this.objectMapper = new ObjectMapper();
     }
     
-    /**
-     * 使用Netlify代理的OpenAI兼容API进行语音转文字
-     */
-    public String transcribeAudio(MultipartFile audioFile) throws IOException {
-        try {
-            logger.info("开始调用Gemini语音转文字API (通过Netlify代理)");
-            
-            // 使用multipart/form-data格式上传音频文件
-            RequestBody requestBody = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("model", "whisper-1") // OpenAI兼容的语音模型名
-                    .addFormDataPart("file", audioFile.getOriginalFilename(),
-                            RequestBody.create(audioFile.getBytes(), MediaType.parse("audio/wav")))
-                    .build();
 
-            Request request = new Request.Builder()
-                    .url(speechApiUrl + "/v1/audio/transcriptions")
-                    .post(requestBody)
-                    .addHeader("Authorization", "Bearer " + speechApiKey)
-                    .addHeader("User-Agent", "Timetable-Backend/1.0")
-                    .build();
-
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    String errorBody = response.body() != null ? response.body().string() : "未知错误";
-                    logger.error("语音转文字API调用失败，状态码: {}, 错误信息: {}", response.code(), errorBody);
-                    throw new RuntimeException("语音转文字失败: " + errorBody);
-                }
-
-                String responseBody = response.body().string();
-                logger.debug("语音转文字API响应: {}", responseBody);
-
-                // 解析OpenAI格式的响应
-                JsonNode jsonNode = objectMapper.readTree(responseBody);
-                String transcribedText = jsonNode.path("text").asText();
-
-                if (transcribedText.isEmpty()) {
-                    throw new RuntimeException("语音转文字结果为空");
-                }
-
-                logger.info("语音转文字成功: {}", transcribedText);
-                return transcribedText;
-            }
-        } catch (Exception e) {
-            logger.error("语音转文字处理失败", e);
-            throw new IOException("语音转文字处理失败: " + e.getMessage());
-        }
-    }
     
     /**
      * 处理课程安排文本，提取结构化信息
