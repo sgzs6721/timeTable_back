@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -291,37 +292,46 @@ public class TimetableService {
      */
     public List<AdminTimetableDTO> getAllTimetablesWithUser() {
         List<Timetables> timetables = getAllTimetables(); // 获取所有有效课表
-        return timetables.stream().map(t -> {
-            String username = null;
-            String nickname = null;
-            try {
-                com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
-                if (u != null) {
-                    username = u.getUsername();
-                    nickname = u.getNickname();
+        return timetables.stream()
+            .map(t -> {
+                String username = null;
+                String nickname = null;
+                try {
+                    com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
+                    if (u != null && (u.getIsDeleted() == null || u.getIsDeleted() == 0)) {
+                        username = u.getUsername();
+                        nickname = u.getNickname();
+                    } else {
+                        // 如果用户已被软删除，跳过这个课表
+                        return null;
+                    }
+                } catch (Exception ignored) {
+                    // 如果获取用户信息失败，跳过这个课表
+                    return null;
                 }
-            } catch (Exception ignored) {}
 
-            int scheduleCount = 0;
-            try {
-                scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
-            } catch (Exception ignored) {}
+                int scheduleCount = 0;
+                try {
+                    scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
+                } catch (Exception ignored) {}
 
-            return new AdminTimetableDTO(
-                    t.getId(),
-                    t.getUserId(),
-                    username,
-                    nickname,
-                    t.getName(),
-                    t.getIsWeekly() != null && t.getIsWeekly() == 1,
-                    t.getStartDate(),
-                    t.getEndDate(),
-                    scheduleCount,
-                    t.getCreatedAt(),
-                    t.getIsActive(),
-                    t.getIsArchived()
-            );
-        }).collect(java.util.stream.Collectors.toList());
+                return new AdminTimetableDTO(
+                        t.getId(),
+                        t.getUserId(),
+                        username,
+                        nickname,
+                        t.getName(),
+                        t.getIsWeekly() != null && t.getIsWeekly() == 1,
+                        t.getStartDate(),
+                        t.getEndDate(),
+                        scheduleCount,
+                        t.getCreatedAt(),
+                        t.getIsActive(),
+                        t.getIsArchived()
+                );
+            })
+            .filter(dto -> dto != null) // 过滤掉null值（被软删除用户的课表）
+            .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -330,37 +340,46 @@ public class TimetableService {
     public List<AdminTimetableDTO> getTimetablesByIds(List<Long> timetableIds) {
         List<Timetables> timetables = timetableRepository.findByIdIn(timetableIds);
 
-        return timetables.stream().map(t -> {
-            String username = null;
-            String nickname = null;
-            try {
-                com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
-                if (u != null) {
-                    username = u.getUsername();
-                    nickname = u.getNickname();
+        return timetables.stream()
+            .map(t -> {
+                String username = null;
+                String nickname = null;
+                try {
+                    com.timetable.generated.tables.pojos.Users u = userService.findById(t.getUserId());
+                    if (u != null && (u.getIsDeleted() == null || u.getIsDeleted() == 0)) {
+                        username = u.getUsername();
+                        nickname = u.getNickname();
+                    } else {
+                        // 如果用户已被软删除，跳过这个课表
+                        return null;
+                    }
+                } catch (Exception ignored) {
+                    // 如果获取用户信息失败，跳过这个课表
+                    return null;
                 }
-            } catch (Exception ignored) {}
 
-            int scheduleCount = 0;
-            try {
-                scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
-            } catch (Exception ignored) {}
+                int scheduleCount = 0;
+                try {
+                    scheduleCount = scheduleRepository.findByTimetableId(t.getId()).size();
+                } catch (Exception ignored) {}
 
-            return new AdminTimetableDTO(
-                    t.getId(),
-                    t.getUserId(),
-                    username,
-                    nickname,
-                    t.getName(),
-                    t.getIsWeekly() != null && t.getIsWeekly() == 1,
-                    t.getStartDate(),
-                    t.getEndDate(),
-                    scheduleCount,
-                    t.getCreatedAt(),
-                    t.getIsActive(),
-                    t.getIsArchived()
-            );
-        }).collect(java.util.stream.Collectors.toList());
+                return new AdminTimetableDTO(
+                        t.getId(),
+                        t.getUserId(),
+                        username,
+                        nickname,
+                        t.getName(),
+                        t.getIsWeekly() != null && t.getIsWeekly() == 1,
+                        t.getStartDate(),
+                        t.getEndDate(),
+                        scheduleCount,
+                        t.getCreatedAt(),
+                        t.getIsActive(),
+                        t.getIsArchived()
+                );
+            })
+            .filter(dto -> dto != null) // 过滤掉null值（被软删除用户的课表）
+            .collect(java.util.stream.Collectors.toList());
     }
 
     public List<AdminTimetableDTO> findArchivedByUserId(Long userId) {
@@ -369,11 +388,17 @@ public class TimetableService {
         String nickname = null;
         try {
             com.timetable.generated.tables.pojos.Users u = userService.findById(userId);
-            if (u != null) {
+            if (u != null && (u.getIsDeleted() == null || u.getIsDeleted() == 0)) {
                 username = u.getUsername();
                 nickname = u.getNickname();
+            } else {
+                // 如果用户已被软删除，返回空列表
+                return new ArrayList<>();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            // 如果获取用户信息失败，返回空列表
+            return new ArrayList<>();
+        }
 
         String finalUsername = username;
         String finalNickname = nickname;
