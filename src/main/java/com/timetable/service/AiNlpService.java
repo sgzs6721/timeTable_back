@@ -148,8 +148,8 @@ public class AiNlpService {
                                 retrySignal.totalRetries() + 1, 
                                 retrySignal.failure().getMessage())))
                 .doOnError(ex -> logger.error("AI API call failed after retries: {}", ex.getMessage()))
-                .onErrorReturn(Collections.emptyList()) // 失败时返回空列表而不是抛异常
-                .flatMap(this::parseResponseToList);
+                .flatMap(this::parseResponseToList)
+                .onErrorReturn(Collections.emptyList()); // 移到flatMap之后，现在类型匹配了
     }
 
     /**
