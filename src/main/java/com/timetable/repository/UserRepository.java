@@ -20,7 +20,7 @@ public class UserRepository {
     private UsersDao usersDao;
     
     /**
-     * 根据用户名查找用户（只查找未删除的用户）
+     * 根据用户名查找用户（只查找未删除且已批准的用户）
      */
     public Users findByUsername(String username) {
         return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
@@ -41,7 +41,7 @@ public class UserRepository {
     }
     
     /**
-     * 检查用户名是否存在（只检查未删除的用户）
+     * 检查用户名是否存在（只检查未删除且已批准的用户）
      */
     public boolean existsByUsername(String username) {
         return dsl.fetchExists(

@@ -113,7 +113,7 @@ public class UserService implements UserDetailsService {
         }
         
         // 检查新用户名是否已存在（只检查未删除且已批准的用户）
-        if (!newUsername.equals(currentUsername) && userRepository.existsByUsername(newUsername)) {
+        if (!newUsername.equals(currentUsername) && userRepository.existsByUsernameAndDeletedAndStatus(newUsername, (byte) 0, "APPROVED")) {
             throw new IllegalArgumentException("新用户名已存在");
         }
         
@@ -301,8 +301,8 @@ public class UserService implements UserDetailsService {
      * 创建新用户（注册申请）
      */
     public Users createUserRegistration(UserRegistrationRequest request) {
-        // 检查用户名是否已存在（只检查未删除且已批准的用户）
-        if (userRepository.existsByUsername(request.getUsername())) {
+        // 检查是否存在未删除且已批准的同名用户
+        if (userRepository.existsByUsernameAndDeletedAndStatus(request.getUsername(), (byte) 0, "APPROVED")) {
             throw new IllegalArgumentException("用户名已存在");
         }
         
@@ -337,7 +337,9 @@ public class UserService implements UserDetailsService {
         user.setCreatedAt(java.time.LocalDateTime.now());
         user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.save(user);
-        return userRepository.findByUsernameAndDeletedAndStatus(request.getUsername(), (byte) 0, "PENDING");
+        
+        // 直接返回刚创建的用户对象，避免查询可能返回多条记录
+        return user;
     }
 
     /**
