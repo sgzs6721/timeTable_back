@@ -287,9 +287,20 @@ public class UserService implements UserDetailsService {
      * 创建新用户（注册申请）
      */
     public Users createUserRegistration(UserRegistrationRequest request) {
-        // 检查用户名是否已存在
+        // 检查用户名是否已存在（只检查未删除的用户）
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("用户名已存在");
+        }
+        
+        // 检查是否存在已删除的同名用户，如果存在，记录日志但不阻止注册
+        Users deletedUser = dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(request.getUsername()))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 1))
+                .fetchOneInto(Users.class);
+        
+        if (deletedUser != null) {
+            // 记录日志：用户名被重新使用
+            System.out.println("用户名 " + request.getUsername() + " 被重新使用，原用户ID: " + deletedUser.getId());
         }
         
         String encodedPassword = passwordEncoder.encode(request.getPassword());
