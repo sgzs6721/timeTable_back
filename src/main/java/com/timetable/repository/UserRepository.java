@@ -92,4 +92,14 @@ public class UserRepository {
                 .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
                 .fetchInto(Users.class);
     }
+
+    /**
+     * 获取所有注册申请记录（包括已处理的）
+     */
+    public List<Users> findAllRegistrationRequests() {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.STATUS.in("PENDING", "APPROVED", "REJECTED"))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
+    }
 } 

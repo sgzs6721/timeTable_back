@@ -203,6 +203,15 @@ public class AdminController {
     }
 
     /**
+     * 获取所有注册申请记录（包括已处理的）
+     */
+    @GetMapping("/users/registration-requests")
+    public ResponseEntity<ApiResponse<List<PendingUserDTO>>> getAllRegistrationRequests() {
+        List<PendingUserDTO> allRequests = userService.getAllRegistrationRequests();
+        return ResponseEntity.ok(ApiResponse.success("获取所有注册申请记录成功", allRequests));
+    }
+
+    /**
      * 审批用户注册申请
      */
     @PutMapping("/users/{userId}/approve")

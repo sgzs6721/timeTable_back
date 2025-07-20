@@ -316,6 +316,16 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * 获取所有注册申请记录（包括已处理的）
+     */
+    public List<PendingUserDTO> getAllRegistrationRequests() {
+        List<Users> allRequests = userRepository.findAllRegistrationRequests();
+        return allRequests.stream()
+                .map(this::convertToPendingUserDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 审批用户注册申请
      */
     public boolean approveUserRegistration(Long userId) {
