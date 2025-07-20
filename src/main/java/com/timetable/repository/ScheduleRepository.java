@@ -118,6 +118,28 @@ public class ScheduleRepository {
                 .fetchInto(Schedules.class);
     }
 
+    /**
+     * 根据课表ID和学生姓名查询课程安排
+     */
+    public List<Schedules> findByTimetableIdAndStudentName(Long timetableId, String studentName) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.STUDENT_NAME.eq(studentName))
+                .orderBy(SCHEDULES.SCHEDULE_DATE, SCHEDULES.START_TIME, SCHEDULES.DAY_OF_WEEK)
+                .fetchInto(Schedules.class);
+    }
+
+    /**
+     * 根据课表ID、学生姓名和周数查询课程安排
+     */
+    public List<Schedules> findByTimetableIdAndStudentNameAndWeek(Long timetableId, String studentName, Integer week) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.STUDENT_NAME.eq(studentName))
+                .and(SCHEDULES.WEEK_NUMBER.eq(week))
+                .orderBy(SCHEDULES.DAY_OF_WEEK, SCHEDULES.START_TIME)
+                .fetchInto(Schedules.class);
+    }
 
 
     // 可根据业务扩展更多jOOQ查询

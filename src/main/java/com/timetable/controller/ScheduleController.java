@@ -77,6 +77,32 @@ public class ScheduleController {
     }
 
     /**
+     * 根据学生姓名获取课表的排课列表
+     */
+    @GetMapping("/student/{studentName}")
+    public ResponseEntity<ApiResponse<List<Schedules>>> getTimetableSchedulesByStudent(
+            @PathVariable Long timetableId,
+            @PathVariable String studentName,
+            @RequestParam(required = false) Integer week,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        List<Schedules> schedules = scheduleService.getTimetableSchedulesByStudent(timetableId, studentName, week);
+        return ResponseEntity.ok(ApiResponse.success("获取学生排课列表成功", schedules));
+    }
+
+    /**
      * 创建新排课
      */
     @PostMapping

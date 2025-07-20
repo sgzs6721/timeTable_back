@@ -153,6 +153,51 @@ public class ScheduleService {
     }
 
     /**
+     * 根据学生姓名获取课表的排课列表
+     */
+    public List<Schedules> getTimetableSchedulesByStudent(Long timetableId, String studentName, Integer week) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            logger.warn("Timetable with ID {} not found.", timetableId);
+            return Collections.emptyList();
+        }
+
+        // For WEEKLY timetables, week-based filtering is based on the week_number field.
+        if (timetable.getIsWeekly() == 1) {
+            if (week != null && week > 0) {
+                return scheduleRepository.findByTimetableIdAndStudentNameAndWeek(timetableId, studentName, week);
+            }
+            return scheduleRepository.findByTimetableIdAndStudentName(timetableId, studentName);
+        }
+
+        // For DATE-RANGE timetables, a "week" is defined as the calendar week (Monday-Sunday) that contains the timetable's start date.
+        if (week != null && week > 0) {
+            LocalDate timetableStartDate = timetable.getStartDate();
+            if (timetableStartDate == null) {
+                // This is an invalid state for a date-range timetable.
+                logger.error("Date-range timetable {} has a null start date.", timetableId);
+                return Collections.emptyList();
+            }
+
+            // Find the Monday of the week where the timetable officially starts. This is our anchor for all week calculations.
+            LocalDate anchorMonday = timetableStartDate.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+            // Calculate the start and end date for the requested week (N).
+            LocalDate weekStartDate = anchorMonday.plusWeeks(week - 1);
+            LocalDate weekEndDate = weekStartDate.plusDays(6); // Monday + 6 days = Sunday
+
+            // 先获取指定周数的所有课程，然后按学生姓名过滤
+            List<Schedules> weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, weekStartDate, weekEndDate);
+            return weekSchedules.stream()
+                    .filter(schedule -> studentName.equals(schedule.getStudentName()))
+                    .collect(Collectors.toList());
+        }
+
+        // If 'week' is not provided for a date-range timetable, return all schedules for the student.
+        return scheduleRepository.findByTimetableIdAndStudentName(timetableId, studentName);
+    }
+
+    /**
      * 创建新排课
      */
     public Schedules createSchedule(Long timetableId, ScheduleRequest request) {
