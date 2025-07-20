@@ -2,6 +2,8 @@ package com.timetable.service;
 
 import com.timetable.repository.UserRepository;
 import com.timetable.repository.TimetableRepository;
+import com.timetable.dto.UserRegistrationRequest;
+import com.timetable.dto.PendingUserDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务
@@ -278,5 +281,88 @@ public class UserService implements UserDetailsService {
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
         return userDTO;
+    }
+
+    /**
+     * 创建新用户（注册申请）
+     */
+    public Users createUserRegistration(UserRegistrationRequest request) {
+        // 检查用户名是否已存在
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("用户名已存在");
+        }
+        
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        Users user = new Users();
+        user.setUsername(request.getUsername());
+        user.setPasswordHash(encodedPassword);
+        user.setRole("USER"); // 默认角色为普通用户
+        user.setNickname(request.getNickname());
+        user.setStatus("PENDING"); // 设置为待审批状态
+        user.setCreatedAt(java.time.LocalDateTime.now());
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
+        return userRepository.findByUsername(request.getUsername());
+    }
+
+    /**
+     * 获取所有待审批的用户
+     */
+    public List<PendingUserDTO> getPendingUsers() {
+        List<Users> pendingUsers = userRepository.findByStatus("PENDING");
+        return pendingUsers.stream()
+                .map(this::convertToPendingUserDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 审批用户注册申请
+     */
+    public boolean approveUserRegistration(Long userId) {
+        Users user = userRepository.findById(userId);
+        if (user == null || !"PENDING".equals(user.getStatus())) {
+            return false;
+        }
+        
+        user.setStatus("APPROVED");
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        return true;
+    }
+
+    /**
+     * 拒绝用户注册申请
+     */
+    public boolean rejectUserRegistration(Long userId) {
+        Users user = userRepository.findById(userId);
+        if (user == null || !"PENDING".equals(user.getStatus())) {
+            return false;
+        }
+        
+        user.setStatus("REJECTED");
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.update(user);
+        return true;
+    }
+
+    /**
+     * 检查用户是否可以登录（状态为APPROVED）
+     */
+    public boolean canUserLogin(String username) {
+        Users user = userRepository.findByUsername(username);
+        return user != null && "APPROVED".equals(user.getStatus());
+    }
+
+    /**
+     * 转换用户为待审批用户DTO
+     */
+    private PendingUserDTO convertToPendingUserDTO(Users user) {
+        return new PendingUserDTO(
+            user.getId(),
+            user.getUsername(),
+            user.getNickname(),
+            user.getStatus(),
+            user.getCreatedAt()
+        );
     }
 } 

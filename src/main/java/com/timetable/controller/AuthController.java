@@ -2,6 +2,7 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AuthRequest;
+import com.timetable.dto.UserRegistrationRequest;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.UserService;
 import com.timetable.util.JwtUtil;
@@ -49,6 +50,12 @@ public class AuthController {
         try {
             logger.info("用户尝试登录: {}", authRequest.getUsername());
             
+            // 检查用户状态
+            if (!userService.canUserLogin(authRequest.getUsername())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("您的注册申请正在审核中，请等待管理员确认"));
+            }
+            
             // 认证用户
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -87,37 +94,28 @@ public class AuthController {
     }
     
     /**
-     * 用户注册
+     * 用户注册申请
      */
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> register(@Valid @RequestBody AuthRequest authRequest) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> register(@Valid @RequestBody UserRegistrationRequest registrationRequest) {
         try {
-            logger.info("用户尝试注册: {}", authRequest.getUsername());
+            logger.info("用户尝试注册: {}", registrationRequest.getUsername());
             
-            // 检查用户名是否已存在
-            if (userService.existsByUsername(authRequest.getUsername())) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("用户名已存在"));
-            }
+            // 创建新用户（注册申请）
+            Users newUser = userService.createUserRegistration(registrationRequest);
             
-            // 创建新用户（不再传email）
-            Users newUser = userService.createUser(
-                    authRequest.getUsername(),
-                    authRequest.getPassword(),
-                    "USER"
-            );
-            
-            // 生成JWT Token
-            String token = jwtUtil.generateToken(newUser.getUsername());
-            
-            // 构建响应数据
+            // 构建响应数据（不返回token，因为需要等待审批）
             Map<String, Object> data = new HashMap<>();
-            data.put("token", token);
             data.put("user", convertUserToDTO(newUser));
+            data.put("message", "注册申请已提交，请等待管理员确认");
             
-            logger.info("用户注册成功: {}", newUser.getUsername());
-            return ResponseEntity.ok(ApiResponse.success("注册成功", data));
+            logger.info("用户注册申请提交成功: {}", newUser.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("注册申请已提交，请等待管理员确认", data));
             
+        } catch (IllegalArgumentException e) {
+            logger.warn("注册申请失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             logger.error("注册过程中发生错误", e);
             return ResponseEntity.internalServerError()

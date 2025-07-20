@@ -3,6 +3,7 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.dto.BatchTimetableInfoRequest;
+import com.timetable.dto.PendingUserDTO;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
@@ -190,5 +191,44 @@ public class AdminController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
+    }
+
+    /**
+     * 获取所有待审批的用户注册申请
+     */
+    @GetMapping("/users/pending")
+    public ResponseEntity<ApiResponse<List<PendingUserDTO>>> getPendingUsers() {
+        List<PendingUserDTO> pendingUsers = userService.getPendingUsers();
+        return ResponseEntity.ok(ApiResponse.success("获取待审批用户列表成功", pendingUsers));
+    }
+
+    /**
+     * 审批用户注册申请
+     */
+    @PutMapping("/users/{userId}/approve")
+    public ResponseEntity<ApiResponse<Void>> approveUserRegistration(@PathVariable Long userId) {
+        boolean success = userService.approveUserRegistration(userId);
+        
+        if (!success) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在或状态不是待审批"));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success("用户注册申请已批准"));
+    }
+
+    /**
+     * 拒绝用户注册申请
+     */
+    @PutMapping("/users/{userId}/reject")
+    public ResponseEntity<ApiResponse<Void>> rejectUserRegistration(@PathVariable Long userId) {
+        boolean success = userService.rejectUserRegistration(userId);
+        
+        if (!success) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在或状态不是待审批"));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success("用户注册申请已拒绝"));
     }
 } 

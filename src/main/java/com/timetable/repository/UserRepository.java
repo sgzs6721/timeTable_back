@@ -78,4 +78,14 @@ public class UserRepository {
                 .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
                 .fetchInto(Users.class);
     }
+
+    /**
+     * 根据状态查找用户
+     */
+    public List<Users> findByStatus(String status) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.STATUS.eq(status))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
+    }
 } 
