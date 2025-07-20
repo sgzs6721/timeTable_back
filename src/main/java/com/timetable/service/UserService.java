@@ -292,7 +292,7 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("用户名已存在");
         }
         
-        // 检查是否存在已删除的同名用户，如果存在，记录日志但不阻止注册
+        // 检查是否存在已删除的同名用户，记录日志
         Users deletedUser = dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(request.getUsername()))
                 .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 1))
@@ -310,6 +310,7 @@ public class UserService implements UserDetailsService {
         user.setRole("USER"); // 默认角色为普通用户
         user.setNickname(request.getNickname());
         user.setStatus("PENDING"); // 设置为待审批状态
+        user.setIsDeleted((byte) 0); // 明确设置为未删除状态
         user.setCreatedAt(java.time.LocalDateTime.now());
         user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.save(user);
