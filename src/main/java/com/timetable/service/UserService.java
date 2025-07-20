@@ -112,6 +112,20 @@ public class UserService implements UserDetailsService {
             return null;
         }
         
+        // 检查新用户名是否已存在（只检查未删除且已批准的用户）
+        if (!newUsername.equals(currentUsername) && userRepository.existsByUsername(newUsername)) {
+            throw new IllegalArgumentException("新用户名已存在");
+        }
+        
+        // 检查是否存在待审批或已拒绝的同名用户
+        List<Users> existingUsers = userRepository.findAllByUsername(newUsername);
+        for (Users existingUser : existingUsers) {
+            if ((existingUser.getIsDeleted() == null || existingUser.getIsDeleted() == 0) &&
+                ("PENDING".equals(existingUser.getStatus()) || "REJECTED".equals(existingUser.getStatus()))) {
+                throw new IllegalArgumentException("该用户名已有注册申请，请选择其他用户名");
+            }
+        }
+        
         user.setUsername(newUsername);
         // 手动设置更新时间
         user.setUpdatedAt(java.time.LocalDateTime.now());
@@ -287,7 +301,7 @@ public class UserService implements UserDetailsService {
      * 创建新用户（注册申请）
      */
     public Users createUserRegistration(UserRegistrationRequest request) {
-        // 检查用户名是否已存在（只检查未删除的用户）
+        // 检查用户名是否已存在（只检查未删除且已批准的用户）
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("用户名已存在");
         }
@@ -303,6 +317,15 @@ public class UserService implements UserDetailsService {
             System.out.println("用户名 " + request.getUsername() + " 被重新使用，原用户ID: " + deletedUser.getId());
         }
         
+        // 检查是否存在待审批或已拒绝的同名用户
+        List<Users> existingUsers = userRepository.findAllByUsername(request.getUsername());
+        for (Users existingUser : existingUsers) {
+            if ((existingUser.getIsDeleted() == null || existingUser.getIsDeleted() == 0) &&
+                ("PENDING".equals(existingUser.getStatus()) || "REJECTED".equals(existingUser.getStatus()))) {
+                throw new IllegalArgumentException("该用户名已有注册申请，请等待审核或联系管理员");
+            }
+        }
+        
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         Users user = new Users();
         user.setUsername(request.getUsername());
@@ -314,7 +337,7 @@ public class UserService implements UserDetailsService {
         user.setCreatedAt(java.time.LocalDateTime.now());
         user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.save(user);
-        return userRepository.findByUsername(request.getUsername());
+        return userRepository.findByUsernameAndDeletedAndStatus(request.getUsername(), (byte) 0, "PENDING");
     }
 
     /**

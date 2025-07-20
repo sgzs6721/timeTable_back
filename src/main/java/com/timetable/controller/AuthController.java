@@ -235,14 +235,14 @@ public class AuthController {
                         .body(ApiResponse.error("用户名不能为空"));
             }
             
-            // 检查新用户名是否已存在（除了当前用户）
-            if (!newUsername.equals(currentUsername) && userService.existsByUsername(newUsername)) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("用户名已存在"));
-            }
-            
             // 更新用户名
-            Users updatedUser = userService.updateUsername(currentUsername, newUsername);
+            Users updatedUser;
+            try {
+                updatedUser = userService.updateUsername(currentUsername, newUsername);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error(e.getMessage()));
+            }
             
             if (updatedUser == null) {
                 return ResponseEntity.badRequest()

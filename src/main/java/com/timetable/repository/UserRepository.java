@@ -27,6 +27,7 @@ public class UserRepository {
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
                 .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
                         .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
                 .fetchOneInto(Users.class);
     }
     
@@ -48,6 +49,7 @@ public class UserRepository {
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
                 .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
                         .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
         );
     }
     
@@ -99,6 +101,39 @@ public class UserRepository {
     public List<Users> findAllRegistrationRequests() {
         return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.STATUS.in("PENDING", "APPROVED", "REJECTED"))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
+    }
+
+    /**
+     * 根据用户名、删除状态和用户状态查找用户
+     */
+    public Users findByUsernameAndDeletedAndStatus(String username, Byte isDeleted, String status) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq(isDeleted))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq(status))
+                .fetchOneInto(Users.class);
+    }
+
+    /**
+     * 检查用户名在特定删除状态和用户状态下是否存在
+     */
+    public boolean existsByUsernameAndDeletedAndStatus(String username, Byte isDeleted, String status) {
+        return dsl.fetchExists(
+            dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq(isDeleted))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq(status))
+        );
+    }
+
+    /**
+     * 查找所有具有相同用户名的用户（包括不同状态和删除状态）
+     */
+    public List<Users> findAllByUsername(String username) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
                 .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
                 .fetchInto(Users.class);
     }
