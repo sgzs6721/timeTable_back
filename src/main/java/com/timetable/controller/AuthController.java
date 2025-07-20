@@ -51,9 +51,14 @@ public class AuthController {
             logger.info("用户尝试登录: {}", authRequest.getUsername());
             
             // 检查用户状态
-            if (!userService.canUserLogin(authRequest.getUsername())) {
+            Map<String, Object> loginStatus = userService.getUserLoginStatus(authRequest.getUsername());
+            boolean canLogin = (Boolean) loginStatus.get("canLogin");
+            String statusMessage = (String) loginStatus.get("message");
+            String userStatus = (String) loginStatus.get("status");
+            
+            if (!canLogin) {
                 return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("您的注册申请正在审核中，请等待管理员确认"));
+                        .body(ApiResponse.error(statusMessage));
             }
             
             // 认证用户

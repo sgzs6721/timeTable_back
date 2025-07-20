@@ -375,6 +375,42 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * 获取用户登录状态信息
+     */
+    public Map<String, Object> getUserLoginStatus(String username) {
+        Users user = userRepository.findByUsername(username);
+        Map<String, Object> status = new HashMap<>();
+        
+        if (user == null) {
+            status.put("canLogin", false);
+            status.put("message", "用户不存在");
+            status.put("status", "NOT_FOUND");
+            return status;
+        }
+        
+        String userStatus = user.getStatus();
+        status.put("canLogin", "APPROVED".equals(userStatus));
+        status.put("status", userStatus);
+        
+        switch (userStatus) {
+            case "PENDING":
+                status.put("message", "您的注册申请正在审核中，请等待管理员确认");
+                break;
+            case "APPROVED":
+                status.put("message", "登录成功");
+                break;
+            case "REJECTED":
+                status.put("message", "您的注册申请已被拒绝，请联系管理员或重新注册");
+                break;
+            default:
+                status.put("message", "用户状态异常，请联系管理员");
+                break;
+        }
+        
+        return status;
+    }
+
+    /**
      * 转换用户为待审批用户DTO
      */
     private PendingUserDTO convertToPendingUserDTO(Users user) {
