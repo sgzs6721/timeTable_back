@@ -20,11 +20,13 @@ public class UserRepository {
     private UsersDao usersDao;
     
     /**
-     * 根据用户名查找用户
+     * 根据用户名查找用户（只查找未删除的用户）
      */
     public Users findByUsername(String username) {
         return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
                 .fetchOneInto(Users.class);
     }
     
@@ -38,12 +40,14 @@ public class UserRepository {
     }
     
     /**
-     * 检查用户名是否存在
+     * 检查用户名是否存在（只检查未删除的用户）
      */
     public boolean existsByUsername(String username) {
         return dsl.fetchExists(
             dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(username))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
         );
     }
     
