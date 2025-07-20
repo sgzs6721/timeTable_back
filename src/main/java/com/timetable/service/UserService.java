@@ -307,14 +307,15 @@ public class UserService implements UserDetailsService {
         }
         
         // 检查是否存在已删除的同名用户，记录日志
-        Users deletedUser = dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+        List<Users> deletedUsers = dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(request.getUsername()))
                 .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 1))
-                .fetchOneInto(Users.class);
+                .fetchInto(Users.class);
         
-        if (deletedUser != null) {
-            // 记录日志：用户名被重新使用
-            System.out.println("用户名 " + request.getUsername() + " 被重新使用，原用户ID: " + deletedUser.getId());
+        if (!deletedUsers.isEmpty()) {
+            // 记录日志：用户名被重新使用，取最新的一个
+            Users latestDeletedUser = deletedUsers.get(0);
+            System.out.println("用户名 " + request.getUsername() + " 被重新使用，原用户ID: " + latestDeletedUser.getId() + "，共找到 " + deletedUsers.size() + " 个已删除用户");
         }
         
         // 检查是否存在待审批或已拒绝的同名用户
