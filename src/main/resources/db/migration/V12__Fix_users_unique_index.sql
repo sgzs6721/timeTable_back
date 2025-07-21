@@ -5,8 +5,20 @@
 DROP INDEX idx_users_username_deleted_status ON users;
 
 -- 2. 删除重复的索引（如果存在）
--- 删除单独的username索引，因为下面会重新创建
-DROP INDEX IF EXISTS idx_users_username ON users;
+-- 由于MySQL不支持DROP INDEX IF EXISTS，我们需要手动处理
+-- 如果索引存在，则删除它
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_username' 
+     AND NON_UNIQUE = 1) > 0,
+    'ALTER TABLE users DROP INDEX idx_users_username',
+    'SELECT "Username index does not exist"'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 3. 创建新的复合唯一索引 (username, is_deleted, status, id)
 -- 这样可以确保每个用户记录都是唯一的，即使软删除后重新创建同名用户
