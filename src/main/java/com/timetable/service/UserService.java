@@ -277,6 +277,7 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("不能删除管理员账户");
         }
 
+        // 执行软删除：将is_deleted字段置为1
         userToDelete.setIsDeleted((byte) 1);
         userToDelete.setDeletedAt(java.time.LocalDateTime.now());
         userToDelete.setUpdatedAt(java.time.LocalDateTime.now());
