@@ -450,4 +450,11 @@ public class UserService implements UserDetailsService {
             user.getCreatedAt()
         );
     }
+
+    /**
+     * 获取所有APPROVED且未被软删除的用户
+     */
+    public List<Users> getAllApprovedUsers() {
+        return userRepository.findAllApprovedUsers();
+    }
 } 

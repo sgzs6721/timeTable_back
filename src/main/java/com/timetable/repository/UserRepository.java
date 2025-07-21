@@ -137,4 +137,16 @@ public class UserRepository {
                 .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
                 .fetchInto(Users.class);
     }
+
+    /**
+     * 获取所有APPROVED且未被软删除的用户
+     */
+    public List<Users> findAllApprovedUsers() {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
+    }
 } 

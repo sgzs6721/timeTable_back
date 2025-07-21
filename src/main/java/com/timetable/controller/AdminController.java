@@ -18,6 +18,7 @@ import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 管理员控制器
@@ -86,12 +87,24 @@ public class AdminController {
 
     
     /**
-     * 获取所有用户列表
+     * 获取所有用户列表（只返回APPROVED状态）
      */
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers() {
-        List<Map<String, Object>> users = userService.getAllUsersForAdmin();
-        return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", users));
+        List<Users> users = userService.getAllApprovedUsers();
+        List<Map<String, Object>> userDTOs = users.stream()
+            .map(user -> {
+                Map<String, Object> dto = new HashMap<>();
+                dto.put("id", user.getId());
+                dto.put("username", user.getUsername());
+                dto.put("nickname", user.getNickname());
+                dto.put("role", user.getRole());
+                dto.put("createdAt", user.getCreatedAt());
+                dto.put("updatedAt", user.getUpdatedAt());
+                return dto;
+            })
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", userDTOs));
     }
     
     /**
