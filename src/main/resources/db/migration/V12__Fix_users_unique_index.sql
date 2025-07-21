@@ -1,17 +1,14 @@
 -- V12__Fix_users_unique_index.sql
 -- 修复用户表的唯一索引，将id字段包含在唯一键中
 
--- 1. 删除现有的复合唯一索引
-DROP INDEX idx_users_username_deleted_status ON users;
-
 -- 2. 删除重复的索引（如果存在）
 -- 由于MySQL不支持DROP INDEX IF EXISTS，我们需要手动处理
 -- 如果索引存在，则删除它
 SET @sql = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
-     WHERE TABLE_SCHEMA = DATABASE() 
-     AND TABLE_NAME = 'users' 
-     AND INDEX_NAME = 'idx_users_username' 
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME = 'users'
+     AND INDEX_NAME = 'idx_users_username'
      AND NON_UNIQUE = 1) > 0,
     'ALTER TABLE users DROP INDEX idx_users_username',
     'SELECT "Username index does not exist"'
@@ -30,4 +27,4 @@ CREATE INDEX idx_users_status ON users (status);
 CREATE INDEX idx_users_username_deleted ON users (username, is_deleted);
 
 -- 5. 保留现有的其他索引
--- idx_users_is_deleted 和 idx_users_nickname 保持不变 
+-- idx_users_is_deleted 和 idx_users_nickname 保持不变
