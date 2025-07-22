@@ -141,6 +141,27 @@ public class ScheduleRepository {
                 .fetchInto(Schedules.class);
     }
 
+    /**
+     * 根据课表ID和星期几查找排课
+     */
+    public List<Schedules> findByTimetableIdAndDayOfWeek(Long timetableId, String dayOfWeek) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.DAY_OF_WEEK.eq(dayOfWeek))
+                .orderBy(SCHEDULES.START_TIME)
+                .fetchInto(Schedules.class);
+    }
+
+    /**
+     * 根据课表ID和具体日期查找排课
+     */
+    public List<Schedules> findByTimetableIdAndScheduleDate(Long timetableId, LocalDate scheduleDate) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.SCHEDULE_DATE.eq(scheduleDate))
+                .orderBy(SCHEDULES.START_TIME)
+                .fetchInto(Schedules.class);
+    }
 
     // 可根据业务扩展更多jOOQ查询
-} 
+}

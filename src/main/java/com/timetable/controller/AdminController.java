@@ -50,14 +50,30 @@ public class AdminController {
     @PostMapping("/timetables/batch-info")
     public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getBatchTimetablesInfo(
             @Valid @RequestBody BatchTimetableInfoRequest request) {
-        
+
         if (request.getTimetableIds().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("课表ID列表不能为空"));
         }
-        
+
         List<AdminTimetableDTO> timetables = timetableService.getTimetablesByIds(request.getTimetableIds());
         return ResponseEntity.ok(ApiResponse.success("获取课表信息成功", timetables));
+    }
+
+    /**
+     * 获取所有活动课表的指定日期课程信息
+     */
+    @GetMapping("/active-timetables/schedules")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveSchedulesByDate(
+            @RequestParam String date) {
+
+        try {
+            Map<String, Object> result = timetableService.getActiveSchedulesByDate(date);
+            return ResponseEntity.ok(ApiResponse.success("获取活动课表课程成功", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("获取课程失败: " + e.getMessage()));
+        }
     }
     
     /**

@@ -12,9 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -496,5 +500,63 @@ public class TimetableService {
         return restoredCount;
     }
 
+    /**
+     * 获取所有活动课表的指定日期课程信息
+     */
+    public Map<String, Object> getActiveSchedulesByDate(String dateStr) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> timetableSchedules = new ArrayList<>();
+
+        try {
+            // 解析日期
+            LocalDate targetDate = LocalDate.parse(dateStr);
+
+            // 获取所有活动课表
+            List<Timetables> activeTimetables = timetableRepository.findAll()
+                    .stream()
+                    .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                    .collect(Collectors.toList());
+
+            for (Timetables timetable : activeTimetables) {
+                // 获取课表所属用户信息
+                com.timetable.generated.tables.pojos.Users user = userService.findById(timetable.getUserId());
+                if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+                    continue; // 跳过已删除的用户
+                }
+
+                List<com.timetable.generated.tables.pojos.Schedules> schedules = new ArrayList<>();
+
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    // 周课表：根据星期几获取课程
+                    DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
+                    String dayOfWeekStr = dayOfWeek.toString();
+                    schedules = scheduleRepository.findByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
+                } else {
+                    // 日期范围课表：根据具体日期获取课程
+                    schedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetable.getId(), targetDate);
+                }
+
+                if (!schedules.isEmpty()) {
+                    Map<String, Object> timetableInfo = new HashMap<>();
+                    timetableInfo.put("timetableId", timetable.getId());
+                    timetableInfo.put("timetableName", timetable.getName());
+                    timetableInfo.put("ownerName", user.getNickname() != null ? user.getNickname() : user.getUsername());
+                    timetableInfo.put("schedules", schedules);
+                    timetableSchedules.add(timetableInfo);
+                }
+            }
+
+            result.put("date", dateStr);
+            result.put("timetables", timetableSchedules);
+            result.put("totalTimetables", timetableSchedules.size());
+
+        } catch (Exception e) {
+            throw new RuntimeException("获取活动课表课程失败: " + e.getMessage());
+        }
+
+        return result;
+    }
 
 }
