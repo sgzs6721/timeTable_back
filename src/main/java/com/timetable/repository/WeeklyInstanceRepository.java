@@ -29,7 +29,8 @@ public class WeeklyInstanceRepository extends BaseRepository {
     public WeeklyInstance save(WeeklyInstance instance) {
         if (instance.getId() == null) {
             // 创建新记录
-            Record record = dsl.insertInto(table("weekly_instances"))
+            // 插入记录并获取自增ID
+            Long generatedId = dsl.insertInto(table("weekly_instances"))
                     .set(field("template_timetable_id"), instance.getTemplateTimetableId())
                     .set(field("week_start_date"), instance.getWeekStartDate())
                     .set(field("week_end_date"), instance.getWeekEndDate())
@@ -39,12 +40,11 @@ public class WeeklyInstanceRepository extends BaseRepository {
                     .set(field("last_synced_at"), instance.getLastSyncedAt())
                     .set(field("created_at"), instance.getCreatedAt())
                     .set(field("updated_at"), instance.getUpdatedAt())
-                    .returning()
-                    .fetchOne();
+                    .returningResult(field("id"))
+                    .fetchOne()
+                    .get("id", Long.class);
             
-            if (record != null) {
-                instance.setId(record.get("id", Long.class));
-            }
+            instance.setId(generatedId);
         } else {
             // 更新现有记录
             dsl.update(table("weekly_instances"))

@@ -78,6 +78,11 @@ public class WeeklyInstanceService {
         WeeklyInstance instance = new WeeklyInstance(templateTimetableId, weekStart, weekEnd, yearWeek);
         instance = weeklyInstanceRepository.save(instance);
 
+        // 确保实例保存成功并获得了ID
+        if (instance.getId() == null) {
+            throw new RuntimeException("保存周实例失败，无法获取实例ID");
+        }
+
         // 从模板课表复制课程到实例
         syncSchedulesFromTemplate(instance);
 
