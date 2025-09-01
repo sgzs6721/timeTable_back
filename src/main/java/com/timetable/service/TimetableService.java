@@ -559,4 +559,82 @@ public class TimetableService {
         return result;
     }
 
+    /**
+     * 复制课表到指定用户
+     */
+    @Transactional
+    public Timetables copyTimetableToUser(Long sourceTimetableId, Long targetUserId, String newTimetableName) {
+        // 1. 获取源课表
+        Timetables sourceTimetable = timetableRepository.findById(sourceTimetableId);
+        if (sourceTimetable == null) {
+            throw new IllegalArgumentException("源课表不存在");
+        }
+
+        // 2. 检查目标用户是否存在
+        com.timetable.generated.tables.pojos.Users targetUser = userService.findById(targetUserId);
+        if (targetUser == null || (targetUser.getIsDeleted() != null && targetUser.getIsDeleted() == 1)) {
+            throw new IllegalArgumentException("目标用户不存在或已被删除");
+        }
+
+        // 3. 检查目标用户的非归档课表数量
+        long nonArchivedCount = timetableRepository.findByUserId(targetUserId).stream()
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .count();
+
+        if (nonArchivedCount >= 5) {
+            throw new IllegalStateException("目标用户的非归档课表数量已达上限 (5个)");
+        }
+
+        // 4. 创建新课表
+        Timetables newTimetable = new Timetables();
+        newTimetable.setUserId(targetUserId);
+        
+        // 设置课表名称：直接使用提供的名称
+        if (newTimetableName == null || newTimetableName.trim().isEmpty()) {
+            throw new IllegalArgumentException("新课表名称不能为空");
+        }
+        newTimetable.setName(newTimetableName.trim());
+        
+        newTimetable.setDescription(sourceTimetable.getDescription());
+        newTimetable.setIsWeekly(sourceTimetable.getIsWeekly());
+        newTimetable.setStartDate(sourceTimetable.getStartDate());
+        newTimetable.setEndDate(sourceTimetable.getEndDate());
+        newTimetable.setCreatedAt(LocalDateTime.now());
+        newTimetable.setUpdatedAt(LocalDateTime.now());
+
+        // 判断是否已有活动课表
+        List<Timetables> userTables = timetableRepository.findByUserId(targetUserId)
+            .stream().filter(t -> t.getIsActive() != null && t.getIsActive() == 1).collect(Collectors.toList());
+        if (userTables.isEmpty()) {
+            newTimetable.setIsActive((byte) 1);
+        } else {
+            newTimetable.setIsActive((byte) 0);
+        }
+
+        // 保存新课表
+        Timetables savedTimetable = timetableRepository.save(newTimetable);
+
+        // 5. 复制所有课程
+        List<Schedules> sourceSchedules = scheduleRepository.findByTimetableId(sourceTimetableId);
+        for (Schedules sourceSchedule : sourceSchedules) {
+            Schedules newSchedule = new Schedules();
+            newSchedule.setTimetableId(savedTimetable.getId());
+            newSchedule.setStudentName(sourceSchedule.getStudentName());
+            newSchedule.setSubjectName(sourceSchedule.getSubjectName());
+            newSchedule.setDayOfWeek(sourceSchedule.getDayOfWeek());
+            newSchedule.setStartTime(sourceSchedule.getStartTime());
+            newSchedule.setEndTime(sourceSchedule.getEndTime());
+            newSchedule.setScheduleDate(sourceSchedule.getScheduleDate());
+            newSchedule.setWeekNumber(sourceSchedule.getWeekNumber());
+            newSchedule.setLocation(sourceSchedule.getLocation());
+            newSchedule.setDescription(sourceSchedule.getDescription());
+            newSchedule.setCreatedAt(LocalDateTime.now());
+            newSchedule.setUpdatedAt(LocalDateTime.now());
+            
+            scheduleRepository.save(newSchedule);
+        }
+
+        return savedTimetable;
+    }
+
 }

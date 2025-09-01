@@ -3,8 +3,10 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.dto.BatchTimetableInfoRequest;
+import com.timetable.dto.CopyTimetableRequest;
 import com.timetable.dto.PendingUserDTO;
 import com.timetable.generated.tables.pojos.Users;
+import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
 import com.timetable.task.WeeklyInstanceScheduledTask;
@@ -289,6 +291,38 @@ public class AdminController {
             return ResponseEntity.ok(ApiResponse.success("当前周实例生成任务执行成功"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("生成任务执行失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 复制课表到指定用户
+     */
+    @PostMapping("/timetables/copy")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> copyTimetable(
+            @Valid @RequestBody CopyTimetableRequest request) {
+        
+        try {
+            Timetables copiedTimetable = timetableService.copyTimetableToUser(
+                request.getSourceTimetableId(), 
+                request.getTargetUserId(), 
+                request.getNewTimetableName()
+            );
+            
+            // 获取目标用户信息
+            Users targetUser = userService.findById(request.getTargetUserId());
+            
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("timetable", copiedTimetable);
+            responseData.put("targetUserName", targetUser.getNickname() != null ? targetUser.getNickname() : targetUser.getUsername());
+            
+            return ResponseEntity.ok(ApiResponse.success("课表复制成功", responseData));
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("复制课表失败: " + e.getMessage()));
         }
     }
 } 
