@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -164,7 +165,7 @@ public class WeeklyInstanceService {
     public List<WeeklyInstanceSchedule> getCurrentWeekInstanceSchedules(Long templateTimetableId) {
         WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
         if (currentInstance == null) {
-            return List.of();
+            return new ArrayList<>();
         }
         return weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
     }

@@ -201,7 +201,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
      * 检查时间冲突
      */
     public boolean hasTimeConflict(Long weeklyInstanceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId) {
-        var query = dsl.selectCount()
+        org.jooq.SelectConditionStep<org.jooq.Record1<Integer>> query = dsl.selectCount()
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
                 .and(field("schedule_date").eq(date))
