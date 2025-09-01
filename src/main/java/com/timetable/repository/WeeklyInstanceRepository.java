@@ -29,8 +29,8 @@ public class WeeklyInstanceRepository extends BaseRepository {
     public WeeklyInstance save(WeeklyInstance instance) {
         if (instance.getId() == null) {
             // 创建新记录
-            // 插入记录并获取自增ID
-            Long generatedId = dsl.insertInto(table("weekly_instances"))
+            // 先插入记录
+            int affectedRows = dsl.insertInto(table("weekly_instances"))
                     .set(field("template_timetable_id"), instance.getTemplateTimetableId())
                     .set(field("week_start_date"), instance.getWeekStartDate())
                     .set(field("week_end_date"), instance.getWeekEndDate())
@@ -40,11 +40,27 @@ public class WeeklyInstanceRepository extends BaseRepository {
                     .set(field("last_synced_at"), instance.getLastSyncedAt())
                     .set(field("created_at"), instance.getCreatedAt())
                     .set(field("updated_at"), instance.getUpdatedAt())
-                    .returningResult(field("id"))
-                    .fetchOne()
-                    .get("id", Long.class);
+                    .execute();
             
-            instance.setId(generatedId);
+            if (affectedRows > 0) {
+                // 查询刚插入的记录获取ID
+                Record record = dsl.select(field("id"))
+                        .from(table("weekly_instances"))
+                        .where(field("template_timetable_id").eq(instance.getTemplateTimetableId()))
+                        .and(field("year_week").eq(instance.getYearWeek()))
+                        .orderBy(field("id").desc())
+                        .limit(1)
+                        .fetchOne();
+                
+                if (record != null) {
+                    Long generatedId = record.get("id", Long.class);
+                    instance.setId(generatedId);
+                } else {
+                    throw new RuntimeException("插入周实例记录成功但无法查询到ID");
+                }
+            } else {
+                throw new RuntimeException("插入周实例记录失败，影响行数为0");
+            }
         } else {
             // 更新现有记录
             dsl.update(table("weekly_instances"))

@@ -78,7 +78,8 @@ public class WeeklyInstanceController {
                 return ResponseEntity.status(500).body(ApiResponse.error("数据库表不存在，请执行数据库迁移: " + e.getMessage()));
             }
             
-            return ResponseEntity.status(500).body(ApiResponse.error("服务器内部错误: " + e.getMessage()));
+            String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(500).body(ApiResponse.error("服务器内部错误: " + errorMessage));
         }
     }
 

@@ -29,7 +29,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
     public WeeklyInstanceSchedule save(WeeklyInstanceSchedule schedule) {
         if (schedule.getId() == null) {
             // 创建新记录
-            Record record = dsl.insertInto(table("weekly_instance_schedules"))
+            int affectedRows = dsl.insertInto(table("weekly_instance_schedules"))
                     .set(field("weekly_instance_id"), schedule.getWeeklyInstanceId())
                     .set(field("template_schedule_id"), schedule.getTemplateScheduleId())
                     .set(field("student_name"), schedule.getStudentName())
@@ -43,11 +43,12 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                     .set(field("is_modified"), schedule.getIsModified())
                     .set(field("created_at"), schedule.getCreatedAt())
                     .set(field("updated_at"), schedule.getUpdatedAt())
-                    .returning()
-                    .fetchOne();
+                    .execute();
             
-            if (record != null) {
-                schedule.setId(record.get("id", Long.class));
+            if (affectedRows > 0) {
+                // 查询获取ID (对于实例课程，通常不需要ID，但为了保持一致性)
+                // 这里可以选择不查询ID，直接返回
+                // 或者使用其他唯一条件查询
             }
         } else {
             // 更新现有记录

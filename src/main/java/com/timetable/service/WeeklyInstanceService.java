@@ -47,13 +47,19 @@ public class WeeklyInstanceService {
      */
     @Transactional
     public WeeklyInstance generateCurrentWeekInstance(Long templateTimetableId) {
+        System.out.println("开始生成周实例，课表ID: " + templateTimetableId);
+        
         // 检查模板课表是否存在且为周课表
         Timetables templateTimetable = timetableRepository.findById(templateTimetableId);
         if (templateTimetable == null) {
+            System.err.println("模板课表不存在，ID: " + templateTimetableId);
             throw new IllegalArgumentException("模板课表不存在");
         }
         
+        System.out.println("课表名称: " + templateTimetable.getName() + ", isWeekly: " + templateTimetable.getIsWeekly());
+        
         if (templateTimetable.getIsWeekly() == null || templateTimetable.getIsWeekly() != 1) {
+            System.err.println("课表不是周固定课表，isWeekly: " + templateTimetable.getIsWeekly());
             throw new IllegalArgumentException("只能为周固定课表生成实例");
         }
 
@@ -75,16 +81,24 @@ public class WeeklyInstanceService {
         }
 
         // 创建新的周实例
+        System.out.println("创建新周实例，周开始: " + weekStart + ", 周结束: " + weekEnd + ", 年周: " + yearWeek);
         WeeklyInstance instance = new WeeklyInstance(templateTimetableId, weekStart, weekEnd, yearWeek);
+        
+        System.out.println("保存周实例到数据库...");
         instance = weeklyInstanceRepository.save(instance);
 
         // 确保实例保存成功并获得了ID
         if (instance.getId() == null) {
+            System.err.println("周实例保存失败，ID为null");
             throw new RuntimeException("保存周实例失败，无法获取实例ID");
         }
+        
+        System.out.println("周实例保存成功，ID: " + instance.getId());
 
         // 从模板课表复制课程到实例
+        System.out.println("开始同步模板课程到实例...");
         syncSchedulesFromTemplate(instance);
+        System.out.println("周实例生成完成");
 
         // 清除同一模板课表的其他当前周标记，设置新实例为当前周
         weeklyInstanceRepository.clearCurrentWeekFlagByTemplateId(templateTimetableId);
