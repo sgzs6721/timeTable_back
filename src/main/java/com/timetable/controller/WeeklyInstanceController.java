@@ -68,8 +68,16 @@ public class WeeklyInstanceController {
         } catch (Exception e) {
             // 添加详细的错误日志
             System.err.println("生成周实例失败，课表ID: " + timetableId);
+            System.err.println("错误类型: " + e.getClass().getName());
             System.err.println("错误详情: " + e.getMessage());
             e.printStackTrace();
+            
+            // 检查是否是数据库表不存在的问题
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && (errorMsg.contains("weekly_instances") || errorMsg.contains("Table") || errorMsg.contains("doesn't exist"))) {
+                return ResponseEntity.status(500).body(ApiResponse.error("数据库表不存在，请执行数据库迁移: " + e.getMessage()));
+            }
+            
             return ResponseEntity.status(500).body(ApiResponse.error("服务器内部错误: " + e.getMessage()));
         }
     }
