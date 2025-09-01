@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * 周实例控制器
@@ -65,6 +65,12 @@ public class WeeklyInstanceController {
             return ResponseEntity.ok(ApiResponse.success("当前周实例生成成功", instance));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            // 添加详细的错误日志
+            System.err.println("生成周实例失败，课表ID: " + timetableId);
+            System.err.println("错误详情: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.error("服务器内部错误: " + e.getMessage()));
         }
     }
 
