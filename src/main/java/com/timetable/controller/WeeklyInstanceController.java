@@ -214,17 +214,25 @@ public class WeeklyInstanceController {
             String scheduleDateStr = (String) request.get("scheduleDate");
             String note = (String) request.get("note");
 
-            if (studentName == null || dayOfWeek == null || startTimeStr == null || endTimeStr == null || scheduleDateStr == null) {
+            if (studentName == null || dayOfWeek == null || startTimeStr == null || endTimeStr == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("缺少必要参数"));
             }
 
             LocalTime startTime = LocalTime.parse(startTimeStr);
             LocalTime endTime = LocalTime.parse(endTimeStr);
-            LocalDate scheduleDate = LocalDate.parse(scheduleDateStr);
+            LocalDate scheduleDate = null;
+            
+            // 如果提供了scheduleDate，则解析它
+            if (scheduleDateStr != null && !scheduleDateStr.trim().isEmpty()) {
+                scheduleDate = LocalDate.parse(scheduleDateStr);
+            }
 
-            WeeklyInstanceSchedule schedule = new WeeklyInstanceSchedule(
-                instanceId, studentName, dayOfWeek, startTime, endTime, scheduleDate
-            );
+            WeeklyInstanceSchedule schedule = new WeeklyInstanceSchedule();
+            schedule.setStudentName(studentName);
+            schedule.setDayOfWeek(dayOfWeek);
+            schedule.setStartTime(startTime);
+            schedule.setEndTime(endTime);
+            schedule.setScheduleDate(scheduleDate);
             schedule.setSubject(subject);
             schedule.setNote(note);
 

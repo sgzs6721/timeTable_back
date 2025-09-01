@@ -270,6 +270,15 @@ public class WeeklyInstanceService {
         schedule.setCreatedAt(LocalDateTime.now());
         schedule.setUpdatedAt(LocalDateTime.now());
         
+        // 如果没有提供scheduleDate，则根据周实例的开始日期和星期几自动计算
+        if (schedule.getScheduleDate() == null && schedule.getDayOfWeek() != null) {
+            WeeklyInstance instance = weeklyInstanceRepository.findById(instanceId);
+            if (instance != null) {
+                LocalDate calculatedDate = calculateScheduleDate(instance.getWeekStartDate(), schedule.getDayOfWeek());
+                schedule.setScheduleDate(calculatedDate);
+            }
+        }
+        
         return weeklyInstanceScheduleRepository.save(schedule);
     }
 
@@ -279,6 +288,7 @@ public class WeeklyInstanceService {
     @Transactional
     public void createInstanceSchedulesBatch(Long instanceId, List<WeeklyInstanceSchedule> schedules) {
         LocalDateTime now = LocalDateTime.now();
+        WeeklyInstance instance = weeklyInstanceRepository.findById(instanceId);
         
         for (WeeklyInstanceSchedule schedule : schedules) {
             schedule.setWeeklyInstanceId(instanceId);
@@ -286,6 +296,12 @@ public class WeeklyInstanceService {
             schedule.setIsModified(false);
             schedule.setCreatedAt(now);
             schedule.setUpdatedAt(now);
+            
+            // 如果没有提供scheduleDate，则根据周实例的开始日期和星期几自动计算
+            if (schedule.getScheduleDate() == null && schedule.getDayOfWeek() != null && instance != null) {
+                LocalDate calculatedDate = calculateScheduleDate(instance.getWeekStartDate(), schedule.getDayOfWeek());
+                schedule.setScheduleDate(calculatedDate);
+            }
             
             weeklyInstanceScheduleRepository.save(schedule);
         }
