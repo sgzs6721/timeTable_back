@@ -620,14 +620,13 @@ public class TimetableService {
             Schedules newSchedule = new Schedules();
             newSchedule.setTimetableId(savedTimetable.getId());
             newSchedule.setStudentName(sourceSchedule.getStudentName());
-            newSchedule.setSubjectName(sourceSchedule.getSubjectName());
+            newSchedule.setSubject(sourceSchedule.getSubject());
             newSchedule.setDayOfWeek(sourceSchedule.getDayOfWeek());
             newSchedule.setStartTime(sourceSchedule.getStartTime());
             newSchedule.setEndTime(sourceSchedule.getEndTime());
             newSchedule.setScheduleDate(sourceSchedule.getScheduleDate());
             newSchedule.setWeekNumber(sourceSchedule.getWeekNumber());
-            newSchedule.setLocation(sourceSchedule.getLocation());
-            newSchedule.setDescription(sourceSchedule.getDescription());
+            newSchedule.setNote(sourceSchedule.getNote());
             newSchedule.setCreatedAt(LocalDateTime.now());
             newSchedule.setUpdatedAt(LocalDateTime.now());
             
