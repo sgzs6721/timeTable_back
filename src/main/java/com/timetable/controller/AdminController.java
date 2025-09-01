@@ -7,6 +7,7 @@ import com.timetable.dto.PendingUserDTO;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
+import com.timetable.task.WeeklyInstanceScheduledTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,11 +30,14 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
     
-    @Autowired
+        @Autowired
     private TimetableService timetableService;
-    
+
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private WeeklyInstanceScheduledTask weeklyInstanceScheduledTask;
     
     /**
      * 获取所有用户的课表
@@ -268,5 +272,23 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(ApiResponse.success("用户注册申请已拒绝"));
+    }
+
+    /**
+     * 手动触发生成当前周实例任务
+     */
+    @PostMapping("/tasks/generate-weekly-instances")
+    public ResponseEntity<ApiResponse<String>> manualGenerateWeeklyInstances(Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("权限不足"));
+        }
+
+        try {
+            weeklyInstanceScheduledTask.manualGenerateWeeklyInstances();
+            return ResponseEntity.ok(ApiResponse.success("当前周实例生成任务执行成功"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("生成任务执行失败: " + e.getMessage()));
+        }
     }
 } 

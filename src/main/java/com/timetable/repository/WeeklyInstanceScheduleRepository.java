@@ -1,0 +1,255 @@
+package com.timetable.repository;
+
+import com.timetable.entity.WeeklyInstanceSchedule;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Result;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+
+import static org.jooq.impl.DSL.*;
+
+/**
+ * 周实例课程数据访问层
+ */
+@Repository
+public class WeeklyInstanceScheduleRepository extends BaseRepository {
+
+    @Autowired
+    private DSLContext dsl;
+
+    /**
+     * 保存周实例课程
+     */
+    public WeeklyInstanceSchedule save(WeeklyInstanceSchedule schedule) {
+        if (schedule.getId() == null) {
+            // 创建新记录
+            Record record = dsl.insertInto(table("weekly_instance_schedules"))
+                    .set(field("weekly_instance_id"), schedule.getWeeklyInstanceId())
+                    .set(field("template_schedule_id"), schedule.getTemplateScheduleId())
+                    .set(field("student_name"), schedule.getStudentName())
+                    .set(field("subject"), schedule.getSubject())
+                    .set(field("day_of_week"), schedule.getDayOfWeek())
+                    .set(field("start_time"), schedule.getStartTime())
+                    .set(field("end_time"), schedule.getEndTime())
+                    .set(field("schedule_date"), schedule.getScheduleDate())
+                    .set(field("note"), schedule.getNote())
+                    .set(field("is_manual_added"), schedule.getIsManualAdded())
+                    .set(field("is_modified"), schedule.getIsModified())
+                    .set(field("created_at"), schedule.getCreatedAt())
+                    .set(field("updated_at"), schedule.getUpdatedAt())
+                    .returning()
+                    .fetchOne();
+            
+            if (record != null) {
+                schedule.setId(record.get("id", Long.class));
+            }
+        } else {
+            // 更新现有记录
+            dsl.update(table("weekly_instance_schedules"))
+                    .set(field("weekly_instance_id"), schedule.getWeeklyInstanceId())
+                    .set(field("template_schedule_id"), schedule.getTemplateScheduleId())
+                    .set(field("student_name"), schedule.getStudentName())
+                    .set(field("subject"), schedule.getSubject())
+                    .set(field("day_of_week"), schedule.getDayOfWeek())
+                    .set(field("start_time"), schedule.getStartTime())
+                    .set(field("end_time"), schedule.getEndTime())
+                    .set(field("schedule_date"), schedule.getScheduleDate())
+                    .set(field("note"), schedule.getNote())
+                    .set(field("is_manual_added"), schedule.getIsManualAdded())
+                    .set(field("is_modified"), schedule.getIsModified())
+                    .set(field("updated_at"), LocalDateTime.now())
+                    .where(field("id").eq(schedule.getId()))
+                    .execute();
+        }
+        return schedule;
+    }
+
+    /**
+     * 根据ID查找周实例课程
+     */
+    public WeeklyInstanceSchedule findById(Long id) {
+        Record record = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("id").eq(id))
+                .fetchOne();
+        
+        return record != null ? mapToWeeklyInstanceSchedule(record) : null;
+    }
+
+    /**
+     * 根据周实例ID获取所有课程
+     */
+    public List<WeeklyInstanceSchedule> findByWeeklyInstanceId(Long weeklyInstanceId) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .orderBy(field("schedule_date"), field("start_time"))
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
+
+    /**
+     * 根据周实例ID和日期获取课程
+     */
+    public List<WeeklyInstanceSchedule> findByWeeklyInstanceIdAndDate(Long weeklyInstanceId, LocalDate date) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("schedule_date").eq(date))
+                .orderBy(field("start_time"))
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
+
+    /**
+     * 根据周实例ID和星期几获取课程
+     */
+    public List<WeeklyInstanceSchedule> findByWeeklyInstanceIdAndDayOfWeek(Long weeklyInstanceId, String dayOfWeek) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("day_of_week").eq(dayOfWeek))
+                .orderBy(field("start_time"))
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
+
+    /**
+     * 根据模板课程ID获取所有相关的实例课程
+     */
+    public List<WeeklyInstanceSchedule> findByTemplateScheduleId(Long templateScheduleId) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("template_schedule_id").eq(templateScheduleId))
+                .orderBy(field("schedule_date"), field("start_time"))
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
+
+    /**
+     * 根据学生姓名和周实例ID获取课程
+     */
+    public List<WeeklyInstanceSchedule> findByWeeklyInstanceIdAndStudentName(Long weeklyInstanceId, String studentName) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("student_name").eq(studentName))
+                .orderBy(field("schedule_date"), field("start_time"))
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
+
+    /**
+     * 删除周实例课程
+     */
+    public void delete(Long id) {
+        dsl.deleteFrom(table("weekly_instance_schedules"))
+                .where(field("id").eq(id))
+                .execute();
+    }
+
+    /**
+     * 删除周实例的所有课程
+     */
+    public void deleteByWeeklyInstanceId(Long weeklyInstanceId) {
+        dsl.deleteFrom(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .execute();
+    }
+
+    /**
+     * 删除与模板课程相关的所有实例课程
+     */
+    public void deleteByTemplateScheduleId(Long templateScheduleId) {
+        dsl.deleteFrom(table("weekly_instance_schedules"))
+                .where(field("template_schedule_id").eq(templateScheduleId))
+                .execute();
+    }
+
+    /**
+     * 批量保存周实例课程
+     */
+    public void saveAll(List<WeeklyInstanceSchedule> schedules) {
+        for (WeeklyInstanceSchedule schedule : schedules) {
+            save(schedule);
+        }
+    }
+
+    /**
+     * 更新课程的修改状态
+     */
+    public void markAsModified(Long scheduleId) {
+        dsl.update(table("weekly_instance_schedules"))
+                .set(field("is_modified"), true)
+                .set(field("updated_at"), LocalDateTime.now())
+                .where(field("id").eq(scheduleId))
+                .execute();
+    }
+
+    /**
+     * 检查时间冲突
+     */
+    public boolean hasTimeConflict(Long weeklyInstanceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId) {
+        var query = dsl.selectCount()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("schedule_date").eq(date))
+                .and(
+                    field("start_time").lt(endTime)
+                    .and(field("end_time").gt(startTime))
+                );
+        
+        if (excludeId != null) {
+            query = query.and(field("id").ne(excludeId));
+        }
+        
+        return query.fetchOne(0, Integer.class) > 0;
+    }
+
+    /**
+     * 根据日期范围获取课程
+     */
+    public List<WeeklyInstanceSchedule> findByDateRange(Long weeklyInstanceId, LocalDate startDate, LocalDate endDate) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("schedule_date").between(startDate, endDate))
+                .orderBy(field("schedule_date"), field("start_time"))
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
+
+    /**
+     * 映射Record到WeeklyInstanceSchedule
+     */
+    private WeeklyInstanceSchedule mapToWeeklyInstanceSchedule(Record record) {
+        WeeklyInstanceSchedule schedule = new WeeklyInstanceSchedule();
+        schedule.setId(record.get("id", Long.class));
+        schedule.setWeeklyInstanceId(record.get("weekly_instance_id", Long.class));
+        schedule.setTemplateScheduleId(record.get("template_schedule_id", Long.class));
+        schedule.setStudentName(record.get("student_name", String.class));
+        schedule.setSubject(record.get("subject", String.class));
+        schedule.setDayOfWeek(record.get("day_of_week", String.class));
+        schedule.setStartTime(record.get("start_time", LocalTime.class));
+        schedule.setEndTime(record.get("end_time", LocalTime.class));
+        schedule.setScheduleDate(record.get("schedule_date", LocalDate.class));
+        schedule.setNote(record.get("note", String.class));
+        schedule.setIsManualAdded(record.get("is_manual_added", Boolean.class));
+        schedule.setIsModified(record.get("is_modified", Boolean.class));
+        schedule.setCreatedAt(record.get("created_at", LocalDateTime.class));
+        schedule.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
+        return schedule;
+    }
+}

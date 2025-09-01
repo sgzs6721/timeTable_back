@@ -11,6 +11,7 @@ import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.ScheduleService;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
+import com.timetable.service.WeeklyInstanceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,13 +42,15 @@ public class ScheduleController {
     private final ScheduleService scheduleService;
     private final TimetableService timetableService;
     private final UserService userService;
+    private final WeeklyInstanceService weeklyInstanceService;
     private final Validator validator;
 
     @Autowired
-    public ScheduleController(ScheduleService scheduleService, TimetableService timetableService, UserService userService, Validator validator) {
+    public ScheduleController(ScheduleService scheduleService, TimetableService timetableService, UserService userService, WeeklyInstanceService weeklyInstanceService, Validator validator) {
         this.scheduleService = scheduleService;
         this.timetableService = timetableService;
         this.userService = userService;
+        this.weeklyInstanceService = weeklyInstanceService;
         this.validator = validator;
     }
 
@@ -130,6 +133,10 @@ public class ScheduleController {
         }
 
         Schedules schedule = scheduleService.createSchedule(timetableId, request);
+        
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+        
         return ResponseEntity.ok(ApiResponse.success("创建排课成功", schedule));
     }
 
@@ -168,6 +175,9 @@ public class ScheduleController {
             return ResponseEntity.notFound().build();
         }
 
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+
         return ResponseEntity.ok(ApiResponse.success("更新排课成功", schedule));
     }
 
@@ -197,6 +207,9 @@ public class ScheduleController {
         if (!deleted) {
             return ResponseEntity.notFound().build();
         }
+
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
 
         return ResponseEntity.ok(ApiResponse.success("排课删除成功"));
     }
@@ -296,6 +309,10 @@ public class ScheduleController {
             }
         }
         List<Schedules> result = scheduleService.createSchedules(timetableId, requests);
+        
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+        
         return ResponseEntity.ok(ApiResponse.success("批量创建排课成功", result));
     }
 
@@ -372,6 +389,10 @@ public class ScheduleController {
         try {
             // 使用智能覆盖逻辑：删除不同学员的冲突排课，保留同学员的重复排课
             List<Schedules> schedules = scheduleService.createSchedulesWithOverride(timetableId, requests);
+            
+            // 同步到周实例
+            syncToWeeklyInstances(timetableId);
+            
             return ResponseEntity.ok(ApiResponse.success("强制创建排课成功", schedules));
         } catch (Exception e) {
             logger.error("强制创建排课失败", e);
@@ -397,6 +418,10 @@ public class ScheduleController {
             }
         }
         int deleted = scheduleService.deleteSchedulesByCondition(timetableId, request);
+        
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+        
         return ResponseEntity.ok(ApiResponse.success("删除排课成功", deleted));
     }
 
@@ -418,6 +443,26 @@ public class ScheduleController {
             }
         }
         int deleted = scheduleService.deleteSchedulesBatch(timetableId, requests);
+        
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+        
         return ResponseEntity.ok(ApiResponse.success("批量删除排课成功", deleted));
+    }
+
+    /**
+     * 同步固定课表变化到周实例
+     */
+    private void syncToWeeklyInstances(Long timetableId) {
+        try {
+            // 检查是否为周固定课表
+            com.timetable.generated.tables.pojos.Timetables timetable = timetableService.getTimetableById(timetableId);
+            if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                weeklyInstanceService.syncTemplateChangesToInstances(timetableId);
+            }
+        } catch (Exception e) {
+            // 记录错误但不影响主要操作
+            logger.warn("同步到周实例失败，课表ID: {}, 错误: {}", timetableId, e.getMessage());
+        }
     }
 }
