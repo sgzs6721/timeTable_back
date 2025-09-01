@@ -274,6 +274,24 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 批量创建实例课程（手动添加）
+     */
+    @Transactional
+    public void createInstanceSchedulesBatch(Long instanceId, List<WeeklyInstanceSchedule> schedules) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (WeeklyInstanceSchedule schedule : schedules) {
+            schedule.setWeeklyInstanceId(instanceId);
+            schedule.setIsManualAdded(true);
+            schedule.setIsModified(false);
+            schedule.setCreatedAt(now);
+            schedule.setUpdatedAt(now);
+            
+            weeklyInstanceScheduleRepository.save(schedule);
+        }
+    }
+
+    /**
      * 更新实例课程
      */
     @Transactional

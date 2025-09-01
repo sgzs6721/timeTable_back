@@ -237,6 +237,55 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 在周实例中批量创建课程
+     */
+    @PostMapping("/{instanceId}/schedules/batch")
+    public ResponseEntity<ApiResponse<String>> createInstanceSchedulesBatch(
+            @PathVariable Long instanceId,
+            @RequestBody List<Map<String, Object>> schedulesList,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            List<WeeklyInstanceSchedule> schedulesToCreate = new ArrayList<>();
+            
+            for (Map<String, Object> request : schedulesList) {
+                // 解析请求参数
+                String studentName = (String) request.get("studentName");
+                String subject = (String) request.get("subject");
+                String dayOfWeek = (String) request.get("dayOfWeek");
+                String startTimeStr = (String) request.get("startTime");
+                String endTimeStr = (String) request.get("endTime");
+                String scheduleDateStr = (String) request.get("scheduleDate");
+                String note = (String) request.get("note");
+
+                WeeklyInstanceSchedule schedule = new WeeklyInstanceSchedule();
+                schedule.setStudentName(studentName);
+                schedule.setSubject(subject != null ? subject : "");
+                schedule.setDayOfWeek(dayOfWeek);
+                schedule.setStartTime(LocalTime.parse(startTimeStr));
+                schedule.setEndTime(LocalTime.parse(endTimeStr));
+                if (scheduleDateStr != null) {
+                    schedule.setScheduleDate(LocalDate.parse(scheduleDateStr));
+                }
+                schedule.setNote(note != null ? note : "批量添加");
+
+                schedulesToCreate.add(schedule);
+            }
+
+            weeklyInstanceService.createInstanceSchedulesBatch(instanceId, schedulesToCreate);
+            return ResponseEntity.ok(ApiResponse.success("批量创建实例课程成功，共创建 " + schedulesToCreate.size() + " 个课程"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("批量创建课程失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 更新周实例中的课程
      */
     @PutMapping("/schedules/{scheduleId}")
