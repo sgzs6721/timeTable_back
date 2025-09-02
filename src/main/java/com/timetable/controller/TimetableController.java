@@ -384,4 +384,74 @@ public class TimetableController {
             return ResponseEntity.badRequest().body(ApiResponse.error("转换失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 复制并转换：日期范围 -> 周固定（保留原课表）
+     */
+    @PostMapping("/{id}/convert/date-to-weekly/copy")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> copyConvertDateToWeekly(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        String weekStartStr = body.get("weekStart");
+        String newName = body.getOrDefault("newName", "");
+        if (weekStartStr == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("缺少weekStart参数"));
+        }
+
+        try {
+            java.time.LocalDate weekStart = java.time.LocalDate.parse(weekStartStr);
+            com.timetable.generated.tables.pojos.Timetables newTable = timetableService.copyAndConvertDateRangeToWeekly(id, weekStart, newName);
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("newTimetableId", newTable.getId());
+            data.put("newTimetableName", newTable.getName());
+            return ResponseEntity.ok(ApiResponse.success("复制并转换成功", data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("转换失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 复制并转换：周固定 -> 日期范围（保留原课表）
+     */
+    @PostMapping("/{id}/convert/weekly-to-date/copy")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> copyConvertWeeklyToDate(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        String startDateStr = body.get("startDate");
+        String endDateStr = body.get("endDate");
+        String newName = body.getOrDefault("newName", "");
+        if (startDateStr == null || endDateStr == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("缺少起止日期"));
+        }
+
+        try {
+            java.time.LocalDate startDate = java.time.LocalDate.parse(startDateStr);
+            java.time.LocalDate endDate = java.time.LocalDate.parse(endDateStr);
+            com.timetable.generated.tables.pojos.Timetables newTable = timetableService.copyAndConvertWeeklyToDateRange(id, startDate, endDate, newName);
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("newTimetableId", newTable.getId());
+            data.put("newTimetableName", newTable.getName());
+            return ResponseEntity.ok(ApiResponse.success("复制并转换成功", data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("转换失败: " + e.getMessage()));
+        }
+    }
 }

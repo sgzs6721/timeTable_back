@@ -766,4 +766,104 @@ public class TimetableService {
         t.setUpdatedAt(LocalDateTime.now());
         timetableRepository.save(t);
     }
+
+    /**
+     * 复制并转换：日期范围 -> 周固定
+     */
+    @Transactional
+    public Timetables copyAndConvertDateRangeToWeekly(Long sourceTimetableId, LocalDate weekStart, String newName) {
+        Timetables source = timetableRepository.findById(sourceTimetableId);
+        if (source == null) throw new IllegalArgumentException("源课表不存在");
+        if (source.getIsWeekly() != null && source.getIsWeekly() == 1) {
+            throw new IllegalArgumentException("源课表不是日期范围课表");
+        }
+        // 创建新课表
+        Timetables newTable = new Timetables();
+        newTable.setUserId(source.getUserId());
+        newTable.setName((newName != null && !newName.trim().isEmpty()) ? newName.trim() : source.getName() + "(转化)");
+        newTable.setDescription(source.getDescription());
+        newTable.setIsWeekly((byte)1);
+        newTable.setStartDate(null);
+        newTable.setEndDate(null);
+        newTable.setIsActive((byte)0);
+        newTable.setCreatedAt(LocalDateTime.now());
+        newTable.setUpdatedAt(LocalDateTime.now());
+        newTable = timetableRepository.save(newTable);
+
+        // 用所选周生成周固定课程并写入新课表
+        LocalDate ws = weekStart.with(DayOfWeek.MONDAY);
+        LocalDate we = ws.with(DayOfWeek.SUNDAY);
+        List<Schedules> weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(sourceTimetableId, ws, we);
+        if (weekSchedules.isEmpty()) throw new IllegalArgumentException("所选周内没有课程");
+        for (Schedules s : weekSchedules) {
+            Schedules ns = new Schedules();
+            ns.setTimetableId(newTable.getId());
+            ns.setStudentName(s.getStudentName());
+            ns.setSubject(s.getSubject());
+            ns.setDayOfWeek(s.getScheduleDate().getDayOfWeek().toString());
+            ns.setStartTime(s.getStartTime());
+            ns.setEndTime(s.getEndTime());
+            ns.setScheduleDate(null);
+            ns.setWeekNumber(null);
+            ns.setNote(s.getNote());
+            ns.setCreatedAt(LocalDateTime.now());
+            ns.setUpdatedAt(LocalDateTime.now());
+            scheduleRepository.save(ns);
+        }
+        return newTable;
+    }
+
+    /**
+     * 复制并转换：周固定 -> 日期范围
+     */
+    @Transactional
+    public Timetables copyAndConvertWeeklyToDateRange(Long sourceTimetableId, LocalDate startDate, LocalDate endDate, String newName) {
+        if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("日期范围不合法");
+        }
+        Timetables source = timetableRepository.findById(sourceTimetableId);
+        if (source == null) throw new IllegalArgumentException("源课表不存在");
+        if (source.getIsWeekly() == null || source.getIsWeekly() != 1) {
+            throw new IllegalArgumentException("源课表不是周固定课表");
+        }
+        // 创建新课表
+        Timetables newTable = new Timetables();
+        newTable.setUserId(source.getUserId());
+        newTable.setName((newName != null && !newName.trim().isEmpty()) ? newName.trim() : source.getName() + "(转化)");
+        newTable.setDescription(source.getDescription());
+        newTable.setIsWeekly((byte)0);
+        newTable.setStartDate(startDate);
+        newTable.setEndDate(endDate);
+        newTable.setIsActive((byte)0);
+        newTable.setCreatedAt(LocalDateTime.now());
+        newTable.setUpdatedAt(LocalDateTime.now());
+        newTable = timetableRepository.save(newTable);
+
+        // 按日期范围展开课程写入新课表
+        List<Schedules> weekly = scheduleRepository.findByTimetableId(sourceTimetableId)
+                .stream().filter(sc -> sc.getDayOfWeek() != null).collect(Collectors.toList());
+        LocalDate cursor = startDate;
+        while (!cursor.isAfter(endDate)) {
+            String dow = cursor.getDayOfWeek().toString();
+            for (Schedules s : weekly) {
+                if (dow.equals(s.getDayOfWeek())) {
+                    Schedules ns = new Schedules();
+                    ns.setTimetableId(newTable.getId());
+                    ns.setStudentName(s.getStudentName());
+                    ns.setSubject(s.getSubject());
+                    ns.setDayOfWeek(s.getDayOfWeek());
+                    ns.setStartTime(s.getStartTime());
+                    ns.setEndTime(s.getEndTime());
+                    ns.setScheduleDate(cursor);
+                    ns.setWeekNumber(null);
+                    ns.setNote(s.getNote());
+                    ns.setCreatedAt(LocalDateTime.now());
+                    ns.setUpdatedAt(LocalDateTime.now());
+                    scheduleRepository.save(ns);
+                }
+            }
+            cursor = cursor.plusDays(1);
+        }
+        return newTable;
+    }
 }
