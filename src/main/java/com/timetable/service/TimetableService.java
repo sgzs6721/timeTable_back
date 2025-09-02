@@ -636,4 +636,134 @@ public class TimetableService {
         return savedTimetable;
     }
 
+    /**
+     * 列出日期范围课表内，按周（周一至周日）的课程数量
+     */
+    public List<Map<String, Object>> getWeeksWithCounts(Long timetableId) {
+        Timetables t = timetableRepository.findById(timetableId);
+        if (t == null) throw new IllegalArgumentException("课表不存在");
+        if (t.getIsWeekly() != null && t.getIsWeekly() == 1) {
+            throw new IllegalArgumentException("周固定课表不支持该查询");
+        }
+        LocalDate start = t.getStartDate();
+        LocalDate end = t.getEndDate();
+        if (start == null || end == null) return new ArrayList<>();
+        // 规范到周一开始
+        LocalDate cursor = start.with(DayOfWeek.MONDAY);
+        if (cursor.isAfter(start)) {
+            cursor = cursor.minusDays(7);
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        while (!cursor.isAfter(end)) {
+            LocalDate weekStart = cursor;
+            LocalDate weekEnd = cursor.with(DayOfWeek.SUNDAY);
+            if (weekEnd.isBefore(start)) {
+                cursor = cursor.plusWeeks(1);
+                continue;
+            }
+            LocalDate rangeStart = weekStart.isBefore(start) ? start : weekStart;
+            LocalDate rangeEnd = weekEnd.isAfter(end) ? end : weekEnd;
+            if (!rangeStart.isAfter(rangeEnd)) {
+                List<Schedules> list = scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, rangeStart, rangeEnd);
+                Map<String, Object> row = new HashMap<>();
+                row.put("weekStart", weekStart.toString());
+                row.put("weekEnd", weekEnd.toString());
+                row.put("count", list.size());
+                result.add(row);
+            }
+            cursor = cursor.plusWeeks(1);
+        }
+        return result;
+    }
+
+    /**
+     * 将日期范围课表转换为周固定课表，使用某一周（周一至周日）作为模板
+     */
+    @Transactional
+    public void convertDateRangeToWeekly(Long timetableId, LocalDate weekStart) {
+        Timetables t = timetableRepository.findById(timetableId);
+        if (t == null) throw new IllegalArgumentException("课表不存在");
+        if (t.getIsWeekly() != null && t.getIsWeekly() == 1) {
+            throw new IllegalArgumentException("该课表已经是周固定课表");
+        }
+        LocalDate ws = weekStart.with(DayOfWeek.MONDAY);
+        LocalDate we = ws.with(DayOfWeek.SUNDAY);
+        List<Schedules> weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, ws, we);
+        if (weekSchedules.isEmpty()) {
+            throw new IllegalArgumentException("所选周内没有课程，无法转换");
+        }
+        // 清空原课程
+        scheduleRepository.deleteByTimetableId(timetableId);
+        // 基于该周生成“周固定”课程
+        for (Schedules s : weekSchedules) {
+            Schedules ns = new Schedules();
+            ns.setTimetableId(timetableId);
+            ns.setStudentName(s.getStudentName());
+            ns.setSubject(s.getSubject());
+            ns.setDayOfWeek(s.getScheduleDate().getDayOfWeek().toString());
+            ns.setStartTime(s.getStartTime());
+            ns.setEndTime(s.getEndTime());
+            ns.setScheduleDate(null);
+            ns.setWeekNumber(null);
+            ns.setNote(s.getNote());
+            ns.setCreatedAt(LocalDateTime.now());
+            ns.setUpdatedAt(LocalDateTime.now());
+            scheduleRepository.save(ns);
+        }
+        // 更新课表为周固定
+        t.setIsWeekly((byte)1);
+        t.setStartDate(null);
+        t.setEndDate(null);
+        t.setUpdatedAt(LocalDateTime.now());
+        timetableRepository.save(t);
+    }
+
+    /**
+     * 将周固定课表按日期范围展开为日期类课表
+     */
+    @Transactional
+    public void convertWeeklyToDateRange(Long timetableId, LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("日期范围不合法");
+        }
+        Timetables t = timetableRepository.findById(timetableId);
+        if (t == null) throw new IllegalArgumentException("课表不存在");
+        if (t.getIsWeekly() == null || t.getIsWeekly() != 1) {
+            throw new IllegalArgumentException("该课表不是周固定课表");
+        }
+        List<Schedules> weekly = scheduleRepository.findByTimetableId(timetableId)
+                .stream().filter(sc -> sc.getDayOfWeek() != null).collect(Collectors.toList());
+        if (weekly.isEmpty()) throw new IllegalArgumentException("周固定课表没有课程");
+        // 清空原课程
+        scheduleRepository.deleteByTimetableId(timetableId);
+        // 遍历日期范围，匹配星期几，生成课程
+        LocalDate cursor = startDate;
+        while (!cursor.isAfter(endDate)) {
+            String dow = cursor.getDayOfWeek().toString();
+            for (Schedules s : weekly) {
+                if (dow.equals(s.getDayOfWeek())) {
+                    Schedules ns = new Schedules();
+                    ns.setTimetableId(timetableId);
+                    ns.setStudentName(s.getStudentName());
+                    ns.setSubject(s.getSubject());
+                    ns.setDayOfWeek(s.getDayOfWeek());
+                    ns.setStartTime(s.getStartTime());
+                    ns.setEndTime(s.getEndTime());
+                    ns.setScheduleDate(cursor);
+                    ns.setWeekNumber(null);
+                    ns.setNote(s.getNote());
+                    ns.setCreatedAt(LocalDateTime.now());
+                    ns.setUpdatedAt(LocalDateTime.now());
+                    scheduleRepository.save(ns);
+                }
+            }
+            cursor = cursor.plusDays(1);
+        }
+        // 更新课表为日期范围
+        t.setIsWeekly((byte)0);
+        t.setStartDate(startDate);
+        t.setEndDate(endDate);
+        t.setUpdatedAt(LocalDateTime.now());
+        timetableRepository.save(t);
+    }
 }

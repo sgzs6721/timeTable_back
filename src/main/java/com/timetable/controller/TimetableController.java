@@ -50,6 +50,34 @@ public class TimetableController {
     }
 
     /**
+     * 获取日期范围课表内（按周一至周日）各周的课程数量列表，仅用于转换时选择有课的周
+     */
+    @GetMapping("/{id}/weeks")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWeeksWithCounts(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        Timetables timetable;
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            timetable = timetableService.getTimetableById(id);
+        } else {
+            timetable = timetableService.getTimetable(id, user.getId());
+        }
+
+        if (timetable == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<Map<String, Object>> list = timetableService.getWeeksWithCounts(id);
+        return ResponseEntity.ok(ApiResponse.success("获取周列表成功", list));
+    }
+
+    /**
      * 创建新课表
      */
     @PostMapping
@@ -293,5 +321,67 @@ public class TimetableController {
         }
         int count = timetableService.batchDeleteTimetables(request.getIds(), user.getId());
         return ResponseEntity.ok(ApiResponse.success(count + " 个课表已删除"));
+    }
+
+    /**
+     * 将日期范围课表按选中周转为周固定课表
+     */
+    @PostMapping("/{id}/convert/date-to-weekly")
+    public ResponseEntity<ApiResponse<String>> convertDateToWeekly(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        String weekStartStr = body.get("weekStart");
+        if (weekStartStr == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("缺少weekStart参数"));
+        }
+
+        try {
+            java.time.LocalDate weekStart = java.time.LocalDate.parse(weekStartStr);
+            timetableService.convertDateRangeToWeekly(id, weekStart);
+            return ResponseEntity.ok(ApiResponse.success("转换为周固定课表成功"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("转换失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 将周固定课表应用到日期范围，转换为日期类课表
+     */
+    @PostMapping("/{id}/convert/weekly-to-date")
+    public ResponseEntity<ApiResponse<String>> convertWeeklyToDate(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        String startDateStr = body.get("startDate");
+        String endDateStr = body.get("endDate");
+        if (startDateStr == null || endDateStr == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("缺少起止日期"));
+        }
+
+        try {
+            java.time.LocalDate startDate = java.time.LocalDate.parse(startDateStr);
+            java.time.LocalDate endDate = java.time.LocalDate.parse(endDateStr);
+            timetableService.convertWeeklyToDateRange(id, startDate, endDate);
+            return ResponseEntity.ok(ApiResponse.success("转换为日期范围课表成功"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("转换失败: " + e.getMessage()));
+        }
     }
 }
