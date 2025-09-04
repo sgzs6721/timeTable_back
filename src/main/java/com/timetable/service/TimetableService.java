@@ -4,9 +4,13 @@ import com.timetable.dto.TimetableRequest;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
+import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.entity.WeeklyInstance;
+import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.service.UserService;
+import com.timetable.service.WeeklyInstanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +38,13 @@ public class TimetableService {
     private ScheduleRepository scheduleRepository;
 
     @Autowired
+    private WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
+
+    @Autowired
     private UserService userService;
+
+    @Autowired
+    private WeeklyInstanceService weeklyInstanceService;
 
     /**
      * 获取用户的课表列表
@@ -649,10 +659,35 @@ public class TimetableService {
                 List<com.timetable.generated.tables.pojos.Schedules> schedules = new ArrayList<>();
 
                 if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
-                    // 周课表：根据星期几获取课程
+                    // 周课表：优先获取本周实例的课程，如果没有实例则获取固定课表模板的课程
                     DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
                     String dayOfWeekStr = dayOfWeek.toString();
-                    schedules = scheduleRepository.findByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
+                    
+                    // 先尝试获取当前周实例的课程
+                    WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetable.getId());
+                    if (currentInstance != null) {
+                        // 有当前周实例，从实例中获取课程
+                        List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceIdAndScheduleDate(currentInstance.getId(), targetDate);
+                        // 转换为Schedules格式
+                        schedules = instanceSchedules.stream()
+                            .map(instanceSchedule -> {
+                                Schedules schedule = new Schedules();
+                                schedule.setId(instanceSchedule.getId());
+                                schedule.setTimetableId(timetable.getId());
+                                schedule.setStudentName(instanceSchedule.getStudentName());
+                                schedule.setSubject(instanceSchedule.getSubject());
+                                schedule.setDayOfWeek(instanceSchedule.getDayOfWeek());
+                                schedule.setStartTime(instanceSchedule.getStartTime());
+                                schedule.setEndTime(instanceSchedule.getEndTime());
+                                schedule.setScheduleDate(instanceSchedule.getScheduleDate());
+                                schedule.setNote(instanceSchedule.getNote());
+                                return schedule;
+                            })
+                            .collect(Collectors.toList());
+                    } else {
+                        // 没有当前周实例，从固定课表模板获取课程
+                        schedules = scheduleRepository.findByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
+                    }
                 } else {
                     // 日期范围课表：根据具体日期获取课程
                     schedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetable.getId(), targetDate);
