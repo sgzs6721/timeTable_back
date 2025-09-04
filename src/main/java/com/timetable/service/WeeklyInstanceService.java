@@ -336,13 +336,30 @@ public class WeeklyInstanceService {
             throw new IllegalArgumentException("实例课程不存在");
         }
 
-        existingSchedule.setStudentName(updatedSchedule.getStudentName());
-        existingSchedule.setSubject(updatedSchedule.getSubject());
-        existingSchedule.setDayOfWeek(updatedSchedule.getDayOfWeek());
-        existingSchedule.setStartTime(updatedSchedule.getStartTime());
-        existingSchedule.setEndTime(updatedSchedule.getEndTime());
-        existingSchedule.setScheduleDate(updatedSchedule.getScheduleDate());
-        existingSchedule.setNote(updatedSchedule.getNote());
+        // 只更新非null的字段，避免将null值设置到不允许为空的字段
+        if (updatedSchedule.getStudentName() != null) {
+            existingSchedule.setStudentName(updatedSchedule.getStudentName());
+        }
+        if (updatedSchedule.getSubject() != null) {
+            existingSchedule.setSubject(updatedSchedule.getSubject());
+        }
+        if (updatedSchedule.getDayOfWeek() != null) {
+            existingSchedule.setDayOfWeek(updatedSchedule.getDayOfWeek());
+        }
+        if (updatedSchedule.getStartTime() != null) {
+            existingSchedule.setStartTime(updatedSchedule.getStartTime());
+        }
+        if (updatedSchedule.getEndTime() != null) {
+            existingSchedule.setEndTime(updatedSchedule.getEndTime());
+        }
+        if (updatedSchedule.getScheduleDate() != null) {
+            existingSchedule.setScheduleDate(updatedSchedule.getScheduleDate());
+        }
+        if (updatedSchedule.getNote() != null) {
+            existingSchedule.setNote(updatedSchedule.getNote());
+        }
+        
+        // 标记为已修改
         existingSchedule.setIsModified(true);
         existingSchedule.setUpdatedAt(LocalDateTime.now());
 
