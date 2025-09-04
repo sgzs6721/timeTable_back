@@ -16,12 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -359,8 +361,37 @@ public class WeeklyInstanceService {
             existingSchedule.setNote(updatedSchedule.getNote());
         }
         
-        // 标记为已修改
-        existingSchedule.setIsModified(true);
+        // 检查是否与原始模板不同
+        boolean isDifferentFromTemplate = false;
+        
+        // 如果有模板ID，则与模板比较
+        if (existingSchedule.getTemplateScheduleId() != null) {
+            Schedules templateSchedule = scheduleRepository.findById(existingSchedule.getTemplateScheduleId());
+            if (templateSchedule != null) {
+                // 比较各个字段是否与模板不同
+                if (!Objects.equals(existingSchedule.getStudentName(), templateSchedule.getStudentName())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(existingSchedule.getSubject(), templateSchedule.getSubject())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(existingSchedule.getDayOfWeek(), templateSchedule.getDayOfWeek())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(existingSchedule.getStartTime(), templateSchedule.getStartTime())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(existingSchedule.getEndTime(), templateSchedule.getEndTime())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(existingSchedule.getNote(), templateSchedule.getNote())) {
+                    isDifferentFromTemplate = true;
+                }
+            }
+        }
+        
+        // 根据是否与模板不同来设置修改标记
+        existingSchedule.setIsModified(isDifferentFromTemplate);
         existingSchedule.setUpdatedAt(LocalDateTime.now());
 
         return weeklyInstanceScheduleRepository.save(existingSchedule);
