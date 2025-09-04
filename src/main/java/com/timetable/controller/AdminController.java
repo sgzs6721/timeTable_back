@@ -325,4 +325,20 @@ public class AdminController {
             return ResponseEntity.badRequest().body(ApiResponse.error("复制课表失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 管理员删除课表
+     */
+    @DeleteMapping("/timetables/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteTimetable(@PathVariable Long id) {
+        try {
+            boolean deleted = timetableService.deleteTimetableByAdmin(id);
+            if (!deleted) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("课表不存在或已删除"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("课表删除成功"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
 } 
