@@ -145,6 +145,25 @@ public class AdminController {
         }
     }
 
+    /**
+     * 管理员更新课表信息（名称、描述等）
+     */
+    @PutMapping("/timetables/{id}/details")
+    public ResponseEntity<ApiResponse<com.timetable.generated.tables.pojos.Timetables>> updateTimetableDetails(
+            @PathVariable Long id,
+            @Valid @RequestBody com.timetable.dto.TimetableRequest request) {
+        
+        try {
+            com.timetable.generated.tables.pojos.Timetables updatedTimetable = timetableService.updateTimetableByAdmin(id, request);
+            if (updatedTimetable == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("课表不存在或更新失败"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("课表更新成功", updatedTimetable));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("更新失败: " + e.getMessage()));
+        }
+    }
+
     
     /**
      * 获取所有用户列表（只返回APPROVED状态）

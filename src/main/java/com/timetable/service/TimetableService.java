@@ -110,6 +110,25 @@ public class TimetableService {
     }
 
     /**
+     * 管理员更新课表
+     */
+    public Timetables updateTimetableByAdmin(Long timetableId, TimetableRequest request) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            return null;
+        }
+
+        timetable.setName(request.getName());
+        timetable.setDescription(request.getDescription());
+        timetable.setIsWeekly((byte) (request.getType() == TimetableRequest.TimetableType.WEEKLY ? 1 : 0));
+        timetable.setStartDate(request.getStartDate());
+        timetable.setEndDate(request.getEndDate());
+        timetable.setUpdatedAt(LocalDateTime.now());
+
+        return timetableRepository.save(timetable);
+    }
+
+    /**
      * 软删除课表
      */
     @Transactional
