@@ -333,12 +333,15 @@ public class WeeklyInstanceController {
             String note = (String) request.get("note");
 
             WeeklyInstanceSchedule updatedSchedule = new WeeklyInstanceSchedule();
+            // 只设置非null的字段，让服务层处理部分更新
             if (studentName != null) updatedSchedule.setStudentName(studentName);
             if (subject != null) updatedSchedule.setSubject(subject);
             if (dayOfWeek != null) updatedSchedule.setDayOfWeek(dayOfWeek);
             if (startTimeStr != null) updatedSchedule.setStartTime(LocalTime.parse(startTimeStr));
             if (endTimeStr != null) updatedSchedule.setEndTime(LocalTime.parse(endTimeStr));
-            if (scheduleDateStr != null) updatedSchedule.setScheduleDate(LocalDate.parse(scheduleDateStr));
+            if (scheduleDateStr != null && !scheduleDateStr.trim().isEmpty()) {
+                updatedSchedule.setScheduleDate(LocalDate.parse(scheduleDateStr));
+            }
             if (note != null) updatedSchedule.setNote(note);
 
             WeeklyInstanceSchedule result = weeklyInstanceService.updateInstanceSchedule(scheduleId, updatedSchedule);
