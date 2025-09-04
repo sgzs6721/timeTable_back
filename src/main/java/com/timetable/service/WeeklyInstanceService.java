@@ -13,6 +13,8 @@ import com.timetable.generated.tables.pojos.Schedules;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class WeeklyInstanceService {
+
+    private static final Logger logger = LoggerFactory.getLogger(WeeklyInstanceService.class);
 
     @Autowired
     private WeeklyInstanceRepository weeklyInstanceRepository;
@@ -388,6 +392,9 @@ public class WeeklyInstanceService {
                     isDifferentFromTemplate = true;
                 }
             }
+        } else {
+            // 如果没有模板ID，说明是手动添加的课程，不应该标记为已修改
+            isDifferentFromTemplate = false;
         }
         
         // 根据是否与模板不同来设置修改标记
