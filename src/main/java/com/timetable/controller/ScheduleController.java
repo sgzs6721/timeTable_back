@@ -456,6 +456,7 @@ public class ScheduleController {
     @DeleteMapping(value = "/clear", produces = "application/json")
     public ResponseEntity<ApiResponse<String>> clearTimetableSchedules(
             @PathVariable("timetableId") Long timetableId,
+            @RequestParam(value = "alsoClearCurrentWeek", required = false, defaultValue = "false") boolean alsoClearCurrentWeek,
             Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
@@ -468,11 +469,24 @@ public class ScheduleController {
         }
         
         int deleted = scheduleService.clearTimetableSchedules(timetableId);
-        
-        // 同步到周实例
-        syncToWeeklyInstances(timetableId);
-        
-        return ResponseEntity.ok(ApiResponse.success("清空课表成功", String.valueOf(deleted)));
+
+        int instanceDeleted = 0;
+        if (alsoClearCurrentWeek) {
+            try {
+                instanceDeleted = weeklyInstanceService.clearCurrentWeekInstanceSchedules(timetableId);
+            } catch (Exception e) {
+                logger.warn("清空当前周实例课程失败，课表ID: {}, 错误: {}", timetableId, e.getMessage());
+            }
+        } else {
+            // 未选择清空当前周，仅同步模板变化
+            syncToWeeklyInstances(timetableId);
+        }
+
+        String messageText = instanceDeleted > 0
+                ? String.format("清空课表成功(模板:%d, 当前周:%d)", deleted, instanceDeleted)
+                : String.format("清空课表成功(模板:%d)", deleted);
+
+        return ResponseEntity.ok(ApiResponse.success(messageText, String.valueOf(deleted + instanceDeleted)));
     }
 
     /**

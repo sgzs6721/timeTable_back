@@ -10,6 +10,7 @@ import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
 import com.timetable.service.ScheduleService;
+import com.timetable.service.WeeklyInstanceService;
 import com.timetable.task.WeeklyInstanceScheduledTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,8 @@ public class AdminController {
 
     @Autowired
     private WeeklyInstanceScheduledTask weeklyInstanceScheduledTask;
+    @Autowired
+    private WeeklyInstanceService weeklyInstanceService;
     
     /**
      * 获取所有用户的课表
@@ -381,10 +384,18 @@ public class AdminController {
      * 管理员清空课表的所有课程
      */
     @DeleteMapping("/timetables/{id}/schedules/clear")
-    public ResponseEntity<ApiResponse<String>> clearTimetableSchedules(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> clearTimetableSchedules(@PathVariable Long id,
+                                                                       @RequestParam(value = "alsoClearCurrentWeek", required = false, defaultValue = "false") boolean alsoClearCurrentWeek) {
         try {
             int deleted = scheduleService.clearTimetableSchedules(id);
-            return ResponseEntity.ok(ApiResponse.success("清空课表成功", String.valueOf(deleted)));
+            int instanceDeleted = 0;
+            if (alsoClearCurrentWeek) {
+                instanceDeleted = weeklyInstanceService.clearCurrentWeekInstanceSchedules(id);
+            }
+            String messageText = instanceDeleted > 0
+                    ? String.format("清空课表成功(模板:%d, 当前周:%d)", deleted, instanceDeleted)
+                    : String.format("清空课表成功(模板:%d)", deleted);
+            return ResponseEntity.ok(ApiResponse.success(messageText, String.valueOf(deleted + instanceDeleted)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("清空失败: " + e.getMessage()));
         }

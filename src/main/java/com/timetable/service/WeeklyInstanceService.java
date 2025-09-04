@@ -420,6 +420,22 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 清空指定模板课表的当前周实例内的所有课程（包括手动添加）
+     * 返回被删除的课程数量
+     */
+    @Transactional
+    public int clearCurrentWeekInstanceSchedules(Long templateTimetableId) {
+        WeeklyInstance current = getCurrentWeekInstance(templateTimetableId);
+        if (current == null) {
+            return 0;
+        }
+        List<WeeklyInstanceSchedule> existing = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(current.getId());
+        int count = existing.size();
+        weeklyInstanceScheduleRepository.deleteByWeeklyInstanceId(current.getId());
+        return count;
+    }
+
+    /**
      * 生成年-周字符串
      */
     private String generateYearWeekString(LocalDate date) {
