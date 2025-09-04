@@ -9,6 +9,7 @@ import com.timetable.generated.tables.pojos.Users;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
+import com.timetable.service.ScheduleService;
 import com.timetable.task.WeeklyInstanceScheduledTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,9 @@ public class AdminController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ScheduleService scheduleService;
 
     @Autowired
     private WeeklyInstanceScheduledTask weeklyInstanceScheduledTask;
@@ -339,6 +343,19 @@ public class AdminController {
             return ResponseEntity.ok(ApiResponse.success("课表删除成功"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 管理员清空课表的所有课程
+     */
+    @DeleteMapping("/timetables/{id}/schedules/clear")
+    public ResponseEntity<ApiResponse<String>> clearTimetableSchedules(@PathVariable Long id) {
+        try {
+            int deleted = scheduleService.clearTimetableSchedules(id);
+            return ResponseEntity.ok(ApiResponse.success("清空课表成功", String.valueOf(deleted)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("清空失败: " + e.getMessage()));
         }
     }
 } 
