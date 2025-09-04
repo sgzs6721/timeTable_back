@@ -405,6 +405,32 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 清空指定课表当前周实例中的所有课程
+     */
+    @DeleteMapping("/current/{timetableId}/schedules")
+    public ResponseEntity<ApiResponse<Integer>> clearCurrentWeekInstanceSchedules(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        // 权限校验：非管理员需是自己课表
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
+            if (timetable == null) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+        try {
+            int deleted = weeklyInstanceService.clearCurrentWeekInstanceSchedules(timetableId);
+            return ResponseEntity.ok(ApiResponse.success("清空本周实例课程成功", deleted));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("清空失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 检查课表是否有当前周实例
      */
     @GetMapping("/check/{timetableId}")
