@@ -405,6 +405,35 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 完全恢复当前周实例为固定课表状态
+     */
+    @PostMapping("/restore/{timetableId}")
+    public ResponseEntity<ApiResponse<String>> restoreCurrentWeekInstanceToTemplate(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 检查课表是否属于当前用户或用户是否为管理员
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
+            if (timetable == null) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        try {
+            weeklyInstanceService.restoreCurrentWeekInstanceToTemplate(timetableId);
+            return ResponseEntity.ok(ApiResponse.success("已完全恢复为固定课表"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("恢复失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 清空指定课表当前周实例中的所有课程
      */
     @DeleteMapping("/current/{timetableId}/schedules")

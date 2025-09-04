@@ -138,7 +138,7 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 从模板课表同步课程到周实例
+     * 从模板课表同步课程到周实例（保留手动添加的课程）
      */
     @Transactional
     public void syncSchedulesFromTemplate(WeeklyInstance instance) {
@@ -152,6 +152,41 @@ public class WeeklyInstanceService {
                 weeklyInstanceScheduleRepository.delete(schedule.getId());
             }
         }
+
+        // 从模板课程创建实例课程
+        for (Schedules templateSchedule : templateSchedules) {
+            // 计算具体日期
+            LocalDate scheduleDate = calculateScheduleDate(instance.getWeekStartDate(), templateSchedule.getDayOfWeek());
+            
+            WeeklyInstanceSchedule instanceSchedule = new WeeklyInstanceSchedule(
+                instance.getId(),
+                templateSchedule.getId(),
+                templateSchedule.getStudentName(),
+                templateSchedule.getSubject(),
+                templateSchedule.getDayOfWeek(),
+                templateSchedule.getStartTime(),
+                templateSchedule.getEndTime(),
+                scheduleDate,
+                templateSchedule.getNote()
+            );
+            
+            weeklyInstanceScheduleRepository.save(instanceSchedule);
+        }
+
+        // 更新实例的同步时间
+        weeklyInstanceRepository.updateLastSyncedAt(instance.getId(), LocalDateTime.now());
+    }
+
+    /**
+     * 完全恢复周实例为固定课表状态（删除所有课程，包括手动添加的）
+     */
+    @Transactional
+    public void restoreInstanceToTemplate(WeeklyInstance instance) {
+        // 删除实例中的所有课程（包括手动添加的）
+        weeklyInstanceScheduleRepository.deleteByWeeklyInstanceId(instance.getId());
+
+        // 获取模板课表的所有课程
+        List<Schedules> templateSchedules = scheduleRepository.findByTimetableId(instance.getTemplateTimetableId());
 
         // 从模板课程创建实例课程
         for (Schedules templateSchedule : templateSchedules) {
@@ -244,6 +279,17 @@ public class WeeklyInstanceService {
         
         for (WeeklyInstance instance : instances) {
             syncSchedulesFromTemplate(instance);
+        }
+    }
+
+    /**
+     * 完全恢复当前周实例为固定课表状态
+     */
+    @Transactional
+    public void restoreCurrentWeekInstanceToTemplate(Long templateTimetableId) {
+        WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
+        if (currentInstance != null) {
+            restoreInstanceToTemplate(currentInstance);
         }
     }
 
