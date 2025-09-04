@@ -1091,4 +1091,24 @@ public class ScheduleService {
             return false;
         }
     }
+
+    /**
+     * 清空课表的所有课程
+     */
+    public int clearTimetableSchedules(Long timetableId) {
+        try {
+            // 获取删除前的课程数量
+            List<Schedules> existingSchedules = scheduleRepository.findByTimetableId(timetableId);
+            int count = existingSchedules.size();
+            
+            // 批量删除所有课程
+            scheduleRepository.deleteByTimetableId(timetableId);
+            
+            logger.info("清空课表成功，课表ID: {}, 删除课程数量: {}", timetableId, count);
+            return count;
+        } catch (Exception e) {
+            logger.error("清空课表失败，课表ID: {}", timetableId, e);
+            throw new RuntimeException("清空课表失败: " + e.getMessage());
+        }
+    }
 }

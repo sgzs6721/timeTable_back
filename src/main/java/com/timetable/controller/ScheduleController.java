@@ -451,6 +451,31 @@ public class ScheduleController {
     }
 
     /**
+     * 清空课表的所有课程
+     */
+    @DeleteMapping(value = "/clear", produces = "application/json")
+    public ResponseEntity<ApiResponse<String>> clearTimetableSchedules(
+            @PathVariable("timetableId") Long timetableId,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+        
+        int deleted = scheduleService.clearTimetableSchedules(timetableId);
+        
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+        
+        return ResponseEntity.ok(ApiResponse.success("清空课表成功", String.valueOf(deleted)));
+    }
+
+    /**
      * 同步固定课表变化到周实例
      */
     private void syncToWeeklyInstances(Long timetableId) {
