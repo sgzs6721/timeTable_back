@@ -87,28 +87,59 @@ public class AdminController {
     }
     
     /**
-     * 更新课表状态（例如，设为活动）
+     * 更新课表状态（例如，设为活动、归档等）
      */
     @PutMapping("/timetables/{id}")
     public ResponseEntity<ApiResponse<Void>> updateTimetableStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> updates) {
+            @RequestBody Object updates) {
         
-        if (updates.containsKey("isActive")) {
-            boolean isActive = (boolean) updates.get("isActive");
-            if (isActive) {
-                try {
-                    timetableService.setTimetableActive(id);
-                    return ResponseEntity.ok(ApiResponse.success("课表状态更新成功"));
-                } catch (IllegalArgumentException e) {
-                    return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        try {
+            // 处理字符串类型的更新请求（如 'ARCHIVED'）
+            if (updates instanceof String) {
+                String status = (String) updates;
+                if ("ARCHIVED".equals(status)) {
+                    boolean ok = timetableService.archiveTimetableByAdmin(id);
+                    if (ok) {
+                        return ResponseEntity.ok(ApiResponse.success("课表已归档"));
+                    } else {
+                        return ResponseEntity.badRequest().body(ApiResponse.error("归档失败，课表不存在或已删除"));
+                    }
                 }
             }
+            
+            // 处理Map类型的更新请求
+            if (updates instanceof Map) {
+                Map<String, Object> updateMap = (Map<String, Object>) updates;
+                
+                if (updateMap.containsKey("isActive")) {
+                    boolean isActive = (boolean) updateMap.get("isActive");
+                    if (isActive) {
+                        timetableService.setTimetableActive(id);
+                        return ResponseEntity.ok(ApiResponse.success("课表状态更新成功"));
+                    }
+                }
+                
+                if (updateMap.containsKey("isArchived")) {
+                    boolean isArchived = (boolean) updateMap.get("isArchived");
+                    if (isArchived) {
+                        boolean ok = timetableService.archiveTimetableByAdmin(id);
+                        if (ok) {
+                            return ResponseEntity.ok(ApiResponse.success("课表已归档"));
+                        } else {
+                            return ResponseEntity.badRequest().body(ApiResponse.error("归档失败，课表不存在或已删除"));
+                        }
+                    }
+                }
+            }
+            
+            return ResponseEntity.badRequest().body(ApiResponse.error("无效的更新请求"));
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("操作失败: " + e.getMessage()));
         }
-        
-        // 如果有其他状态需要更新，可以在这里添加逻辑
-        
-        return ResponseEntity.badRequest().body(ApiResponse.error("无效的更新请求"));
     }
 
     

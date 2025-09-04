@@ -466,6 +466,54 @@ public class TimetableService {
     }
 
     /**
+     * 管理员归档课表（不需要用户ID验证）
+     */
+    @Transactional
+    public boolean archiveTimetableByAdmin(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            return false;
+        }
+        if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) {
+            return false;
+        }
+        if (timetable.getIsArchived() != null && timetable.getIsArchived() == 1) {
+            return false; // 已经归档了
+        }
+        
+        boolean isActiveTimetable = timetable.getIsActive() != null && timetable.getIsActive() == 1;
+        
+        // 归档操作
+        timetable.setIsArchived((byte) 1);
+        
+        // 如果归档的是活动课表，需要清除活动状态
+        if (isActiveTimetable) {
+            timetable.setIsActive((byte) 0);
+        }
+        
+        timetable.setUpdatedAt(LocalDateTime.now());
+        timetableRepository.save(timetable);
+        
+        // 如果归档的是活动课表，需要设置另一个课表为活动状态
+        if (isActiveTimetable) {
+            List<Timetables> availableTimetables = timetableRepository.findByUserId(timetable.getUserId())
+                    .stream()
+                    .filter(t -> !t.getId().equals(timetableId))
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                    .collect(Collectors.toList());
+            if (!availableTimetables.isEmpty()) {
+                Timetables newActiveTimetable = availableTimetables.get(0);
+                newActiveTimetable.setIsActive((byte) 1);
+                newActiveTimetable.setUpdatedAt(LocalDateTime.now());
+                timetableRepository.save(newActiveTimetable);
+            }
+        }
+        
+        return true;
+    }
+
+    /**
      * 管理员删除课表（不需要用户ID验证）
      */
     @Transactional
