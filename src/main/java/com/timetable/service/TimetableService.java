@@ -667,7 +667,7 @@ public class TimetableService {
                     WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetable.getId());
                     if (currentInstance != null) {
                         // 有当前周实例，从实例中获取课程
-                        List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceIdAndScheduleDate(currentInstance.getId(), targetDate);
+                        List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceIdAndDate(currentInstance.getId(), targetDate);
                         // 转换为Schedules格式
                         schedules = instanceSchedules.stream()
                             .map(instanceSchedule -> {
