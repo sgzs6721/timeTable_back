@@ -521,6 +521,7 @@ public class AdminController {
                 }
                 
                 coachStat.put("todayCourses", todayCourses);
+                coachStat.put("weeklyCourses", weeklyCourses);
                 coachStat.put("todayCourseDetails", todayCourseDetails);
                 
                 return coachStat;
