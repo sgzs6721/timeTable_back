@@ -275,13 +275,8 @@ public class TimetableController {
         }
         List<AdminTimetableDTO> list;
 
-        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-            list = timetableService.getAllTimetablesWithUser().stream()
-                    .filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1)
-                    .collect(Collectors.toList());
-        } else {
-            list = timetableService.findArchivedByUserId(user.getId());
-        }
+        // 管理员也只能查看自己的归档课表
+        list = timetableService.findArchivedByUserId(user.getId());
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("archivedList", list);
