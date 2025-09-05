@@ -686,7 +686,23 @@ public class TimetableService {
                             .collect(Collectors.toList());
                     } else {
                         // 没有当前周实例，从固定课表模板获取课程
-                        schedules = scheduleRepository.findByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
+                        List<Schedules> templateSchedules = scheduleRepository.findByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
+                        // 为模板课程设置具体的日期
+                        schedules = templateSchedules.stream()
+                            .map(templateSchedule -> {
+                                Schedules schedule = new Schedules();
+                                schedule.setId(templateSchedule.getId());
+                                schedule.setTimetableId(templateSchedule.getTimetableId());
+                                schedule.setStudentName(templateSchedule.getStudentName());
+                                schedule.setSubject(templateSchedule.getSubject());
+                                schedule.setDayOfWeek(templateSchedule.getDayOfWeek());
+                                schedule.setStartTime(templateSchedule.getStartTime());
+                                schedule.setEndTime(templateSchedule.getEndTime());
+                                schedule.setScheduleDate(targetDate); // 设置具体日期
+                                schedule.setNote(templateSchedule.getNote());
+                                return schedule;
+                            })
+                            .collect(Collectors.toList());
                     }
                 } else {
                     // 日期范围课表：根据具体日期获取课程
