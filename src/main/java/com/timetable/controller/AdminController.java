@@ -433,9 +433,20 @@ public class AdminController {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // 获取所有已审批通过且未删除的非管理员用户（教练）
-            List<Users> coaches = userService.getAllApprovedUsers().stream()
-                    .filter(user -> user.getRole() == null || !"ADMIN".equalsIgnoreCase(user.getRole()))
+            // 获取所有已审批通过且未删除的用户（包括管理员，但只统计有活动课表的）
+            List<Users> allUsers = userService.getAllApprovedUsers();
+            
+            // 过滤出有活动课表的用户（包括管理员）
+            List<Users> coaches = allUsers.stream()
+                    .filter(user -> {
+                        List<Timetables> userTimetables = timetableService.getUserTimetables(user.getId())
+                            .stream()
+                            .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                            .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                            .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                            .collect(Collectors.toList());
+                        return !userTimetables.isEmpty(); // 只统计有活动课表的用户
+                    })
                     .collect(Collectors.toList());
             
             List<Map<String, Object>> coachStats = coaches.stream().map(coach -> {
