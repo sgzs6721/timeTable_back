@@ -433,17 +433,9 @@ public class AdminController {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // 获取所有非管理员用户
-            List<Users> coaches = userService.getAllUsersForAdmin().stream()
-                    .map(userMap -> {
-                        Users user = new Users();
-                        user.setId((Long) userMap.get("id"));
-                        user.setUsername((String) userMap.get("username"));
-                        user.setNickname((String) userMap.get("nickname"));
-                        user.setRole((String) userMap.get("role"));
-                        return user;
-                    })
-                    .filter(user -> !"ADMIN".equalsIgnoreCase(user.getRole()))
+            // 获取所有已审批通过且未删除的非管理员用户（教练）
+            List<Users> coaches = userService.getAllApprovedUsers().stream()
+                    .filter(user -> user.getRole() == null || !"ADMIN".equalsIgnoreCase(user.getRole()))
                     .collect(Collectors.toList());
             
             List<Map<String, Object>> coachStats = coaches.stream().map(coach -> {
@@ -453,7 +445,12 @@ public class AdminController {
                 coachStat.put("nickname", coach.getNickname());
                 
                 // 获取该教练的课表
-                List<Timetables> coachTimetables = timetableService.getUserTimetables(coach.getId());
+                List<Timetables> coachTimetables = timetableService.getUserTimetables(coach.getId())
+                    .stream()
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                    .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                    .collect(Collectors.toList());
                 coachStat.put("timetableCount", coachTimetables.size());
                 
                 // 计算当天课程数
@@ -464,18 +461,28 @@ public class AdminController {
                 // 计算当周课程数
                 int weeklyCourses = 0;
                 
+                // 收集今日课程明细
+                java.util.List<java.util.Map<String, Object>> todayCourseDetails = new java.util.ArrayList<>();
+                
                 for (Timetables timetable : coachTimetables) {
                     if (timetable.getIsWeekly() != null && timetable.getIsWeekly().byteValue() == 1) {
                         // 周固定课表：检查当前周实例
                         try {
                             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
-                            weeklyCourses += instanceSchedules.size();
+                            // 周实例课程当前实现为物理删除，这里直接统计
+                            List<WeeklyInstanceSchedule> validInstanceSchedules = instanceSchedules;
+                            weeklyCourses += validInstanceSchedules.size();
                             
                             // 检查当天是否有课程
-                            todayCourses += instanceSchedules.stream()
+                            todayCourses += validInstanceSchedules.stream()
                                     .mapToInt(schedule -> {
                                         if (schedule.getScheduleDate() != null && 
                                             schedule.getScheduleDate().equals(today)) {
+                                            java.util.Map<String, Object> item = new java.util.HashMap<>();
+                                            item.put("studentName", schedule.getStudentName());
+                                            item.put("startTime", schedule.getStartTime());
+                                            item.put("endTime", schedule.getEndTime());
+                                            todayCourseDetails.add(item);
                                             return 1;
                                         }
                                         return 0;
@@ -488,13 +495,20 @@ public class AdminController {
                         // 日期范围课表：直接查询
                         try {
                             List<Schedules> schedules = scheduleService.getTimetableSchedules(timetable.getId(), null);
-                            weeklyCourses += schedules.size();
+                            // 课程当前实现为物理删除，这里直接统计
+                            List<Schedules> validSchedules = schedules;
+                            weeklyCourses += validSchedules.size();
                             
                             // 检查当天是否有课程
-                            todayCourses += schedules.stream()
+                            todayCourses += validSchedules.stream()
                                     .mapToInt(schedule -> {
                                         if (schedule.getScheduleDate() != null && 
                                             schedule.getScheduleDate().equals(today)) {
+                                            java.util.Map<String, Object> item = new java.util.HashMap<>();
+                                            item.put("studentName", schedule.getStudentName());
+                                            item.put("startTime", schedule.getStartTime());
+                                            item.put("endTime", schedule.getEndTime());
+                                            todayCourseDetails.add(item);
                                             return 1;
                                         }
                                         return 0;
@@ -507,7 +521,7 @@ public class AdminController {
                 }
                 
                 coachStat.put("todayCourses", todayCourses);
-                coachStat.put("weeklyCourses", weeklyCourses);
+                coachStat.put("todayCourseDetails", todayCourseDetails);
                 
                 return coachStat;
             }).collect(Collectors.toList());
@@ -515,7 +529,29 @@ public class AdminController {
             statistics.put("coaches", coachStats);
             statistics.put("totalCoaches", coaches.size());
             statistics.put("totalTodayCourses", coachStats.stream().mapToInt(c -> (Integer) c.get("todayCourses")).sum());
-            statistics.put("totalWeeklyCourses", coachStats.stream().mapToInt(c -> (Integer) c.get("weeklyCourses")).sum());
+            // 重新计算总周课程数（教练所有有效活动课表的课程合计）
+            int totalWeeklyCourses = 0;
+            for (Users coach : coaches) {
+                List<Timetables> coachTimetables = timetableService.getUserTimetables(coach.getId()).stream()
+                        .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                        .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                        .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                        .collect(Collectors.toList());
+                for (Timetables timetable : coachTimetables) {
+                    if (timetable.getIsWeekly() != null && timetable.getIsWeekly().byteValue() == 1) {
+                        try {
+                            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
+                            totalWeeklyCourses += instanceSchedules.size();
+                        } catch (Exception ignored) {}
+                    } else {
+                        try {
+                            List<Schedules> schedules = scheduleService.getTimetableSchedules(timetable.getId(), null);
+                            totalWeeklyCourses += schedules.size();
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+            statistics.put("totalWeeklyCourses", totalWeeklyCourses);
             
             return ResponseEntity.ok(ApiResponse.success("获取教练统计信息成功", statistics));
         } catch (Exception e) {
