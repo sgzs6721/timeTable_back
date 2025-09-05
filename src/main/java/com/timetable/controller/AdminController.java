@@ -20,6 +20,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -417,6 +419,99 @@ public class AdminController {
             return ResponseEntity.ok(ApiResponse.success(messageText, String.valueOf(deleted + instanceDeleted)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("清空失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取所有教练的课程统计信息（管理员概览）
+     */
+    @GetMapping("/coaches/statistics")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCoachesStatistics() {
+        try {
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // 获取所有非管理员用户
+            List<Users> coaches = userService.getAllUsers().stream()
+                    .filter(user -> !"ADMIN".equalsIgnoreCase(user.getRole()))
+                    .collect(Collectors.toList());
+            
+            List<Map<String, Object>> coachStats = coaches.stream().map(coach -> {
+                Map<String, Object> coachStat = new HashMap<>();
+                coachStat.put("id", coach.getId());
+                coachStat.put("username", coach.getUsername());
+                coachStat.put("nickname", coach.getNickname());
+                
+                // 获取该教练的课表
+                List<Timetables> coachTimetables = timetableService.getTimetablesByUserId(coach.getId());
+                coachStat.put("timetableCount", coachTimetables.size());
+                
+                // 计算当天课程数
+                LocalDate today = LocalDate.now();
+                String todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                int todayCourses = 0;
+                
+                // 计算当周课程数
+                int weeklyCourses = 0;
+                
+                for (Timetables timetable : coachTimetables) {
+                    if (timetable.getIsWeekly()) {
+                        // 周固定课表：检查当前周实例
+                        try {
+                            var currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetable.getId());
+                            if (currentInstance != null) {
+                                var instanceSchedules = weeklyInstanceService.getSchedulesByInstanceId(currentInstance.getId());
+                                weeklyCourses += instanceSchedules.size();
+                                
+                                // 检查当天是否有课程
+                                todayCourses += instanceSchedules.stream()
+                                        .mapToInt(schedule -> {
+                                            if (schedule.getScheduleDate() != null && 
+                                                schedule.getScheduleDate().equals(today)) {
+                                                return 1;
+                                            }
+                                            return 0;
+                                        })
+                                        .sum();
+                            }
+                        } catch (Exception e) {
+                            // 忽略错误，继续处理其他课表
+                        }
+                    } else {
+                        // 日期范围课表：直接查询
+                        try {
+                            var schedules = scheduleService.getSchedulesByTimetableId(timetable.getId());
+                            weeklyCourses += schedules.size();
+                            
+                            // 检查当天是否有课程
+                            todayCourses += schedules.stream()
+                                    .mapToInt(schedule -> {
+                                        if (schedule.getScheduleDate() != null && 
+                                            schedule.getScheduleDate().equals(today)) {
+                                            return 1;
+                                        }
+                                        return 0;
+                                    })
+                                    .sum();
+                        } catch (Exception e) {
+                            // 忽略错误，继续处理其他课表
+                        }
+                    }
+                }
+                
+                coachStat.put("todayCourses", todayCourses);
+                coachStat.put("weeklyCourses", weeklyCourses);
+                
+                return coachStat;
+            }).collect(Collectors.toList());
+            
+            statistics.put("coaches", coachStats);
+            statistics.put("totalCoaches", coaches.size());
+            statistics.put("totalTodayCourses", coachStats.stream().mapToInt(c -> (Integer) c.get("todayCourses")).sum());
+            statistics.put("totalWeeklyCourses", coachStats.stream().mapToInt(c -> (Integer) c.get("weeklyCourses")).sum());
+            
+            return ResponseEntity.ok(ApiResponse.success("获取教练统计信息成功", statistics));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取统计信息失败: " + e.getMessage()));
         }
     }
 } 
