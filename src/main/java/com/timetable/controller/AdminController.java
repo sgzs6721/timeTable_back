@@ -7,6 +7,9 @@ import com.timetable.dto.CopyTimetableRequest;
 import com.timetable.dto.PendingUserDTO;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.generated.tables.pojos.Timetables;
+import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.entity.WeeklyInstance;
+import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
 import com.timetable.service.ScheduleService;
@@ -431,7 +434,15 @@ public class AdminController {
             Map<String, Object> statistics = new HashMap<>();
             
             // 获取所有非管理员用户
-            List<Users> coaches = userService.getAllUsers().stream()
+            List<Users> coaches = userService.getAllUsersForAdmin().stream()
+                    .map(userMap -> {
+                        Users user = new Users();
+                        user.setId((Long) userMap.get("id"));
+                        user.setUsername((String) userMap.get("username"));
+                        user.setNickname((String) userMap.get("nickname"));
+                        user.setRole((String) userMap.get("role"));
+                        return user;
+                    })
                     .filter(user -> !"ADMIN".equalsIgnoreCase(user.getRole()))
                     .collect(Collectors.toList());
             
@@ -442,7 +453,7 @@ public class AdminController {
                 coachStat.put("nickname", coach.getNickname());
                 
                 // 获取该教练的课表
-                List<Timetables> coachTimetables = timetableService.getTimetablesByUserId(coach.getId());
+                List<Timetables> coachTimetables = timetableService.getUserTimetables(coach.getId());
                 coachStat.put("timetableCount", coachTimetables.size());
                 
                 // 计算当天课程数
@@ -454,32 +465,29 @@ public class AdminController {
                 int weeklyCourses = 0;
                 
                 for (Timetables timetable : coachTimetables) {
-                    if (timetable.getIsWeekly()) {
+                    if (timetable.getIsWeekly() != null && timetable.getIsWeekly().byteValue() == 1) {
                         // 周固定课表：检查当前周实例
                         try {
-                            var currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetable.getId());
-                            if (currentInstance != null) {
-                                var instanceSchedules = weeklyInstanceService.getSchedulesByInstanceId(currentInstance.getId());
-                                weeklyCourses += instanceSchedules.size();
-                                
-                                // 检查当天是否有课程
-                                todayCourses += instanceSchedules.stream()
-                                        .mapToInt(schedule -> {
-                                            if (schedule.getScheduleDate() != null && 
-                                                schedule.getScheduleDate().equals(today)) {
-                                                return 1;
-                                            }
-                                            return 0;
-                                        })
-                                        .sum();
-                            }
+                            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
+                            weeklyCourses += instanceSchedules.size();
+                            
+                            // 检查当天是否有课程
+                            todayCourses += instanceSchedules.stream()
+                                    .mapToInt(schedule -> {
+                                        if (schedule.getScheduleDate() != null && 
+                                            schedule.getScheduleDate().equals(today)) {
+                                            return 1;
+                                        }
+                                        return 0;
+                                    })
+                                    .sum();
                         } catch (Exception e) {
                             // 忽略错误，继续处理其他课表
                         }
                     } else {
                         // 日期范围课表：直接查询
                         try {
-                            var schedules = scheduleService.getSchedulesByTimetableId(timetable.getId());
+                            List<Schedules> schedules = scheduleService.getTimetableSchedules(timetable.getId(), null);
                             weeklyCourses += schedules.size();
                             
                             // 检查当天是否有课程
