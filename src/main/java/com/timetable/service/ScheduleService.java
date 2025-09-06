@@ -660,6 +660,23 @@ public class ScheduleService {
         return total;
     }
 
+    /**
+     * 批量按ID删除排课
+     */
+    public int deleteSchedulesByIds(List<Long> scheduleIds) {
+        int deletedCount = 0;
+        for (Long scheduleId : scheduleIds) {
+            try {
+                scheduleRepository.deleteById(scheduleId);
+                deletedCount++;
+            } catch (Exception e) {
+                // 记录错误但继续删除其他课程
+                logger.error("删除课程失败，ID: {}, 错误: {}", scheduleId, e.getMessage());
+            }
+        }
+        return deletedCount;
+    }
+
     public List<ScheduleInfo> parseTextWithRules(String text, String type) {
         List<ScheduleInfo> scheduleInfoList = new ArrayList<>();
         // 预处理：替换所有分隔符和关键词，并将中文数字转为阿拉伯数字

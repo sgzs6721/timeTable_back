@@ -451,6 +451,32 @@ public class ScheduleController {
     }
 
     /**
+     * 批量按ID删除排课
+     */
+    @DeleteMapping("/batch/ids")
+    public ResponseEntity<ApiResponse<Integer>> deleteSchedulesByIds(
+            @PathVariable Long timetableId,
+            @RequestBody List<Long> scheduleIds,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+        
+        int deleted = scheduleService.deleteSchedulesByIds(scheduleIds);
+        
+        // 同步到周实例
+        syncToWeeklyInstances(timetableId);
+        
+        return ResponseEntity.ok(ApiResponse.success("批量删除排课成功", deleted));
+    }
+
+    /**
      * 清空课表的所有课程
      */
     @DeleteMapping(value = "/clear", produces = "application/json")
