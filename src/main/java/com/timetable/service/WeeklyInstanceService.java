@@ -459,6 +459,23 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 批量删除周实例中的课程
+     */
+    public int deleteInstanceSchedulesBatch(List<Long> scheduleIds) {
+        int deletedCount = 0;
+        for (Long scheduleId : scheduleIds) {
+            try {
+                weeklyInstanceScheduleRepository.delete(scheduleId);
+                deletedCount++;
+            } catch (Exception e) {
+                // 记录错误但继续删除其他课程
+                log.error("删除实例课程失败，ID: {}, 错误: {}", scheduleId, e.getMessage());
+            }
+        }
+        return deletedCount;
+    }
+
+    /**
      * 检查课表是否有当前周实例
      */
     public boolean hasCurrentWeekInstance(Long templateTimetableId) {

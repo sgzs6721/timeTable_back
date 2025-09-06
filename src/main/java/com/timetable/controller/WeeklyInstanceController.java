@@ -376,6 +376,27 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 批量删除周实例中的课程
+     */
+    @DeleteMapping("/schedules/batch")
+    public ResponseEntity<ApiResponse<Integer>> deleteInstanceSchedulesBatch(
+            @RequestBody List<Long> scheduleIds,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            int deletedCount = weeklyInstanceService.deleteInstanceSchedulesBatch(scheduleIds);
+            return ResponseEntity.ok(ApiResponse.success("批量删除实例课程成功", deletedCount));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("批量删除课程失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 同步模板课表到周实例
      */
     @PostMapping("/sync/{timetableId}")
