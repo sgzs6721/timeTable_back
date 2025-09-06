@@ -469,7 +469,7 @@ public class WeeklyInstanceService {
                 deletedCount++;
             } catch (Exception e) {
                 // 记录错误但继续删除其他课程
-                log.error("删除实例课程失败，ID: {}, 错误: {}", scheduleId, e.getMessage());
+                logger.error("删除实例课程失败，ID: {}, 错误: {}", scheduleId, e.getMessage());
             }
         }
         return deletedCount;
