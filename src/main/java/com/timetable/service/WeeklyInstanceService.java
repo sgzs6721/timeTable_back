@@ -23,6 +23,7 @@ import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -178,6 +179,79 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 智能同步模板课程到周实例（以固定课表为准覆盖实例内容）
+     */
+    @Transactional
+    public void syncTemplateToInstanceWithOverride(WeeklyInstance instance) {
+        // 获取模板课表的所有课程
+        List<Schedules> templateSchedules = scheduleRepository.findByTimetableId(instance.getTemplateTimetableId());
+        
+        // 获取实例中现有的所有课程
+        List<WeeklyInstanceSchedule> existingSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+        
+        // 创建现有课程的映射，用于快速查找
+        Map<String, WeeklyInstanceSchedule> existingScheduleMap = new HashMap<>();
+        for (WeeklyInstanceSchedule schedule : existingSchedules) {
+            String key = schedule.getDayOfWeek() + "_" + schedule.getStartTime() + "_" + schedule.getEndTime();
+            existingScheduleMap.put(key, schedule);
+        }
+        
+        // 处理模板课程
+        for (Schedules templateSchedule : templateSchedules) {
+            // 计算具体日期
+            LocalDate scheduleDate = calculateScheduleDate(instance.getWeekStartDate(), templateSchedule.getDayOfWeek());
+            
+            String key = templateSchedule.getDayOfWeek() + "_" + templateSchedule.getStartTime() + "_" + templateSchedule.getEndTime();
+            WeeklyInstanceSchedule existingSchedule = existingScheduleMap.get(key);
+            
+            if (existingSchedule != null) {
+                // 如果实例中已存在相同时间段的课程，以固定课表为准进行覆盖
+                existingSchedule.setTemplateScheduleId(templateSchedule.getId());
+                existingSchedule.setStudentName(templateSchedule.getStudentName());
+                existingSchedule.setSubject(templateSchedule.getSubject());
+                existingSchedule.setNote(templateSchedule.getNote());
+                existingSchedule.setIsManualAdded(false); // 标记为模板同步的课程
+                existingSchedule.setIsModified(false); // 重置修改标记
+                existingSchedule.setUpdatedAt(LocalDateTime.now());
+                
+                weeklyInstanceScheduleRepository.save(existingSchedule);
+                
+                // 从映射中移除，表示已处理
+                existingScheduleMap.remove(key);
+            } else {
+                // 如果实例中不存在，创建新的课程
+                WeeklyInstanceSchedule newSchedule = new WeeklyInstanceSchedule(
+                    instance.getId(),
+                    templateSchedule.getId(),
+                    templateSchedule.getStudentName(),
+                    templateSchedule.getSubject(),
+                    templateSchedule.getDayOfWeek(),
+                    templateSchedule.getStartTime(),
+                    templateSchedule.getEndTime(),
+                    scheduleDate,
+                    templateSchedule.getNote()
+                );
+                newSchedule.setIsManualAdded(false);
+                newSchedule.setIsModified(false);
+                newSchedule.setCreatedAt(LocalDateTime.now());
+                newSchedule.setUpdatedAt(LocalDateTime.now());
+                
+                weeklyInstanceScheduleRepository.save(newSchedule);
+            }
+        }
+        
+        // 删除实例中不再存在于模板中的非手动添加课程
+        for (WeeklyInstanceSchedule schedule : existingScheduleMap.values()) {
+            if (schedule.getIsManualAdded() == null || !schedule.getIsManualAdded()) {
+                weeklyInstanceScheduleRepository.delete(schedule.getId());
+            }
+        }
+        
+        // 更新实例的同步时间
+        weeklyInstanceRepository.updateLastSyncedAt(instance.getId(), LocalDateTime.now());
+    }
+
+    /**
      * 完全恢复周实例为固定课表状态（删除所有课程，包括手动添加的）
      */
     @Transactional
@@ -278,7 +352,8 @@ public class WeeklyInstanceService {
         List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateTimetableId(templateTimetableId);
         
         for (WeeklyInstance instance : instances) {
-            syncSchedulesFromTemplate(instance);
+            // 使用智能同步逻辑，以固定课表为准覆盖实例内容
+            syncTemplateToInstanceWithOverride(instance);
         }
     }
 
