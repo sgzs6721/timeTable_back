@@ -21,10 +21,10 @@ public class WeeklyInstanceScheduledTask {
     // 已废弃：每周一1点生成本周实例（改为周日19点预生下周实例）
 
     /**
-     * 每周日19:00预生成下周实例
-     * 0 0 19 * * SUN 表示每周日的19:00:00执行
+     * 每周日01:00预生成下周实例
+     * 0 0 1 * * SUN 表示每周日的01:00:00执行
      */
-    @Scheduled(cron = "0 0 19 * * SUN")
+    @Scheduled(cron = "0 0 1 * * SUN")
     public void generateNextWeekInstances() {
         logger.info("开始执行定时任务：为所有活动课表生成下周实例");
         try {
