@@ -268,18 +268,25 @@ public class TimetableController {
      * 获取归档课表列表
      */
     @GetMapping("/archived")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getArchivedTimetables(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getArchivedTimetables(
+            Authentication authentication,
+            @org.springframework.web.bind.annotation.RequestParam(value = "scope", required = false) String scope) {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         List<AdminTimetableDTO> list;
 
-        // 管理员可以查看所有用户的归档课表，普通用户只能查看自己的
-        if (user.getRole() != null && user.getRole().toUpperCase().equals("ADMIN")) {
-            list = timetableService.findAllArchivedTimetables();
-        } else {
+        // 当scope=self时，无论角色，只返回当前用户的归档课表
+        if ("self".equalsIgnoreCase(scope)) {
             list = timetableService.findArchivedByUserId(user.getId());
+        } else {
+            // 默认行为：管理员查看所有，普通用户查看自己的
+            if (user.getRole() != null && user.getRole().toUpperCase().equals("ADMIN")) {
+                list = timetableService.findAllArchivedTimetables();
+            } else {
+                list = timetableService.findArchivedByUserId(user.getId());
+            }
         }
 
         Map<String, Object> responseData = new HashMap<>();
