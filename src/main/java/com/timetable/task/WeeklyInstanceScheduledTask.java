@@ -18,22 +18,7 @@ public class WeeklyInstanceScheduledTask {
     @Autowired
     private WeeklyInstanceService weeklyInstanceService;
 
-    /**
-     * 每周一凌晨1点自动生成当前周实例
-     * cron: 秒 分 时 日 月 周
-     * 0 0 1 * * MON 表示每周一的1:00:00执行
-     */
-    @Scheduled(cron = "0 0 1 * * MON")
-    public void generateWeeklyInstancesForNewWeek() {
-        logger.info("开始执行定时任务：为所有活动课表生成当前周实例");
-        
-        try {
-            weeklyInstanceService.generateCurrentWeekInstancesForAllActiveTimetables();
-            logger.info("定时任务执行成功：为所有活动课表生成当前周实例");
-        } catch (Exception e) {
-            logger.error("定时任务执行失败：生成当前周实例时发生错误", e);
-        }
-    }
+    // 已废弃：每周一1点生成本周实例（改为周日19点预生下周实例）
 
     /**
      * 每周日19:00预生成下周实例
