@@ -734,17 +734,21 @@ public class WeeklyInstanceService {
             List<WeeklyInstanceSchedule> instanceSchedules = new ArrayList<>();
 
             if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
-                // 周固定：根据目标日期选择当前周或下周实例
+                // 周固定：以目标日期归属的周为准选择实例
                 WeeklyInstance instance;
-                LocalDate monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-                LocalDate nextMonday = monday.plusWeeks(1);
-                if (!targetDate.isBefore(nextMonday)) {
-                    // 目标日期在下周或之后，取下周实例
-                    String yearWeek = generateYearWeekString(nextMonday);
-                    instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
-                } else {
-                    // 本周
-                    instance = getCurrentWeekInstance(timetable.getId());
+                LocalDate targetMonday = targetDate.with(java.time.DayOfWeek.MONDAY);
+                String yearWeek = generateYearWeekString(targetMonday);
+                instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
+                if (instance == null) {
+                    // 按周生成：若目标周是当前周，则生成当前周；若是下周，则生成下周
+                    LocalDate thisMonday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+                    if (targetMonday.isAfter(thisMonday)) {
+                        try { generateNextWeekInstance(timetable.getId()); } catch (Exception ignored) {}
+                        instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
+                    } else if (targetMonday.isEqual(thisMonday)) {
+                        try { generateCurrentWeekInstance(timetable.getId()); } catch (Exception ignored) {}
+                        instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
+                    }
                 }
 
                 if (instance != null) {
