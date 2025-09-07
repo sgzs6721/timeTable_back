@@ -358,6 +358,71 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 仅对当前周实例同步“特定模板课程”，并且只覆盖“当前时间之后”的时段。
+     * 用于在固定课表新增课程时的选择性同步。
+     */
+    @Transactional
+    public void syncSpecificTemplateSchedulesToCurrentInstanceSelective(Long templateTimetableId, java.util.List<Schedules> templateSchedules) {
+        if (templateSchedules == null || templateSchedules.isEmpty()) {
+            return;
+        }
+        WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
+        if (currentInstance == null) {
+            return;
+        }
+
+        // 现有实例课程映射（key: DOW_start_end）
+        java.util.List<WeeklyInstanceSchedule> existing = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
+        java.util.Map<String, WeeklyInstanceSchedule> existingMap = new java.util.HashMap<>();
+        for (WeeklyInstanceSchedule s : existing) {
+            String key = s.getDayOfWeek() + "_" + s.getStartTime() + "_" + s.getEndTime();
+            existingMap.put(key, s);
+        }
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        for (Schedules templateSchedule : templateSchedules) {
+            // 计算本周具体日期
+            java.time.LocalDate date = calculateScheduleDate(currentInstance.getWeekStartDate(), templateSchedule.getDayOfWeek());
+            java.time.LocalDateTime scheduleStart = java.time.LocalDateTime.of(date, templateSchedule.getStartTime());
+
+            // 仅当课程开始时间晚于当前时间才同步覆盖
+            if (scheduleStart.isAfter(now)) {
+                String key = templateSchedule.getDayOfWeek() + "_" + templateSchedule.getStartTime() + "_" + templateSchedule.getEndTime();
+                WeeklyInstanceSchedule exist = existingMap.get(key);
+                if (exist != null) {
+                    // 覆盖
+                    exist.setTemplateScheduleId(templateSchedule.getId());
+                    exist.setStudentName(templateSchedule.getStudentName());
+                    exist.setSubject(templateSchedule.getSubject());
+                    exist.setNote(templateSchedule.getNote());
+                    exist.setIsManualAdded(false);
+                    exist.setIsModified(false);
+                    exist.setUpdatedAt(java.time.LocalDateTime.now());
+                    weeklyInstanceScheduleRepository.save(exist);
+                } else {
+                    // 新增
+                    WeeklyInstanceSchedule instanceSchedule = new WeeklyInstanceSchedule(
+                            currentInstance.getId(),
+                            templateSchedule.getId(),
+                            templateSchedule.getStudentName(),
+                            templateSchedule.getSubject(),
+                            templateSchedule.getDayOfWeek(),
+                            templateSchedule.getStartTime(),
+                            templateSchedule.getEndTime(),
+                            date,
+                            templateSchedule.getNote()
+                    );
+                    weeklyInstanceScheduleRepository.save(instanceSchedule);
+                }
+            }
+        }
+
+        // 更新同步时间
+        weeklyInstanceRepository.updateLastSyncedAt(currentInstance.getId(), java.time.LocalDateTime.now());
+    }
+
+    /**
      * 完全恢复当前周实例为固定课表状态
      */
     @Transactional
