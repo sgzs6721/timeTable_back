@@ -292,7 +292,7 @@ public class TimetableController {
      * 批量恢复归档课表
      */
     @PostMapping("/batch-restore")
-    public ResponseEntity<ApiResponse<String>> batchRestoreTimetables(
+    public ResponseEntity<ApiResponse<Integer>> batchRestoreTimetables(
             @Valid @RequestBody BatchTimetableRequest request,
             Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
@@ -301,7 +301,7 @@ public class TimetableController {
         }
         try {
             int count = timetableService.batchRestoreTimetables(request.getIds(), user.getId());
-            return ResponseEntity.ok(ApiResponse.success(count + " 个课表已恢复"));
+            return ResponseEntity.ok(ApiResponse.success("批量恢复课表成功", count));
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -311,7 +311,7 @@ public class TimetableController {
      * 批量彻底删除课表
      */
     @PostMapping("/batch-delete")
-    public ResponseEntity<ApiResponse<String>> batchDeleteTimetables(
+    public ResponseEntity<ApiResponse<Integer>> batchDeleteTimetables(
             @Valid @RequestBody BatchTimetableRequest request,
             Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
@@ -319,7 +319,7 @@ public class TimetableController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         int count = timetableService.batchDeleteTimetables(request.getIds(), user.getId());
-        return ResponseEntity.ok(ApiResponse.success(count + " 个课表已删除"));
+        return ResponseEntity.ok(ApiResponse.success("批量删除课表成功", count));
     }
 
     /**
