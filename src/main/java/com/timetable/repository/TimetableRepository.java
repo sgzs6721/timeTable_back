@@ -181,4 +181,16 @@ public class TimetableRepository {
                                 .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
+
+    /**
+     * 查找所有用户的归档课表（管理员专用）
+     */
+    public List<com.timetable.generated.tables.pojos.Timetables> findAllArchivedTimetables() {
+        return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq((byte) 1)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
+                .orderBy(com.timetable.generated.tables.Timetables.TIMETABLES.CREATED_AT.desc())
+                .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
+    }
 } 

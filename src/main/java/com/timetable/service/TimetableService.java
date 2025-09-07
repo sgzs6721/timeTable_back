@@ -452,6 +452,50 @@ public class TimetableService {
     }
 
     /**
+     * 查找所有用户的归档课表（管理员专用）
+     */
+    public List<AdminTimetableDTO> findAllArchivedTimetables() {
+        List<Timetables> timetables = timetableRepository.findAllArchivedTimetables();
+        
+        // 按用户ID分组，批量获取用户信息
+        Map<Long, List<Timetables>> timetablesByUser = timetables.stream()
+                .collect(Collectors.groupingBy(Timetables::getUserId));
+        
+        Map<Long, com.timetable.generated.tables.pojos.Users> userMap = new HashMap<>();
+        for (Long userId : timetablesByUser.keySet()) {
+            try {
+                com.timetable.generated.tables.pojos.Users user = userService.findById(userId);
+                if (user != null && (user.getIsDeleted() == null || user.getIsDeleted() == 0)) {
+                    userMap.put(userId, user);
+                }
+            } catch (Exception ignored) {
+                // 忽略获取用户信息失败的情况
+            }
+        }
+        
+        return timetables.stream()
+                .filter(t -> userMap.containsKey(t.getUserId())) // 只包含有效用户的课表
+                .map(t -> {
+                    com.timetable.generated.tables.pojos.Users user = userMap.get(t.getUserId());
+                    return new AdminTimetableDTO(
+                            t.getId(),
+                            t.getUserId(),
+                            user.getUsername(),
+                            user.getNickname(),
+                            t.getName(),
+                            t.getIsWeekly() != null && t.getIsWeekly() == 1,
+                            t.getStartDate(),
+                            t.getEndDate(),
+                            0, // scheduleCount not needed for this view
+                            t.getCreatedAt(),
+                            t.getIsActive(),
+                            t.getIsArchived()
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 批量删除课表
      */
     @Transactional

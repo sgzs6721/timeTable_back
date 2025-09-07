@@ -275,8 +275,12 @@ public class TimetableController {
         }
         List<AdminTimetableDTO> list;
 
-        // 管理员也只能查看自己的归档课表
-        list = timetableService.findArchivedByUserId(user.getId());
+        // 管理员可以查看所有用户的归档课表，普通用户只能查看自己的
+        if (user.getRole() != null && user.getRole().toUpperCase().equals("ADMIN")) {
+            list = timetableService.findAllArchivedTimetables();
+        } else {
+            list = timetableService.findArchivedByUserId(user.getId());
+        }
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("archivedList", list);
