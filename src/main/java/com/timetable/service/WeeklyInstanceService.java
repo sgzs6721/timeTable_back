@@ -139,6 +139,49 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 为指定模板课表生成“下周”的周实例并同步模板课程
+     */
+    @Transactional
+    public WeeklyInstance generateNextWeekInstance(Long templateTimetableId) {
+        LocalDate nextWeekStart = LocalDate.now().with(java.time.DayOfWeek.MONDAY).plusWeeks(1);
+        LocalDate nextWeekEnd = nextWeekStart.plusDays(6);
+        String yearWeek = generateYearWeekString(nextWeekStart);
+
+        WeeklyInstance existingInstance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
+        if (existingInstance != null) {
+            return existingInstance;
+        }
+
+        WeeklyInstance instance = new WeeklyInstance(templateTimetableId, nextWeekStart, nextWeekEnd, yearWeek);
+        instance = weeklyInstanceRepository.save(instance);
+        if (instance.getId() == null) {
+            throw new RuntimeException("保存下周实例失败");
+        }
+        syncSchedulesFromTemplate(instance);
+        return instance;
+    }
+
+    /**
+     * 为所有活动课表生成“下周”的周实例
+     */
+    @Transactional
+    public void generateNextWeekInstancesForAllActiveTimetables() {
+        List<Timetables> activeTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsWeekly() != null && t.getIsWeekly() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+
+        for (Timetables timetable : activeTimetables) {
+            try {
+                generateNextWeekInstance(timetable.getId());
+            } catch (Exception ignored) {}
+        }
+    }
+
+    /**
      * 从模板课表同步课程到周实例（保留手动添加的课程）
      */
     @Transactional

@@ -36,6 +36,21 @@ public class WeeklyInstanceScheduledTask {
     }
 
     /**
+     * 每周日19:00预生成下周实例
+     * 0 0 19 * * SUN 表示每周日的19:00:00执行
+     */
+    @Scheduled(cron = "0 0 19 * * SUN")
+    public void generateNextWeekInstances() {
+        logger.info("开始执行定时任务：为所有活动课表生成下周实例");
+        try {
+            weeklyInstanceService.generateNextWeekInstancesForAllActiveTimetables();
+            logger.info("定时任务执行成功：生成下周实例");
+        } catch (Exception e) {
+            logger.error("定时任务执行失败：生成下周实例时发生错误", e);
+        }
+    }
+
+    /**
      * 每天凌晨2点检查并生成当前周实例（防止遗漏）
      * cron: 0 0 2 * * * 表示每天的2:00:00执行
      */

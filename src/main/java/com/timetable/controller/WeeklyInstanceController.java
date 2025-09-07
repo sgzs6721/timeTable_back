@@ -206,6 +206,36 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 生成下周实例（手动）
+     */
+    @PostMapping("/next-week/generate/{timetableId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> generateNextWeekInstanceManual(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        // 非管理员需要验证课表归属
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
+            if (timetable == null) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+        try {
+            WeeklyInstance instance = weeklyInstanceService.generateNextWeekInstance(timetableId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", instance.getId());
+            data.put("weekStartDate", instance.getWeekStartDate());
+            data.put("weekEndDate", instance.getWeekEndDate());
+            return ResponseEntity.ok(ApiResponse.success("生成下周实例成功", data));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("生成失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 在周实例中创建课程
      */
     @PostMapping("/{instanceId}/schedules")
