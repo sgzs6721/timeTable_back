@@ -469,8 +469,10 @@ public class AdminController {
                 String todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 int todayCourses = 0;
                 
-                // 计算当周课程数
+                // 计算当周课程数（仅统计本周范围内的课程）
                 int weeklyCourses = 0;
+                java.time.LocalDate startOfWeek = today.with(java.time.DayOfWeek.MONDAY);
+                java.time.LocalDate endOfWeek = today.with(java.time.DayOfWeek.SUNDAY);
                 
                 // 收集今日课程明细
                 java.util.List<java.util.Map<String, Object>> todayCourseDetails = new java.util.ArrayList<>();
@@ -503,11 +505,14 @@ public class AdminController {
                             // 忽略错误，继续处理其他课表
                         }
                     } else {
-                        // 日期范围课表：直接查询
+                        // 日期范围课表：查询并过滤为本周范围
                         try {
                             List<Schedules> schedules = scheduleService.getTimetableSchedules(timetable.getId(), null);
-                            // 课程当前实现为物理删除，这里直接统计
-                            List<Schedules> validSchedules = schedules;
+                            // 课程当前实现为物理删除，仅统计本周的课程
+                            List<Schedules> validSchedules = schedules.stream()
+                                    .filter(s -> s.getScheduleDate() != null
+                                            && ( !s.getScheduleDate().isBefore(startOfWeek) && !s.getScheduleDate().isAfter(endOfWeek) ))
+                                    .collect(java.util.stream.Collectors.toList());
                             weeklyCourses += validSchedules.size();
                             
                             // 检查当天是否有课程
