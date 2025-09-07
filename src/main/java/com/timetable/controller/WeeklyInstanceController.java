@@ -206,6 +206,25 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 根据日期返回“实例逻辑”的活动课表课程（今日从本周实例；明日如果跨周则用下周实例）
+     */
+    @GetMapping("/by-date")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getInstanceSchedulesByDate(
+            @RequestParam String date,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        try {
+            Map<String, Object> map = weeklyInstanceService.getActiveInstanceSchedulesByDate(date);
+            return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", map));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 生成下周实例（手动）
      */
     @PostMapping("/next-week/generate/{timetableId}")

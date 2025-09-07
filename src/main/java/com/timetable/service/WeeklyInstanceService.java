@@ -49,6 +49,9 @@ public class WeeklyInstanceService {
     @Autowired
     private ScheduleRepository scheduleRepository;
 
+    @Autowired
+    private com.timetable.service.UserService userService;
+
     /**
      * 为指定的固定课表生成当前周实例
      */
@@ -708,5 +711,85 @@ public class WeeklyInstanceService {
         }
         
         return weekStartDate.with(dayOfWeek);
+    }
+
+    /**
+     * 根据日期返回“实例逻辑”的活动课表课程（今日从本周实例；跨周日期取对应周实例）
+     */
+    public Map<String, Object> getActiveInstanceSchedulesByDate(String dateStr) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> timetableSchedules = new ArrayList<>();
+
+        LocalDate targetDate = LocalDate.parse(dateStr);
+
+        // 获取所有活动课表（未删除未归档）
+        List<Timetables> activeTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+
+        for (Timetables timetable : activeTimetables) {
+            List<WeeklyInstanceSchedule> instanceSchedules = new ArrayList<>();
+
+            if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                // 周固定：根据目标日期选择当前周或下周实例
+                WeeklyInstance instance;
+                LocalDate monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+                LocalDate nextMonday = monday.plusWeeks(1);
+                if (!targetDate.isBefore(nextMonday)) {
+                    // 目标日期在下周或之后，取下周实例
+                    String yearWeek = generateYearWeekString(nextMonday);
+                    instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
+                } else {
+                    // 本周
+                    instance = getCurrentWeekInstance(timetable.getId());
+                }
+
+                if (instance != null) {
+                    List<WeeklyInstanceSchedule> all = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+                    instanceSchedules = all.stream()
+                            .filter(s -> targetDate.equals(s.getScheduleDate()))
+                            .collect(Collectors.toList());
+                }
+            } else {
+                // 日期范围课表：直接取具体日期
+                List<Schedules> daySchedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetable.getId(), targetDate);
+                // 映射为实例样式
+                instanceSchedules = daySchedules.stream().map(s -> {
+                    WeeklyInstanceSchedule w = new WeeklyInstanceSchedule();
+                    w.setStudentName(s.getStudentName());
+                    w.setSubject(s.getSubject());
+                    w.setDayOfWeek(s.getDayOfWeek());
+                    w.setStartTime(s.getStartTime());
+                    w.setEndTime(s.getEndTime());
+                    w.setScheduleDate(s.getScheduleDate());
+                    return w;
+                }).collect(Collectors.toList());
+            }
+
+            if (!instanceSchedules.isEmpty()) {
+                Map<String, Object> item = new HashMap<>();
+                // owner 与 timetable 信息
+                com.timetable.generated.tables.pojos.Users u = userService.findById(timetable.getUserId());
+                item.put("ownerName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
+                item.put("timetableId", timetable.getId());
+                item.put("timetableName", timetable.getName());
+                // 明细
+                List<Map<String, Object>> schedules = instanceSchedules.stream().map(s -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("studentName", s.getStudentName());
+                    m.put("startTime", s.getStartTime());
+                    m.put("endTime", s.getEndTime());
+                    return m;
+                }).collect(Collectors.toList());
+                item.put("schedules", schedules);
+                timetableSchedules.add(item);
+            }
+        }
+
+        result.put("timetables", timetableSchedules);
+        return result;
     }
 }
