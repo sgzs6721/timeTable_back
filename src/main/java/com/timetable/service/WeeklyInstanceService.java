@@ -796,4 +796,12 @@ public class WeeklyInstanceService {
         result.put("timetables", timetableSchedules);
         return result;
     }
+    
+    /**
+     * 根据日期查找周实例
+     */
+    public WeeklyInstance findInstanceByDate(Long templateTimetableId, LocalDate date) {
+        String yearWeek = generateYearWeekString(date);
+        return weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
+    }
 }

@@ -233,6 +233,16 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
     }
 
     /**
+     * 根据周实例ID统计课程数量
+     */
+    public int countByWeeklyInstanceId(Long weeklyInstanceId) {
+        return dsl.selectCount()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .fetchOne(0, Integer.class);
+    }
+
+    /**
      * 映射Record到WeeklyInstanceSchedule
      */
     private WeeklyInstanceSchedule mapToWeeklyInstanceSchedule(Record record) {

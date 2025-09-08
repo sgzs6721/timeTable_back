@@ -546,29 +546,23 @@ public class AdminController {
             statistics.put("coaches", coachStats);
             statistics.put("totalCoaches", coaches.size());
             statistics.put("totalTodayCourses", coachStats.stream().mapToInt(c -> (Integer) c.get("todayCourses")).sum());
-            // 重新计算总周课程数（教练所有有效活动课表的课程合计）
-            int totalWeeklyCourses = 0;
+            // 使用第一次遍历时正确计算的周课程数进行累加
+            statistics.put("totalWeeklyCourses", coachStats.stream().mapToInt(c -> (Integer) c.get("weeklyCourses")).sum());
+            
+            // 计算上周课时总数
+            int totalLastWeekCourses = 0;
             for (Users coach : coaches) {
                 List<Timetables> coachTimetables = timetableService.getUserTimetables(coach.getId()).stream()
                         .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
                         .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
                         .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
                         .collect(Collectors.toList());
+                
                 for (Timetables timetable : coachTimetables) {
-                    if (timetable.getIsWeekly() != null && timetable.getIsWeekly().byteValue() == 1) {
-                        try {
-                            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
-                            totalWeeklyCourses += instanceSchedules.size();
-                        } catch (Exception ignored) {}
-                    } else {
-                        try {
-                            List<Schedules> schedules = scheduleService.getTimetableSchedules(timetable.getId(), null);
-                            totalWeeklyCourses += schedules.size();
-                        } catch (Exception ignored) {}
-                    }
+                    totalLastWeekCourses += timetableService.getLastWeekCourseCountForTimetable(timetable.getId());
                 }
             }
-            statistics.put("totalWeeklyCourses", totalWeeklyCourses);
+            statistics.put("totalLastWeekCourses", totalLastWeekCourses);
             
             return ResponseEntity.ok(ApiResponse.success("获取教练统计信息成功", statistics));
         } catch (Exception e) {

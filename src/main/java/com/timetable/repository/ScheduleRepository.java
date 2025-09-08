@@ -163,5 +163,16 @@ public class ScheduleRepository {
                 .fetchInto(Schedules.class);
     }
 
+    /**
+     * 根据日期范围统计课程数量
+     */
+    public int countByTimetableIdAndScheduleDateBetween(Long timetableId, LocalDate startDate, LocalDate endDate) {
+        return dsl.selectCount()
+                .from(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.SCHEDULE_DATE.between(startDate, endDate))
+                .fetchOne(0, Integer.class);
+    }
+
     // 可根据业务扩展更多jOOQ查询
 }

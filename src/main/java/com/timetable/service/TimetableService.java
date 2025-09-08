@@ -1081,4 +1081,30 @@ public class TimetableService {
         }
         return newTable;
     }
+    
+    /**
+     * 获取指定课表上周的课程数量
+     */
+    public int getLastWeekCourseCountForTimetable(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            return 0;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate lastWeekMonday = today.minusWeeks(1).with(DayOfWeek.MONDAY);
+        LocalDate lastWeekSunday = today.minusWeeks(1).with(DayOfWeek.SUNDAY);
+
+        if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+            // 周固定课表：从上周实例获取
+            WeeklyInstance lastWeekInstance = weeklyInstanceService.findInstanceByDate(timetableId, lastWeekMonday);
+            if (lastWeekInstance != null) {
+                return weeklyInstanceScheduleRepository.countByWeeklyInstanceId(lastWeekInstance.getId());
+            }
+            return 0;
+        } else {
+            // 日期范围课表：按上周日期范围查询
+            return scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetableId, lastWeekMonday, lastWeekSunday);
+        }
+    }
 }
