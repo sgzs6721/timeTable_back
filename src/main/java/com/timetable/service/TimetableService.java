@@ -2,6 +2,7 @@ package com.timetable.service;
 
 import com.timetable.dto.TimetableRequest;
 import com.timetable.generated.tables.pojos.Timetables;
+import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
@@ -254,7 +255,6 @@ public class TimetableService {
                     dto.setIsActive(timetable.getIsActive());
                     dto.setIsArchived(timetable.getIsArchived());
                     dto.setCreatedAt(timetable.getCreatedAt());
-                    dto.setUpdatedAt(timetable.getUpdatedAt());
                     if (user != null) {
                         dto.setOwnerUsername(user.getUsername());
                         dto.setOwnerNickname(user.getNickname());
