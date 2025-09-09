@@ -296,23 +296,116 @@ public class WeeklyInstanceService {
             // 计算具体日期
             LocalDate scheduleDate = calculateScheduleDate(instance.getWeekStartDate(), templateSchedule.getDayOfWeek());
             
-            WeeklyInstanceSchedule instanceSchedule = new WeeklyInstanceSchedule(
-                instance.getId(),
-                templateSchedule.getId(),
-                templateSchedule.getStudentName(),
-                templateSchedule.getSubject(),
-                templateSchedule.getDayOfWeek(),
-                templateSchedule.getStartTime(),
-                templateSchedule.getEndTime(),
-                scheduleDate,
-                templateSchedule.getNote()
+            // 检查是否已存在相同的课程（防止重复创建）
+            List<WeeklyInstanceSchedule> existingSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceIdAndDate(
+                instance.getId(), scheduleDate);
+            
+            boolean alreadyExists = existingSchedules.stream().anyMatch(schedule -> 
+                schedule.getStudentName().equals(templateSchedule.getStudentName()) &&
+                schedule.getStartTime().equals(templateSchedule.getStartTime()) &&
+                schedule.getEndTime().equals(templateSchedule.getEndTime())
             );
             
-            weeklyInstanceScheduleRepository.save(instanceSchedule);
+            if (!alreadyExists) {
+                WeeklyInstanceSchedule instanceSchedule = new WeeklyInstanceSchedule(
+                    instance.getId(),
+                    templateSchedule.getId(),
+                    templateSchedule.getStudentName(),
+                    templateSchedule.getSubject(),
+                    templateSchedule.getDayOfWeek(),
+                    templateSchedule.getStartTime(),
+                    templateSchedule.getEndTime(),
+                    scheduleDate,
+                    templateSchedule.getNote()
+                );
+                
+                weeklyInstanceScheduleRepository.save(instanceSchedule);
+                logger.debug("创建实例课程: {} {} {}-{}", 
+                    templateSchedule.getStudentName(), scheduleDate, 
+                    templateSchedule.getStartTime(), templateSchedule.getEndTime());
+            } else {
+                logger.debug("跳过重复课程: {} {} {}-{}", 
+                    templateSchedule.getStudentName(), scheduleDate, 
+                    templateSchedule.getStartTime(), templateSchedule.getEndTime());
+            }
         }
 
         // 更新实例的同步时间
         weeklyInstanceRepository.updateLastSyncedAt(instance.getId(), LocalDateTime.now());
+    }
+
+    /**
+     * 清理指定周实例中的重复课程数据
+     */
+    @Transactional
+    public void cleanDuplicateSchedules(Long weeklyInstanceId) {
+        List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(weeklyInstanceId);
+        
+        // 使用Map来跟踪已处理的课程，key为唯一标识
+        Map<String, WeeklyInstanceSchedule> uniqueSchedules = new HashMap<>();
+        List<Long> duplicateIds = new ArrayList<>();
+        
+        for (WeeklyInstanceSchedule schedule : allSchedules) {
+            String key = schedule.getStudentName() + "_" + schedule.getStartTime() + "_" + 
+                        schedule.getEndTime() + "_" + schedule.getScheduleDate();
+            
+            if (uniqueSchedules.containsKey(key)) {
+                // 发现重复，保留ID较小的（通常是先创建的）
+                WeeklyInstanceSchedule existing = uniqueSchedules.get(key);
+                if (schedule.getId() > existing.getId()) {
+                    duplicateIds.add(schedule.getId());
+                } else {
+                    duplicateIds.add(existing.getId());
+                    uniqueSchedules.put(key, schedule);
+                }
+            } else {
+                uniqueSchedules.put(key, schedule);
+            }
+        }
+        
+        // 删除重复的课程
+        for (Long duplicateId : duplicateIds) {
+            weeklyInstanceScheduleRepository.delete(duplicateId);
+            logger.info("删除重复课程，ID: {}", duplicateId);
+        }
+        
+        logger.info("清理完成，删除了 {} 个重复课程", duplicateIds.size());
+    }
+
+    /**
+     * 清理所有周实例中的重复课程数据
+     */
+    @Transactional
+    public Map<String, Object> cleanAllDuplicateSchedules() {
+        Map<String, Object> result = new HashMap<>();
+        int totalCleaned = 0;
+        int instancesProcessed = 0;
+        
+        List<WeeklyInstance> allInstances = weeklyInstanceRepository.findAll();
+        
+        for (WeeklyInstance instance : allInstances) {
+            try {
+                List<WeeklyInstanceSchedule> beforeSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+                cleanDuplicateSchedules(instance.getId());
+                List<WeeklyInstanceSchedule> afterSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+                
+                int cleaned = beforeSchedules.size() - afterSchedules.size();
+                totalCleaned += cleaned;
+                instancesProcessed++;
+                
+                if (cleaned > 0) {
+                    logger.info("实例 {} 清理了 {} 个重复课程", instance.getId(), cleaned);
+                }
+            } catch (Exception e) {
+                logger.error("清理实例 {} 的重复课程失败: {}", instance.getId(), e.getMessage());
+            }
+        }
+        
+        result.put("instancesProcessed", instancesProcessed);
+        result.put("totalCleaned", totalCleaned);
+        result.put("message", String.format("处理了 %d 个实例，清理了 %d 个重复课程", instancesProcessed, totalCleaned));
+        
+        return result;
     }
 
     /**

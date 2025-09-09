@@ -625,6 +625,20 @@ public class AdminController {
     }
 
     /**
+     * 清理所有周实例中的重复课程数据
+     */
+    @PostMapping("/clean-duplicate-schedules")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cleanDuplicateSchedules() {
+        try {
+            Map<String, Object> result = weeklyInstanceService.cleanAllDuplicateSchedules();
+            return ResponseEntity.ok(ApiResponse.success("清理重复数据完成", result));
+        } catch (Exception e) {
+            logger.error("清理重复数据失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("清理重复数据失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 调试接口：检查指定课表的模板数据和实例数据
      */
     @GetMapping("/debug/timetable/{timetableId}")
@@ -655,6 +669,27 @@ public class AdminController {
                     .collect(Collectors.toList());
                 result.put("todaySchedules", todaySchedules);
                 result.put("todayCount", todaySchedules.size());
+                
+                // 检查今日课程中是否有重复数据
+                Map<String, Integer> duplicateCheck = new HashMap<>();
+                for (WeeklyInstanceSchedule schedule : todaySchedules) {
+                    String key = schedule.getStudentName() + "_" + schedule.getStartTime() + "_" + schedule.getEndTime();
+                    duplicateCheck.put(key, duplicateCheck.getOrDefault(key, 0) + 1);
+                }
+                result.put("duplicateCheck", duplicateCheck);
+                
+                // 通过ScheduleService获取今日课程（转换后的数据）
+                List<Schedules> todaySchedulesConverted = scheduleService.getTodaySchedules(timetableId);
+                result.put("todaySchedulesConverted", todaySchedulesConverted);
+                result.put("todayConvertedCount", todaySchedulesConverted.size());
+                
+                // 检查转换后的数据是否有重复
+                Map<String, Integer> duplicateCheckConverted = new HashMap<>();
+                for (Schedules schedule : todaySchedulesConverted) {
+                    String key = schedule.getStudentName() + "_" + schedule.getStartTime() + "_" + schedule.getEndTime();
+                    duplicateCheckConverted.put(key, duplicateCheckConverted.getOrDefault(key, 0) + 1);
+                }
+                result.put("duplicateCheckConverted", duplicateCheckConverted);
             } else {
                 result.put("currentInstance", null);
                 result.put("instanceSchedules", new ArrayList<>());
