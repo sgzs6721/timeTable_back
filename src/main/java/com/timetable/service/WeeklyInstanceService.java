@@ -778,14 +778,19 @@ public class WeeklyInstanceService {
                 // owner 与 timetable 信息
                 com.timetable.generated.tables.pojos.Users u = userService.findById(timetable.getUserId());
                 item.put("ownerName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
+                item.put("ownerNickname", u != null ? u.getNickname() : null);
+                item.put("ownerUsername", u != null ? u.getUsername() : "");
                 item.put("timetableId", timetable.getId());
                 item.put("timetableName", timetable.getName());
+                item.put("isWeekly", timetable.getIsWeekly());
                 // 明细
                 List<Map<String, Object>> schedules = instanceSchedules.stream().map(s -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("studentName", s.getStudentName());
                     m.put("startTime", s.getStartTime());
                     m.put("endTime", s.getEndTime());
+                    // 标记是否来自实例（周固定课表的实例数据）
+                    m.put("isFromInstance", timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1);
                     return m;
                 }).collect(Collectors.toList());
                 item.put("schedules", schedules);
@@ -793,7 +798,7 @@ public class WeeklyInstanceService {
             }
         }
 
-        result.put("timetables", timetableSchedules);
+        result.put("timetableSchedules", timetableSchedules);
         return result;
     }
     
