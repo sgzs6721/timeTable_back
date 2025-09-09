@@ -249,15 +249,15 @@ public class TimetableService {
                     AdminTimetableDTO dto = new AdminTimetableDTO();
                     dto.setId(timetable.getId());
                     dto.setName(timetable.getName());
-                    dto.setIsWeekly(timetable.getIsWeekly());
+                    dto.setIsWeekly(timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1);
                     dto.setStartDate(timetable.getStartDate());
                     dto.setEndDate(timetable.getEndDate());
                     dto.setIsActive(timetable.getIsActive());
                     dto.setIsArchived(timetable.getIsArchived());
                     dto.setCreatedAt(timetable.getCreatedAt());
                     if (user != null) {
-                        dto.setOwnerUsername(user.getUsername());
-                        dto.setOwnerNickname(user.getNickname());
+                        dto.setUsername(user.getUsername());
+                        dto.setNickname(user.getNickname());
                     }
                     return dto;
                 })
