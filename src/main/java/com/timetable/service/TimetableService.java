@@ -1142,4 +1142,46 @@ public class TimetableService {
             return scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetableId, lastWeekMonday, lastWeekSunday);
         }
     }
+    
+    public List<Object> getActiveTemplates() {
+        List<Timetables> activeTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+        
+        List<Object> allTemplates = new ArrayList<>();
+        
+        for (Timetables timetable : activeTimetables) {
+            try {
+                List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableId(timetable.getId());
+                for (Schedules schedule : templateSchedules) {
+                    Map<String, Object> scheduleData = new HashMap<>();
+                    scheduleData.put("id", schedule.getId());
+                    scheduleData.put("timetableId", timetable.getId());
+                    scheduleData.put("timetableName", timetable.getName());
+                    scheduleData.put("studentName", schedule.getStudentName());
+                    scheduleData.put("subject", schedule.getSubject());
+                    scheduleData.put("dayOfWeek", schedule.getDayOfWeek());
+                    scheduleData.put("startTime", schedule.getStartTime());
+                    scheduleData.put("endTime", schedule.getEndTime());
+                    scheduleData.put("isWeekly", timetable.getIsWeekly() == 1);
+                    
+                    // 获取用户信息
+                    Users user = userService.findById(timetable.getUserId());
+                    if (user != null) {
+                        scheduleData.put("ownerUsername", user.getUsername());
+                        scheduleData.put("ownerNickname", user.getNickname());
+                    }
+                    
+                    allTemplates.add(scheduleData);
+                }
+            } catch (Exception e) {
+                logger.warn("获取课表 {} 的模板数据失败: {}", timetable.getId(), e.getMessage());
+            }
+        }
+        
+        return allTemplates;
+    }
 }
