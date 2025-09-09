@@ -17,6 +17,8 @@ import com.timetable.service.UserService;
 import com.timetable.service.ScheduleService;
 import com.timetable.service.WeeklyInstanceService;
 import com.timetable.task.WeeklyInstanceScheduledTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,6 +30,7 @@ import com.timetable.service.WeeklyInstanceService;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +44,8 @@ import java.util.stream.Collectors;
 @Validated
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
     
         @Autowired
     private TimetableService timetableService;
