@@ -252,4 +252,16 @@ public class WeeklyInstanceRepository extends BaseRepository {
         instance.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
         return instance;
     }
+
+    /**
+     * 获取所有周实例
+     */
+    public List<WeeklyInstance> findAll() {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instances"))
+                .orderBy(field("created_at").desc())
+                .fetch();
+        
+        return records.map(this::mapToWeeklyInstance);
+    }
 }
