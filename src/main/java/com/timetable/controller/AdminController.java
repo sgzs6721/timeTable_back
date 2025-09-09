@@ -639,6 +639,49 @@ public class AdminController {
     }
 
     /**
+     * 清理指定课表的重复课程数据
+     */
+    @PostMapping("/clean-duplicate-schedules/{timetableId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cleanDuplicateSchedulesForTimetable(@PathVariable Long timetableId) {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // 获取课表的所有周实例
+            List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateTimetableId(timetableId);
+            int totalCleaned = 0;
+            int instancesProcessed = 0;
+            
+            for (WeeklyInstance instance : instances) {
+                try {
+                    List<WeeklyInstanceSchedule> beforeSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+                    weeklyInstanceService.cleanDuplicateSchedules(instance.getId());
+                    List<WeeklyInstanceSchedule> afterSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+                    
+                    int cleaned = beforeSchedules.size() - afterSchedules.size();
+                    totalCleaned += cleaned;
+                    instancesProcessed++;
+                    
+                    if (cleaned > 0) {
+                        logger.info("课表 {} 实例 {} 清理了 {} 个重复课程", timetableId, instance.getId(), cleaned);
+                    }
+                } catch (Exception e) {
+                    logger.error("清理课表 {} 实例 {} 的重复课程失败: {}", timetableId, instance.getId(), e.getMessage());
+                }
+            }
+            
+            result.put("timetableId", timetableId);
+            result.put("instancesProcessed", instancesProcessed);
+            result.put("totalCleaned", totalCleaned);
+            result.put("message", String.format("课表 %d 处理了 %d 个实例，清理了 %d 个重复课程", timetableId, instancesProcessed, totalCleaned));
+            
+            return ResponseEntity.ok(ApiResponse.success("清理指定课表重复数据完成", result));
+        } catch (Exception e) {
+            logger.error("清理指定课表重复数据失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("清理指定课表重复数据失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 调试接口：检查指定课表的模板数据和实例数据
      */
     @GetMapping("/debug/timetable/{timetableId}")

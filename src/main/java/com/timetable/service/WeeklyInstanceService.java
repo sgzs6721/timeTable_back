@@ -842,6 +842,20 @@ public class WeeklyInstanceService {
                     instanceSchedules = all.stream()
                             .filter(s -> targetDate.equals(s.getScheduleDate()))
                             .collect(Collectors.toList());
+                    
+                    // 去重：基于学生姓名、开始时间、结束时间的组合
+                    Map<String, WeeklyInstanceSchedule> uniqueSchedules = new HashMap<>();
+                    for (WeeklyInstanceSchedule schedule : instanceSchedules) {
+                        String key = schedule.getStudentName() + "_" + schedule.getStartTime() + "_" + schedule.getEndTime();
+                        if (!uniqueSchedules.containsKey(key)) {
+                            uniqueSchedules.put(key, schedule);
+                        } else {
+                            logger.warn("发现重复课程数据，课表ID: {}, 学生: {}, 时间: {}-{}", 
+                                timetable.getId(), schedule.getStudentName(), 
+                                schedule.getStartTime(), schedule.getEndTime());
+                        }
+                    }
+                    instanceSchedules = new ArrayList<>(uniqueSchedules.values());
                 }
             } else {
                 // 日期范围课表：直接取具体日期
@@ -942,9 +956,24 @@ public class WeeklyInstanceService {
 
         // 获取该实例在指定日期的课程
         List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
-        return allSchedules.stream()
+        List<WeeklyInstanceSchedule> filteredSchedules = allSchedules.stream()
                 .filter(schedule -> date.equals(schedule.getScheduleDate()))
                 .collect(Collectors.toList());
+        
+        // 去重：基于学生姓名、开始时间、结束时间的组合
+        Map<String, WeeklyInstanceSchedule> uniqueSchedules = new HashMap<>();
+        for (WeeklyInstanceSchedule schedule : filteredSchedules) {
+            String key = schedule.getStudentName() + "_" + schedule.getStartTime() + "_" + schedule.getEndTime();
+            if (!uniqueSchedules.containsKey(key)) {
+                uniqueSchedules.put(key, schedule);
+            } else {
+                logger.warn("发现重复课程数据，实例ID: {}, 学生: {}, 时间: {}-{}", 
+                    instance.getId(), schedule.getStudentName(), 
+                    schedule.getStartTime(), schedule.getEndTime());
+            }
+        }
+        
+        return new ArrayList<>(uniqueSchedules.values());
     }
 
     /**
