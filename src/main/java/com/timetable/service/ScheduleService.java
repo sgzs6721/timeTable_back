@@ -1284,7 +1284,17 @@ public class ScheduleService {
     private Schedules convertWeeklyInstanceScheduleToSchedule(com.timetable.entity.WeeklyInstanceSchedule instanceSchedule) {
         Schedules schedule = new Schedules();
         schedule.setId(instanceSchedule.getId());
-        schedule.setTimetableId(instanceSchedule.getWeeklyInstanceId()); // 注意：这里用的是实例ID，不是模板ID
+        
+        // 需要获取原始课表ID而不是实例ID
+        // 通过WeeklyInstance查找对应的模板课表ID
+        WeeklyInstance instance = weeklyInstanceService.findById(instanceSchedule.getWeeklyInstanceId());
+        if (instance != null) {
+            schedule.setTimetableId(instance.getTemplateTimetableId());
+        } else {
+            // 如果找不到实例，使用实例ID作为fallback（虽然这不是最佳方案）
+            schedule.setTimetableId(instanceSchedule.getWeeklyInstanceId());
+        }
+        
         schedule.setStudentName(instanceSchedule.getStudentName());
         schedule.setSubject(instanceSchedule.getSubject());
         schedule.setDayOfWeek(instanceSchedule.getDayOfWeek());

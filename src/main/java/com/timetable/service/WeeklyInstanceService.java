@@ -166,8 +166,9 @@ public class WeeklyInstanceService {
      */
     @Transactional
     public void syncSchedulesFromTemplate(WeeklyInstance instance) {
-        // 获取模板课表的所有课程
-        List<Schedules> templateSchedules = scheduleRepository.findByTimetableId(instance.getTemplateTimetableId());
+        // 获取模板课表的模板课程（scheduleDate为null的记录）
+        List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableId(instance.getTemplateTimetableId());
+        logger.info("从模板课表 {} 获取到 {} 个模板课程", instance.getTemplateTimetableId(), templateSchedules.size());
 
         // 删除实例中所有非手动添加的课程
         List<WeeklyInstanceSchedule> existingSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
@@ -195,7 +196,12 @@ public class WeeklyInstanceService {
             );
             
             weeklyInstanceScheduleRepository.save(instanceSchedule);
+            logger.debug("创建实例课程: {} {} {}-{} 日期: {}", 
+                templateSchedule.getStudentName(), templateSchedule.getDayOfWeek(), 
+                templateSchedule.getStartTime(), templateSchedule.getEndTime(), scheduleDate);
         }
+        
+        logger.info("成功同步 {} 个模板课程到周实例 {}", templateSchedules.size(), instance.getId());
 
         // 更新实例的同步时间
         weeklyInstanceRepository.updateLastSyncedAt(instance.getId(), LocalDateTime.now());
@@ -206,8 +212,8 @@ public class WeeklyInstanceService {
      */
     @Transactional
     public void syncTemplateToInstanceWithOverride(WeeklyInstance instance) {
-        // 获取模板课表的所有课程
-        List<Schedules> templateSchedules = scheduleRepository.findByTimetableId(instance.getTemplateTimetableId());
+        // 获取模板课表的模板课程（scheduleDate为null的记录）
+        List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableId(instance.getTemplateTimetableId());
         
         // 获取实例中现有的所有课程
         List<WeeklyInstanceSchedule> existingSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
@@ -282,8 +288,8 @@ public class WeeklyInstanceService {
         // 删除实例中的所有课程（包括手动添加的）
         weeklyInstanceScheduleRepository.deleteByWeeklyInstanceId(instance.getId());
 
-        // 获取模板课表的所有课程
-        List<Schedules> templateSchedules = scheduleRepository.findByTimetableId(instance.getTemplateTimetableId());
+        // 获取模板课表的模板课程（scheduleDate为null的记录）
+        List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableId(instance.getTemplateTimetableId());
 
         // 从模板课程创建实例课程
         for (Schedules templateSchedule : templateSchedules) {
@@ -795,6 +801,13 @@ public class WeeklyInstanceService {
     public WeeklyInstance findInstanceByDate(Long templateTimetableId, LocalDate date) {
         String yearWeek = generateYearWeekString(date);
         return weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
+    }
+
+    /**
+     * 根据ID查找周实例
+     */
+    public WeeklyInstance findById(Long instanceId) {
+        return weeklyInstanceRepository.findById(instanceId);
     }
 
     /**
