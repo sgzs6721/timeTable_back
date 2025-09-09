@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Arrays;
@@ -116,6 +117,97 @@ public class ScheduleService {
      */
     public List<Schedules> getTimetableSchedules(Long timetableId, Integer week) {
         return getTimetableSchedules(timetableId, week, false);
+    }
+
+    /**
+     * 获取今日课程（从实例数据中获取）
+     */
+    public List<Schedules> getTodaySchedules(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            logger.warn("Timetable with ID {} not found.", timetableId);
+            return Collections.emptyList();
+        }
+
+        if (timetable.getIsWeekly() == 1) {
+            // 周固定课表：从实例数据获取今日课程
+            LocalDate today = LocalDate.now();
+            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, today);
+        } else {
+            // 日期范围课表：获取今日课程
+            LocalDate today = LocalDate.now();
+            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, today);
+        }
+    }
+
+    /**
+     * 获取明日课程（从实例数据中获取）
+     */
+    public List<Schedules> getTomorrowSchedules(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            logger.warn("Timetable with ID {} not found.", timetableId);
+            return Collections.emptyList();
+        }
+
+        if (timetable.getIsWeekly() == 1) {
+            // 周固定课表：从实例数据获取明日课程
+            LocalDate tomorrow = LocalDate.now().plusDays(1);
+            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, tomorrow);
+        } else {
+            // 日期范围课表：获取明日课程
+            LocalDate tomorrow = LocalDate.now().plusDays(1);
+            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, tomorrow);
+        }
+    }
+
+    /**
+     * 获取本周课程（从实例数据中获取）
+     */
+    public List<Schedules> getThisWeekSchedules(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            logger.warn("Timetable with ID {} not found.", timetableId);
+            return Collections.emptyList();
+        }
+
+        if (timetable.getIsWeekly() == 1) {
+            // 周固定课表：从实例数据获取本周课程
+            LocalDate today = LocalDate.now();
+            LocalDate monday = today.with(DayOfWeek.MONDAY);
+            LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+            
+            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday);
+        } else {
+            // 日期范围课表：获取本周课程
+            LocalDate today = LocalDate.now();
+            LocalDate monday = today.with(DayOfWeek.MONDAY);
+            LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+            
+            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday);
+        }
+    }
+
+    /**
+     * 获取固定课表模板（只获取模板数据）
+     */
+    public List<Schedules> getTemplateSchedules(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            logger.warn("Timetable with ID {} not found.", timetableId);
+            return Collections.emptyList();
+        }
+
+        if (timetable.getIsWeekly() == 1) {
+            // 周固定课表：只获取模板数据（scheduleDate为null的记录）
+            return scheduleRepository.findTemplateSchedulesByTimetableId(timetableId);
+        } else {
+            // 日期范围课表：按当前周获取
+            LocalDate startDate = LocalDate.parse(timetable.getStartDate().toString());
+            LocalDate currentDate = LocalDate.now();
+            int currentWeek = (int) ChronoUnit.WEEKS.between(startDate, currentDate) + 1;
+            return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, currentWeek);
+        }
     }
 
     /**

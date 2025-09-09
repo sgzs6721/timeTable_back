@@ -81,6 +81,102 @@ public class ScheduleController {
     }
 
     /**
+     * 获取今日课程
+     */
+    @GetMapping("/today")
+    public ResponseEntity<ApiResponse<List<Schedules>>> getTodaySchedules(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        List<Schedules> schedules = scheduleService.getTodaySchedules(timetableId);
+        return ResponseEntity.ok(ApiResponse.success("获取今日课程成功", schedules));
+    }
+
+    /**
+     * 获取明日课程
+     */
+    @GetMapping("/tomorrow")
+    public ResponseEntity<ApiResponse<List<Schedules>>> getTomorrowSchedules(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        List<Schedules> schedules = scheduleService.getTomorrowSchedules(timetableId);
+        return ResponseEntity.ok(ApiResponse.success("获取明日课程成功", schedules));
+    }
+
+    /**
+     * 获取本周课程
+     */
+    @GetMapping("/this-week")
+    public ResponseEntity<ApiResponse<List<Schedules>>> getThisWeekSchedules(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        List<Schedules> schedules = scheduleService.getThisWeekSchedules(timetableId);
+        return ResponseEntity.ok(ApiResponse.success("获取本周课程成功", schedules));
+    }
+
+    /**
+     * 获取固定课表模板
+     */
+    @GetMapping("/template")
+    public ResponseEntity<ApiResponse<List<Schedules>>> getTemplateSchedules(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        List<Schedules> schedules = scheduleService.getTemplateSchedules(timetableId);
+        return ResponseEntity.ok(ApiResponse.success("获取固定课表成功", schedules));
+    }
+
+    /**
      * 根据学生姓名获取课表的排课列表
      */
     @GetMapping("/student/{studentName}")
