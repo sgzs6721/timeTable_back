@@ -232,6 +232,39 @@ public class TimetableService {
     }
 
     /**
+     * 获取所有活动课表（管理员功能）
+     */
+    public List<AdminTimetableDTO> getActiveTimetables() {
+        List<Timetables> activeTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+
+        return activeTimetables.stream()
+                .map(timetable -> {
+                    Users user = userService.findById(timetable.getUserId());
+                    AdminTimetableDTO dto = new AdminTimetableDTO();
+                    dto.setId(timetable.getId());
+                    dto.setName(timetable.getName());
+                    dto.setIsWeekly(timetable.getIsWeekly());
+                    dto.setStartDate(timetable.getStartDate());
+                    dto.setEndDate(timetable.getEndDate());
+                    dto.setIsActive(timetable.getIsActive());
+                    dto.setIsArchived(timetable.getIsArchived());
+                    dto.setCreatedAt(timetable.getCreatedAt());
+                    dto.setUpdatedAt(timetable.getUpdatedAt());
+                    if (user != null) {
+                        dto.setOwnerUsername(user.getUsername());
+                        dto.setOwnerNickname(user.getNickname());
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 设为活动课表（每个用户只能有一个活动课表）
      */
     @Transactional

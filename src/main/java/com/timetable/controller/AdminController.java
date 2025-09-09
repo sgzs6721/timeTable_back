@@ -93,6 +93,20 @@ public class AdminController {
     }
 
     /**
+     * 获取所有活动课表列表
+     */
+    @GetMapping("/active-timetables")
+    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getActiveTimetables() {
+        try {
+            List<AdminTimetableDTO> activeTimetables = timetableService.getActiveTimetables();
+            return ResponseEntity.ok(ApiResponse.success("获取活动课表成功", activeTimetables));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("获取活动课表失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 获取所有活动课表的指定日期课程信息
      */
     @GetMapping("/active-timetables/schedules")
