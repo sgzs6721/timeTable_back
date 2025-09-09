@@ -211,6 +211,17 @@ public class ScheduleService {
     }
 
     /**
+     * 统一汇总：今日/明日/本周/固定
+     */
+    public com.timetable.dto.SchedulesOverviewResponse getSchedulesOverview(Long timetableId) {
+        com.timetable.dto.SchedulesOverviewResponse overview = new com.timetable.dto.SchedulesOverviewResponse();
+        overview.setToday(getTodaySchedules(timetableId));
+        overview.setTomorrow(getTomorrowSchedules(timetableId));
+        overview.setThisWeek(getThisWeekSchedules(timetableId));
+        overview.setTemplate(getTemplateSchedules(timetableId));
+        return overview;
+    }
+    /**
      * 获取课表的排课列表（支持只获取模板数据）
      */
     public List<Schedules> getTimetableSchedules(Long timetableId, Integer week, Boolean templateOnly) {

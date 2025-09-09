@@ -177,6 +177,30 @@ public class ScheduleController {
     }
 
     /**
+     * 统一接口：一次返回 今日/明日/本周/固定
+     */
+    @GetMapping("/overview")
+    public ResponseEntity<ApiResponse<com.timetable.dto.SchedulesOverviewResponse>> getSchedulesOverview(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        com.timetable.dto.SchedulesOverviewResponse overview = scheduleService.getSchedulesOverview(timetableId);
+        return ResponseEntity.ok(ApiResponse.success("获取概览成功", overview));
+    }
+
+    /**
      * 根据学生姓名获取课表的排课列表
      */
     @GetMapping("/student/{studentName}")
