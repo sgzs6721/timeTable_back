@@ -49,6 +49,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final AiNlpService aiNlpService;
     private final TimetableRepository timetableRepository;
+    private final WeeklyInstanceService weeklyInstanceService;
 
     private final AIService aiService;
     private final ObjectMapper objectMapper;
@@ -103,10 +104,12 @@ public class ScheduleService {
     @Autowired
     public ScheduleService(ScheduleRepository scheduleRepository, AiNlpService aiNlpService,
                           TimetableRepository timetableRepository,
+                          WeeklyInstanceService weeklyInstanceService,
                           AIService aiService) {
         this.scheduleRepository = scheduleRepository;
         this.aiNlpService = aiNlpService;
         this.timetableRepository = timetableRepository;
+        this.weeklyInstanceService = weeklyInstanceService;
 
         this.aiService = aiService;
         this.objectMapper = new ObjectMapper();
@@ -129,13 +132,25 @@ public class ScheduleService {
             return Collections.emptyList();
         }
 
+        LocalDate today = LocalDate.now();
+        
         if (timetable.getIsWeekly() == 1) {
-            // 周固定课表：从实例数据获取今日课程
-            LocalDate today = LocalDate.now();
-            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, today);
+            // 周固定课表：从周实例数据获取今日课程
+            try {
+                List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = 
+                    weeklyInstanceService.getSchedulesByDate(timetableId, today);
+                
+                // 转换为 Schedules 格式
+                return instanceSchedules.stream()
+                    .map(this::convertWeeklyInstanceScheduleToSchedule)
+                    .collect(Collectors.toList());
+            } catch (Exception e) {
+                logger.warn("Failed to get today's schedules from weekly instance for timetable {}: {}", 
+                    timetableId, e.getMessage());
+                return Collections.emptyList();
+            }
         } else {
             // 日期范围课表：获取今日课程
-            LocalDate today = LocalDate.now();
             return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, today);
         }
     }
@@ -150,13 +165,25 @@ public class ScheduleService {
             return Collections.emptyList();
         }
 
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        
         if (timetable.getIsWeekly() == 1) {
-            // 周固定课表：从实例数据获取明日课程
-            LocalDate tomorrow = LocalDate.now().plusDays(1);
-            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, tomorrow);
+            // 周固定课表：从周实例数据获取明日课程
+            try {
+                List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = 
+                    weeklyInstanceService.getSchedulesByDate(timetableId, tomorrow);
+                
+                // 转换为 Schedules 格式
+                return instanceSchedules.stream()
+                    .map(this::convertWeeklyInstanceScheduleToSchedule)
+                    .collect(Collectors.toList());
+            } catch (Exception e) {
+                logger.warn("Failed to get tomorrow's schedules from weekly instance for timetable {}: {}", 
+                    timetableId, e.getMessage());
+                return Collections.emptyList();
+            }
         } else {
             // 日期范围课表：获取明日课程
-            LocalDate tomorrow = LocalDate.now().plusDays(1);
             return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, tomorrow);
         }
     }
@@ -171,19 +198,27 @@ public class ScheduleService {
             return Collections.emptyList();
         }
 
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(DayOfWeek.MONDAY);
+        LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+        
         if (timetable.getIsWeekly() == 1) {
-            // 周固定课表：从实例数据获取本周课程
-            LocalDate today = LocalDate.now();
-            LocalDate monday = today.with(DayOfWeek.MONDAY);
-            LocalDate sunday = today.with(DayOfWeek.SUNDAY);
-            
-            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday);
+            // 周固定课表：从周实例数据获取本周课程
+            try {
+                List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = 
+                    weeklyInstanceService.getCurrentWeekInstanceSchedules(timetableId);
+                
+                // 转换为 Schedules 格式
+                return instanceSchedules.stream()
+                    .map(this::convertWeeklyInstanceScheduleToSchedule)
+                    .collect(Collectors.toList());
+            } catch (Exception e) {
+                logger.warn("Failed to get this week's schedules from weekly instance for timetable {}: {}", 
+                    timetableId, e.getMessage());
+                return Collections.emptyList();
+            }
         } else {
             // 日期范围课表：获取本周课程
-            LocalDate today = LocalDate.now();
-            LocalDate monday = today.with(DayOfWeek.MONDAY);
-            LocalDate sunday = today.with(DayOfWeek.SUNDAY);
-            
             return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday);
         }
     }
@@ -1241,5 +1276,24 @@ public class ScheduleService {
             logger.error("清空课表失败，课表ID: {}", timetableId, e);
             throw new RuntimeException("清空课表失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 将 WeeklyInstanceSchedule 转换为 Schedules 格式
+     */
+    private Schedules convertWeeklyInstanceScheduleToSchedule(com.timetable.entity.WeeklyInstanceSchedule instanceSchedule) {
+        Schedules schedule = new Schedules();
+        schedule.setId(instanceSchedule.getId());
+        schedule.setTimetableId(instanceSchedule.getWeeklyInstanceId()); // 注意：这里用的是实例ID，不是模板ID
+        schedule.setStudentName(instanceSchedule.getStudentName());
+        schedule.setSubject(instanceSchedule.getSubject());
+        schedule.setDayOfWeek(instanceSchedule.getDayOfWeek());
+        schedule.setStartTime(instanceSchedule.getStartTime());
+        schedule.setEndTime(instanceSchedule.getEndTime());
+        schedule.setScheduleDate(instanceSchedule.getScheduleDate());
+        schedule.setNote(instanceSchedule.getNote());
+        schedule.setCreatedAt(instanceSchedule.getCreatedAt());
+        schedule.setUpdatedAt(instanceSchedule.getUpdatedAt());
+        return schedule;
     }
 }

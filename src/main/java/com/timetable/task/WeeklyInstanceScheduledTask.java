@@ -44,7 +44,7 @@ public class WeeklyInstanceScheduledTask {
         logger.info("开始执行每日检查任务：确保当前周实例存在");
         
         try {
-            weeklyInstanceService.generateCurrentWeekInstancesForAllActiveTimetables();
+            weeklyInstanceService.ensureCurrentWeekInstancesExist();
             logger.info("每日检查任务执行成功：当前周实例已确保存在");
         } catch (Exception e) {
             logger.error("每日检查任务执行失败：生成当前周实例时发生错误", e);

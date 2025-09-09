@@ -21,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.timetable.service.WeeklyInstanceService;
 
 import javax.validation.Valid;
 import java.time.LocalDate;
@@ -567,6 +568,32 @@ public class AdminController {
             return ResponseEntity.ok(ApiResponse.success("获取教练统计信息成功", statistics));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取统计信息失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 紧急修复：批量生成所有缺失的当前周实例
+     */
+    @PostMapping("/emergency-fix/weekly-instances")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> emergencyFixWeeklyInstances() {
+        try {
+            Map<String, Object> result = weeklyInstanceService.generateCurrentWeekInstancesForAllActiveTimetables();
+            return ResponseEntity.ok(ApiResponse.success("紧急修复完成", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("紧急修复失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 自动检查并修复缺失的当前周实例
+     */
+    @PostMapping("/auto-fix/weekly-instances")
+    public ResponseEntity<ApiResponse<String>> autoFixWeeklyInstances() {
+        try {
+            weeklyInstanceService.ensureCurrentWeekInstancesExist();
+            return ResponseEntity.ok(ApiResponse.success("自动修复完成", "已检查并生成缺失的当前周实例"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("自动修复失败: " + e.getMessage()));
         }
     }
 } 

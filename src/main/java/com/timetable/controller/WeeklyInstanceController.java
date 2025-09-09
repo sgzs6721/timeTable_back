@@ -225,6 +225,56 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 批量为所有活动的周固定课表生成当前周实例
+     */
+    @PostMapping("/batch-generate/current-week")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchGenerateCurrentWeekInstances(
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以执行批量操作
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足，只有管理员可以执行批量操作"));
+        }
+
+        try {
+            Map<String, Object> result = weeklyInstanceService.generateCurrentWeekInstancesForAllActiveTimetables();
+            return ResponseEntity.ok(ApiResponse.success("批量生成当前周实例完成", result));
+        } catch (Exception e) {
+            logger.error("批量生成当前周实例失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("批量生成失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 自动修复缺失的当前周实例
+     */
+    @PostMapping("/auto-fix/current-week")
+    public ResponseEntity<ApiResponse<String>> autoFixCurrentWeekInstances(
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以执行修复操作
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足，只有管理员可以执行修复操作"));
+        }
+
+        try {
+            weeklyInstanceService.ensureCurrentWeekInstancesExist();
+            return ResponseEntity.ok(ApiResponse.success("自动修复完成", "已检查并生成缺失的当前周实例"));
+        } catch (Exception e) {
+            logger.error("自动修复当前周实例失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("自动修复失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 生成下周实例（手动）
      */
     @PostMapping("/next-week/generate/{timetableId}")

@@ -809,4 +809,121 @@ public class WeeklyInstanceService {
         String yearWeek = generateYearWeekString(date);
         return weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
     }
+
+    /**
+     * 根据课表ID和日期获取实例课程
+     */
+    public List<WeeklyInstanceSchedule> getSchedulesByDate(Long timetableId, LocalDate date) {
+        // 获取课表信息
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null || timetable.getIsWeekly() == null || timetable.getIsWeekly() != 1) {
+            return new ArrayList<>();
+        }
+
+        // 查找对应的周实例
+        WeeklyInstance instance = findInstanceByDate(timetableId, date);
+        if (instance == null) {
+            return new ArrayList<>();
+        }
+
+        // 获取该实例在指定日期的课程
+        List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
+        return allSchedules.stream()
+                .filter(schedule -> date.equals(schedule.getScheduleDate()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 批量为所有活动的周固定课表生成当前周实例
+     */
+    @Transactional
+    public Map<String, Object> generateCurrentWeekInstancesForAllActiveTimetables() {
+        logger.info("开始批量生成所有活动周固定课表的当前周实例");
+        
+        Map<String, Object> result = new HashMap<>();
+        int successCount = 0;
+        int failedCount = 0;
+        int skippedCount = 0;
+        List<String> errors = new ArrayList<>();
+        
+        // 获取所有活动的周固定课表
+        List<Timetables> weeklyTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsWeekly() != null && t.getIsWeekly() == 1)
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+        
+        logger.info("找到 {} 个活动的周固定课表", weeklyTimetables.size());
+        
+        for (Timetables timetable : weeklyTimetables) {
+            try {
+                // 检查是否已经存在当前周实例
+                WeeklyInstance existingInstance = getCurrentWeekInstance(timetable.getId());
+                if (existingInstance != null) {
+                    logger.debug("课表 {} ({}) 已有当前周实例，跳过", timetable.getId(), timetable.getName());
+                    skippedCount++;
+                    continue;
+                }
+                
+                // 生成当前周实例
+                WeeklyInstance newInstance = generateCurrentWeekInstance(timetable.getId());
+                if (newInstance != null) {
+                    logger.info("成功为课表 {} ({}) 生成当前周实例", timetable.getId(), timetable.getName());
+                    successCount++;
+                } else {
+                    logger.warn("为课表 {} ({}) 生成当前周实例失败", timetable.getId(), timetable.getName());
+                    failedCount++;
+                    errors.add(String.format("课表 %s (%s): 生成失败", timetable.getId(), timetable.getName()));
+                }
+            } catch (Exception e) {
+                logger.error("为课表 {} ({}) 生成当前周实例时发生异常: {}", 
+                    timetable.getId(), timetable.getName(), e.getMessage(), e);
+                failedCount++;
+                errors.add(String.format("课表 %s (%s): %s", timetable.getId(), timetable.getName(), e.getMessage()));
+            }
+        }
+        
+        result.put("totalTimetables", weeklyTimetables.size());
+        result.put("successCount", successCount);
+        result.put("failedCount", failedCount);
+        result.put("skippedCount", skippedCount);
+        result.put("errors", errors);
+        
+        logger.info("批量生成完成: 总数={}, 成功={}, 失败={}, 跳过={}", 
+            weeklyTimetables.size(), successCount, failedCount, skippedCount);
+        
+        return result;
+    }
+
+    /**
+     * 检查并生成缺失的当前周实例（自动修复功能）
+     */
+    @Transactional
+    public void ensureCurrentWeekInstancesExist() {
+        logger.info("开始检查并生成缺失的当前周实例");
+        
+        // 获取所有活动的周固定课表
+        List<Timetables> weeklyTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsWeekly() != null && t.getIsWeekly() == 1)
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+        
+        for (Timetables timetable : weeklyTimetables) {
+            try {
+                WeeklyInstance existingInstance = getCurrentWeekInstance(timetable.getId());
+                if (existingInstance == null) {
+                    generateCurrentWeekInstance(timetable.getId());
+                    logger.info("自动为课表 {} ({}) 生成了当前周实例", timetable.getId(), timetable.getName());
+                }
+            } catch (Exception e) {
+                logger.warn("自动为课表 {} ({}) 生成当前周实例失败: {}", 
+                    timetable.getId(), timetable.getName(), e.getMessage());
+            }
+        }
+    }
 }
