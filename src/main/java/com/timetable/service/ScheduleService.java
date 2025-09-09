@@ -6,6 +6,7 @@ import com.timetable.dto.ScheduleRequest;
 import com.timetable.dto.ai.ScheduleInfo;
 import com.timetable.dto.ConflictInfo;
 import com.timetable.dto.ConflictCheckResult;
+import com.timetable.entity.WeeklyInstance;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.repository.ScheduleRepository;
