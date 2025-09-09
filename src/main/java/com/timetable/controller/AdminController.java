@@ -10,6 +10,8 @@ import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
+import com.timetable.repository.ScheduleRepository;
+import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
 import com.timetable.service.ScheduleService;
@@ -53,6 +55,12 @@ public class AdminController {
     private WeeklyInstanceScheduledTask weeklyInstanceScheduledTask;
     @Autowired
     private WeeklyInstanceService weeklyInstanceService;
+
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+
+    @Autowired
+    private WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
     
     /**
      * 获取所有用户的课表
@@ -594,6 +602,55 @@ public class AdminController {
             return ResponseEntity.ok(ApiResponse.success("自动修复完成", "已检查并生成缺失的当前周实例"));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("自动修复失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 调试接口：检查指定课表的模板数据和实例数据
+     */
+    @GetMapping("/debug/timetable/{timetableId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> debugTimetableData(@PathVariable Long timetableId) {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // 获取模板课程
+            List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableId(timetableId);
+            result.put("templateSchedules", templateSchedules);
+            result.put("templateCount", templateSchedules.size());
+            
+            // 获取当前周实例
+            WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetableId);
+            if (currentInstance != null) {
+                result.put("currentInstance", currentInstance);
+                
+                // 获取实例课程
+                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
+                result.put("instanceSchedules", instanceSchedules);
+                result.put("instanceCount", instanceSchedules.size());
+                
+                // 获取今日课程
+                LocalDate today = LocalDate.now();
+                List<WeeklyInstanceSchedule> todaySchedules = instanceSchedules.stream()
+                    .filter(schedule -> today.equals(schedule.getScheduleDate()))
+                    .collect(Collectors.toList());
+                result.put("todaySchedules", todaySchedules);
+                result.put("todayCount", todaySchedules.size());
+            } else {
+                result.put("currentInstance", null);
+                result.put("instanceSchedules", new ArrayList<>());
+                result.put("instanceCount", 0);
+                result.put("todaySchedules", new ArrayList<>());
+                result.put("todayCount", 0);
+            }
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("调试课表数据失败", e);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(result);
         }
     }
 } 

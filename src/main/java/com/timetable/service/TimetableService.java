@@ -730,7 +730,7 @@ public class TimetableService {
                             .collect(Collectors.toList());
                     } else {
                         // 没有当前周实例，从固定课表模板获取课程
-                        List<Schedules> templateSchedules = scheduleRepository.findByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
+                        List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableIdAndDayOfWeek(timetable.getId(), dayOfWeekStr);
                         // 为模板课程设置具体的日期
                         schedules = templateSchedules.stream()
                             .map(templateSchedule -> {

@@ -163,6 +163,18 @@ public class ScheduleRepository {
     }
 
     /**
+     * 根据课表ID和星期几查找模板排课（只获取scheduleDate为null的记录）
+     */
+    public List<Schedules> findTemplateSchedulesByTimetableIdAndDayOfWeek(Long timetableId, String dayOfWeek) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.DAY_OF_WEEK.eq(dayOfWeek))
+                .and(SCHEDULES.SCHEDULE_DATE.isNull())
+                .orderBy(SCHEDULES.START_TIME)
+                .fetchInto(Schedules.class);
+    }
+
+    /**
      * 根据课表ID和具体日期查找排课
      */
     public List<Schedules> findByTimetableIdAndScheduleDate(Long timetableId, LocalDate scheduleDate) {
