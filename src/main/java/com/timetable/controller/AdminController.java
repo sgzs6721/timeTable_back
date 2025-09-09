@@ -11,6 +11,7 @@ import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.repository.ScheduleRepository;
+import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
@@ -66,6 +67,9 @@ public class AdminController {
 
     @Autowired
     private WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
+    
+    @Autowired
+    private WeeklyInstanceRepository weeklyInstanceRepository;
     
     /**
      * 获取所有用户的课表
