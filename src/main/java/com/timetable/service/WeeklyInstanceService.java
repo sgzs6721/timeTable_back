@@ -720,10 +720,20 @@ public class WeeklyInstanceService {
                     // 按周生成：若目标周是当前周，则生成当前周；若是下周，则生成下周
                     LocalDate thisMonday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
                     if (targetMonday.isAfter(thisMonday)) {
-                        try { generateNextWeekInstance(timetable.getId()); } catch (Exception ignored) {}
+                        try { 
+                            generateNextWeekInstance(timetable.getId()); 
+                            logger.info("自动生成课表 {} 的未来周实例", timetable.getId());
+                        } catch (Exception e) {
+                            logger.warn("自动生成课表 {} 的未来周实例失败: {}", timetable.getId(), e.getMessage());
+                        }
                         instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
                     } else if (targetMonday.isEqual(thisMonday)) {
-                        try { generateCurrentWeekInstance(timetable.getId()); } catch (Exception ignored) {}
+                        try { 
+                            generateCurrentWeekInstance(timetable.getId()); 
+                            logger.info("自动生成课表 {} 的当前周实例", timetable.getId());
+                        } catch (Exception e) {
+                            logger.warn("自动生成课表 {} 的当前周实例失败: {}", timetable.getId(), e.getMessage());
+                        }
                         instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
                     }
                 }
@@ -800,7 +810,28 @@ public class WeeklyInstanceService {
         // 查找对应的周实例
         WeeklyInstance instance = findInstanceByDate(timetableId, date);
         if (instance == null) {
-            return new ArrayList<>();
+            // 如果找不到实例，尝试自动生成
+            try {
+                LocalDate today = LocalDate.now();
+                LocalDate targetMonday = date.with(java.time.DayOfWeek.MONDAY);
+                LocalDate thisMonday = today.with(java.time.DayOfWeek.MONDAY);
+                
+                if (targetMonday.isEqual(thisMonday)) {
+                    // 目标日期是本周，生成当前周实例
+                    logger.info("自动生成课表 {} 的当前周实例", timetableId);
+                    instance = generateCurrentWeekInstance(timetableId);
+                } else if (targetMonday.isAfter(thisMonday)) {
+                    // 目标日期是未来周，生成对应周实例
+                    logger.info("自动生成课表 {} 的未来周实例", timetableId);
+                    instance = generateNextWeekInstance(timetableId);
+                }
+            } catch (Exception e) {
+                logger.warn("自动生成课表 {} 的周实例失败: {}", timetableId, e.getMessage());
+            }
+            
+            if (instance == null) {
+                return new ArrayList<>();
+            }
         }
 
         // 获取该实例在指定日期的课程
