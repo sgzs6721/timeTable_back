@@ -43,6 +43,16 @@ public class ScheduleRepository {
                 .fetchInto(Schedules.class);
     }
 
+    /**
+     * 只获取模板数据（scheduleDate为null的记录）
+     */
+    public List<Schedules> findTemplateSchedulesByTimetableId(Long timetableId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Schedules.SCHEDULES)
+                .where(com.timetable.generated.tables.Schedules.SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(com.timetable.generated.tables.Schedules.SCHEDULES.SCHEDULE_DATE.isNull())
+                .fetchInto(Schedules.class);
+    }
+
     public List<Schedules> findByTimetableIdAndWeekNumber(Long timetableId, Integer weekNumber) {
         return dsl.selectFrom(SCHEDULES)
                 .where(SCHEDULES.TIMETABLE_ID.eq(timetableId).and(SCHEDULES.WEEK_NUMBER.eq(weekNumber)))

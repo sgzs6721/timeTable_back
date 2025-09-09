@@ -115,6 +115,13 @@ public class ScheduleService {
      * 获取课表的排课列表
      */
     public List<Schedules> getTimetableSchedules(Long timetableId, Integer week) {
+        return getTimetableSchedules(timetableId, week, false);
+    }
+
+    /**
+     * 获取课表的排课列表（支持只获取模板数据）
+     */
+    public List<Schedules> getTimetableSchedules(Long timetableId, Integer week, Boolean templateOnly) {
         Timetables timetable = timetableRepository.findById(timetableId);
         if (timetable == null) {
             logger.warn("Timetable with ID {} not found.", timetableId);
@@ -123,6 +130,10 @@ public class ScheduleService {
 
         // For WEEKLY timetables, week-based filtering is based on the week_number field.
         if (timetable.getIsWeekly() == 1) {
+            if (templateOnly != null && templateOnly) {
+                // 只获取模板数据：scheduleDate为null的记录
+                return scheduleRepository.findTemplateSchedulesByTimetableId(timetableId);
+            }
             if (week != null && week > 0) {
                 return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, week);
             }

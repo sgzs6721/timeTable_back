@@ -61,6 +61,7 @@ public class ScheduleController {
     public ResponseEntity<ApiResponse<List<Schedules>>> getTimetableSchedules(
             @PathVariable Long timetableId,
             @RequestParam(required = false) Integer week,
+            @RequestParam(required = false, defaultValue = "false") Boolean templateOnly,
             Authentication authentication) {
 
         Users user = userService.findByUsername(authentication.getName());
@@ -75,7 +76,7 @@ public class ScheduleController {
             }
         }
 
-        List<Schedules> schedules = scheduleService.getTimetableSchedules(timetableId, week);
+        List<Schedules> schedules = scheduleService.getTimetableSchedules(timetableId, week, templateOnly);
         return ResponseEntity.ok(ApiResponse.success("获取排课列表成功", schedules));
     }
 
