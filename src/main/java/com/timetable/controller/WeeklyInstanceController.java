@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -29,6 +31,8 @@ import java.util.ArrayList;
 @RestController
 @RequestMapping("/weekly-instances")
 public class WeeklyInstanceController {
+
+    private static final Logger logger = LoggerFactory.getLogger(WeeklyInstanceController.class);
 
     @Autowired
     private WeeklyInstanceService weeklyInstanceService;

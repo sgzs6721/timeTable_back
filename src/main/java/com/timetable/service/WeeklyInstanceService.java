@@ -117,29 +117,6 @@ public class WeeklyInstanceService {
         return instance;
     }
 
-    /**
-     * 为所有活动的固定课表生成当前周实例
-     */
-    @Transactional
-    public void generateCurrentWeekInstancesForAllActiveTimetables() {
-        // 获取所有活动的周固定课表
-        List<Timetables> activeTimetables = timetableRepository.findAll()
-                .stream()
-                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
-                .filter(t -> t.getIsWeekly() != null && t.getIsWeekly() == 1)
-                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
-                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
-                .collect(Collectors.toList());
-
-        for (Timetables timetable : activeTimetables) {
-            try {
-                generateCurrentWeekInstance(timetable.getId());
-            } catch (Exception e) {
-                // 记录错误但继续处理其他课表
-                System.err.println("生成课表 " + timetable.getId() + " 的当前周实例失败: " + e.getMessage());
-            }
-        }
-    }
 
     /**
      * 为指定模板课表生成“下周”的周实例并同步模板课程
