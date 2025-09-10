@@ -841,6 +841,17 @@ public class TimetableService {
                 if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
                     // 周固定课表：从周实例数据获取本周课程
                     try {
+                        // 检查是否存在当前周实例，如果不存在则生成
+                        WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetable.getId());
+                        if (currentInstance == null) {
+                            try {
+                                currentInstance = weeklyInstanceService.generateCurrentWeekInstance(timetable.getId());
+                            } catch (Exception genEx) {
+                                // 生成失败，继续处理下一个课表
+                                continue;
+                            }
+                        }
+                        
                         List<WeeklyInstanceSchedule> instanceSchedules = 
                             weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
                         
