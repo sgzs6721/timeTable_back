@@ -12,8 +12,6 @@ import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.service.UserService;
 import com.timetable.service.WeeklyInstanceService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +31,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class TimetableService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(TimetableService.class);
 
     @Autowired
     private TimetableRepository timetableRepository;
@@ -1145,47 +1141,5 @@ public class TimetableService {
             // 日期范围课表：按上周日期范围查询
             return scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetableId, lastWeekMonday, lastWeekSunday);
         }
-    }
-    
-    public List<Object> getActiveTemplates() {
-        List<Timetables> activeTimetables = timetableRepository.findAll()
-                .stream()
-                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
-                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
-                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
-                .collect(Collectors.toList());
-        
-        List<Object> allTemplates = new ArrayList<>();
-        
-        for (Timetables timetable : activeTimetables) {
-            try {
-                List<Schedules> templateSchedules = scheduleRepository.findTemplateSchedulesByTimetableId(timetable.getId());
-                for (Schedules schedule : templateSchedules) {
-                    Map<String, Object> scheduleData = new HashMap<>();
-                    scheduleData.put("id", schedule.getId());
-                    scheduleData.put("timetableId", timetable.getId());
-                    scheduleData.put("timetableName", timetable.getName());
-                    scheduleData.put("studentName", schedule.getStudentName());
-                    scheduleData.put("subject", schedule.getSubject());
-                    scheduleData.put("dayOfWeek", schedule.getDayOfWeek());
-                    scheduleData.put("startTime", schedule.getStartTime());
-                    scheduleData.put("endTime", schedule.getEndTime());
-                    scheduleData.put("isWeekly", timetable.getIsWeekly() == 1);
-                    
-                    // 获取用户信息
-                    Users user = userService.findById(timetable.getUserId());
-                    if (user != null) {
-                        scheduleData.put("ownerUsername", user.getUsername());
-                        scheduleData.put("ownerNickname", user.getNickname());
-                    }
-                    
-                    allTemplates.add(scheduleData);
-                }
-            } catch (Exception e) {
-                logger.warn("获取课表 {} 的模板数据失败: {}", timetable.getId(), e.getMessage());
-            }
-        }
-        
-        return allTemplates;
     }
 }

@@ -126,17 +126,6 @@ public class AdminController {
         }
     }
     
-    @GetMapping("/active-timetables/templates")
-    public ResponseEntity<ApiResponse<List<Object>>> getActiveTemplates() {
-        try {
-            List<Object> result = timetableService.getActiveTemplates();
-            return ResponseEntity.ok(ApiResponse.success("获取活动课表模板成功", result));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("获取模板失败: " + e.getMessage()));
-        }
-    }
-    
     /**
      * 更新课表状态（例如，设为活动、归档等）
      */
