@@ -416,14 +416,30 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 获取当前周实例的课程安排
+     * 获取当前周实例的课程安排（只返回本周范围内的课程）
      */
     public List<WeeklyInstanceSchedule> getCurrentWeekInstanceSchedules(Long templateTimetableId) {
         WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
         if (currentInstance == null) {
             return new ArrayList<>();
         }
-        return weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
+        
+        // 获取实例的所有课程
+        List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
+        
+        // 过滤出本周范围内的课程（周一到周日）
+        LocalDate weekStart = currentInstance.getWeekStartDate();
+        LocalDate weekEnd = currentInstance.getWeekEndDate();
+        
+        return allSchedules.stream()
+            .filter(schedule -> {
+                if (schedule.getScheduleDate() == null) {
+                    return false; // 没有日期的课程不显示
+                }
+                LocalDate scheduleDate = schedule.getScheduleDate();
+                return !scheduleDate.isBefore(weekStart) && !scheduleDate.isAfter(weekEnd);
+            })
+            .collect(Collectors.toList());
     }
 
     /**
