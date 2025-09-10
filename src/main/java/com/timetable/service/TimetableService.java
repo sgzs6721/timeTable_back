@@ -361,11 +361,23 @@ public class TimetableService {
     }
     
     /**
+     * 获取活动课表原始数据（管理员功能）
+     */
+    public List<Timetables> getActiveTimetablesRaw() {
+        return timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 获取课表并附带用户名、课程数量（管理员功能）
      * @param activeOnly 是否只返回活动课表
      */
     public List<AdminTimetableDTO> getAllTimetablesWithUser(boolean activeOnly) {
-        List<Timetables> timetables = activeOnly ? getActiveTimetables() : getAllTimetables();
+        List<Timetables> timetables = activeOnly ? getActiveTimetablesRaw() : getAllTimetables();
         return timetables.stream()
             .map(t -> {
                 String username = null;

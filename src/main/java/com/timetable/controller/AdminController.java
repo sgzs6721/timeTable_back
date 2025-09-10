@@ -756,23 +756,25 @@ public class AdminController {
                 return ResponseEntity.ok(result);
             }
             
-            result.put("coach", Map.of(
-                "id", yangCoach.getId(),
-                "username", yangCoach.getUsername(),
-                "nickname", yangCoach.getNickname()
-            ));
+            Map<String, Object> coachInfo = new HashMap<>();
+            coachInfo.put("id", yangCoach.getId());
+            coachInfo.put("username", yangCoach.getUsername());
+            coachInfo.put("nickname", yangCoach.getNickname());
+            result.put("coach", coachInfo);
             
             // 获取杨教练的所有课表
             List<Timetables> allTimetables = timetableService.getUserTimetables(yangCoach.getId());
             result.put("allTimetablesCount", allTimetables.size());
-            result.put("allTimetables", allTimetables.stream().map(t -> Map.of(
-                "id", t.getId(),
-                "name", t.getName(),
-                "isActive", t.getIsActive(),
-                "isDeleted", t.getIsDeleted(),
-                "isArchived", t.getIsArchived(),
-                "isWeekly", t.getIsWeekly()
-            )).collect(Collectors.toList()));
+            result.put("allTimetables", allTimetables.stream().map(t -> {
+                Map<String, Object> timetableInfo = new HashMap<>();
+                timetableInfo.put("id", t.getId());
+                timetableInfo.put("name", t.getName());
+                timetableInfo.put("isActive", t.getIsActive());
+                timetableInfo.put("isDeleted", t.getIsDeleted());
+                timetableInfo.put("isArchived", t.getIsArchived());
+                timetableInfo.put("isWeekly", t.getIsWeekly());
+                return timetableInfo;
+            }).collect(Collectors.toList()));
             
             // 获取活动课表
             List<Timetables> activeTimetables = allTimetables.stream()
@@ -801,13 +803,15 @@ public class AdminController {
                             .collect(Collectors.toList());
                         
                         timetableInfo.put("todayCoursesCount", todaySchedules.size());
-                        timetableInfo.put("todayCourses", todaySchedules.stream().map(s -> Map.of(
-                            "id", s.getId(),
-                            "studentName", s.getStudentName(),
-                            "startTime", s.getStartTime(),
-                            "endTime", s.getEndTime(),
-                            "scheduleDate", s.getScheduleDate()
-                        )).collect(Collectors.toList()));
+                        timetableInfo.put("todayCourses", todaySchedules.stream().map(s -> {
+                            Map<String, Object> scheduleInfo = new HashMap<>();
+                            scheduleInfo.put("id", s.getId());
+                            scheduleInfo.put("studentName", s.getStudentName());
+                            scheduleInfo.put("startTime", s.getStartTime());
+                            scheduleInfo.put("endTime", s.getEndTime());
+                            scheduleInfo.put("scheduleDate", s.getScheduleDate());
+                            return scheduleInfo;
+                        }).collect(Collectors.toList()));
                     } catch (Exception e) {
                         timetableInfo.put("error", e.getMessage());
                     }
@@ -820,13 +824,15 @@ public class AdminController {
                             .collect(Collectors.toList());
                         
                         timetableInfo.put("todayCoursesCount", todaySchedules.size());
-                        timetableInfo.put("todayCourses", todaySchedules.stream().map(s -> Map.of(
-                            "id", s.getId(),
-                            "studentName", s.getStudentName(),
-                            "startTime", s.getStartTime(),
-                            "endTime", s.getEndTime(),
-                            "scheduleDate", s.getScheduleDate()
-                        )).collect(Collectors.toList()));
+                        timetableInfo.put("todayCourses", todaySchedules.stream().map(s -> {
+                            Map<String, Object> scheduleInfo = new HashMap<>();
+                            scheduleInfo.put("id", s.getId());
+                            scheduleInfo.put("studentName", s.getStudentName());
+                            scheduleInfo.put("startTime", s.getStartTime());
+                            scheduleInfo.put("endTime", s.getEndTime());
+                            scheduleInfo.put("scheduleDate", s.getScheduleDate());
+                            return scheduleInfo;
+                        }).collect(Collectors.toList()));
                     } catch (Exception e) {
                         timetableInfo.put("error", e.getMessage());
                     }
