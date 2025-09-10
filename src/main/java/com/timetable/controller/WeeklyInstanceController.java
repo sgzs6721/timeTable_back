@@ -7,6 +7,7 @@ import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.service.WeeklyInstanceService;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
+import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.generated.tables.pojos.Timetables;
 
@@ -42,6 +43,9 @@ public class WeeklyInstanceController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
 
     /**
      * 为指定课表生成当前周实例
@@ -205,7 +209,7 @@ public class WeeklyInstanceController {
             }
         }
 
-        List<WeeklyInstanceSchedule> schedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(instance.getTemplateTimetableId());
+        List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instanceId);
         return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", schedules));
     }
 
