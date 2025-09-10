@@ -496,29 +496,24 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 只对未来实例进行同步（不影响过去时间的实例）
+     * 只对未来实例进行同步（不影响当前周和过去的实例）
      */
     @Transactional
     public void syncTemplateChangesToFutureInstances(Long templateTimetableId) {
         List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateTimetableId(templateTimetableId);
         LocalDate now = LocalDate.now();
+        LocalDate currentWeekStart = now.with(DayOfWeek.MONDAY);
         
         for (WeeklyInstance instance : instances) {
-            // 对当前周或未来周进行特殊处理
-            if (instance.getWeekStartDate().isEqual(now) || 
-                (instance.getWeekStartDate().isBefore(now.plusDays(7)) && instance.getWeekEndDate().isAfter(now))) {
-                // 当前周：只同步当前时间之后的课程
-                logger.info("智能同步当前周实例: 周 {} - {}", 
-                    instance.getWeekStartDate(), instance.getWeekEndDate());
-                syncTemplateToCurrentInstanceSelectively(instance);
-            } else if (instance.getWeekStartDate().isAfter(now)) {
+            // 只同步下周及以后的实例，不影响当前周
+            if (instance.getWeekStartDate().isAfter(currentWeekStart)) {
                 // 未来周：全部同步
-                logger.info("全量同步未来实例: 周 {} - {}", 
+                logger.info("同步模板到未来实例: 周 {} - {}", 
                     instance.getWeekStartDate(), instance.getWeekEndDate());
                 syncTemplateToInstanceWithOverride(instance);
             } else {
-                logger.debug("跳过过去的周实例: 周 {} - {}", 
-                    instance.getWeekStartDate(), instance.getWeekEndDate());
+                logger.info("跳过当前周/过去的实例: 周 {} - {} (当前周开始: {})", 
+                    instance.getWeekStartDate(), instance.getWeekEndDate(), currentWeekStart);
             }
         }
     }
@@ -588,10 +583,95 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 仅对当前周实例同步“特定模板课程”，并且只覆盖“当前时间之后”的时段。
-     * 用于在固定课表新增课程时的选择性同步。
+     * 根据课程时间智能判断是否同步到当前周实例
+     * 只有未来时间的课程才会被同步
      */
     @Transactional
+    public void syncSpecificTemplateSchedulesToCurrentInstanceByTime(Long templateTimetableId, java.util.List<Schedules> templateSchedules) {
+        if (templateSchedules == null || templateSchedules.isEmpty()) {
+            return;
+        }
+        WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
+        if (currentInstance == null) {
+            logger.info("当前周没有实例，不需要同步");
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        logger.info("当前时间: {}", now);
+
+        for (Schedules templateSchedule : templateSchedules) {
+            // 计算课程在当前周的具体时间
+            LocalDate scheduleDate = calculateScheduleDate(currentInstance.getWeekStartDate(), templateSchedule.getDayOfWeek());
+            LocalDateTime scheduleDateTime = LocalDateTime.of(scheduleDate, templateSchedule.getStartTime());
+            
+            logger.info("课程时间: {} {}, 是否未来: {}", 
+                scheduleDate, templateSchedule.getStartTime(), scheduleDateTime.isAfter(now));
+
+            // 只有未来时间的课程才同步到当前周实例
+            if (scheduleDateTime.isAfter(now)) {
+                // 检查实例中是否已存在相同时间段的课程
+                String key = templateSchedule.getDayOfWeek() + "_" + templateSchedule.getStartTime() + "_" + templateSchedule.getEndTime();
+                List<WeeklyInstanceSchedule> existingSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
+                
+                WeeklyInstanceSchedule existingSchedule = null;
+                for (WeeklyInstanceSchedule s : existingSchedules) {
+                    String existingKey = s.getDayOfWeek() + "_" + s.getStartTime() + "_" + s.getEndTime();
+                    if (existingKey.equals(key)) {
+                        existingSchedule = s;
+                        break;
+                    }
+                }
+
+                if (existingSchedule != null) {
+                    // 如果实例中已存在相同时间段的课程，且不是手动添加的，则覆盖
+                    if (existingSchedule.getIsManualAdded() == null || !existingSchedule.getIsManualAdded()) {
+                        existingSchedule.setTemplateScheduleId(templateSchedule.getId());
+                        existingSchedule.setStudentName(templateSchedule.getStudentName());
+                        existingSchedule.setSubject(templateSchedule.getSubject());
+                        existingSchedule.setNote(templateSchedule.getNote());
+                        existingSchedule.setIsModified(false);
+                        existingSchedule.setUpdatedAt(LocalDateTime.now());
+                        weeklyInstanceScheduleRepository.save(existingSchedule);
+                        logger.info("覆盖实例中的课程: {} {}", templateSchedule.getStudentName(), key);
+                    } else {
+                        logger.info("跳过手动添加的课程: {} {}", existingSchedule.getStudentName(), key);
+                    }
+                } else {
+                    // 如果实例中不存在，则新增
+                    WeeklyInstanceSchedule newSchedule = new WeeklyInstanceSchedule(
+                        currentInstance.getId(),
+                        templateSchedule.getId(),
+                        templateSchedule.getStudentName(),
+                        templateSchedule.getSubject(),
+                        templateSchedule.getDayOfWeek(),
+                        templateSchedule.getStartTime(),
+                        templateSchedule.getEndTime(),
+                        scheduleDate,
+                        templateSchedule.getNote()
+                    );
+                    newSchedule.setIsManualAdded(false);
+                    newSchedule.setIsModified(false);
+                    weeklyInstanceScheduleRepository.save(newSchedule);
+                    logger.info("在实例中新增课程: {} {}", templateSchedule.getStudentName(), key);
+                }
+            } else {
+                logger.info("跳过过去时间的课程: {} {} {}", 
+                    templateSchedule.getStudentName(), scheduleDate, templateSchedule.getStartTime());
+            }
+        }
+
+        // 更新同步时间
+        weeklyInstanceRepository.updateLastSyncedAt(currentInstance.getId(), LocalDateTime.now());
+    }
+    
+    /**
+     * 仅对当前周实例同步“特定模板课程”，并且只覆盖“当前时间之后”的时段。
+     * 用于在固定课表新增课程时的选择性同步。
+     * @deprecated 使用 syncSpecificTemplateSchedulesToCurrentInstanceByTime 代替
+     */
+    @Transactional
+    @Deprecated
     public void syncSpecificTemplateSchedulesToCurrentInstanceSelective(Long templateTimetableId, java.util.List<Schedules> templateSchedules) {
         if (templateSchedules == null || templateSchedules.isEmpty()) {
             return;
