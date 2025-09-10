@@ -527,6 +527,14 @@ public class AdminController {
                 Timetables activeTimetable = coachTimetables.isEmpty() ? null : coachTimetables.get(0);
                 coachStat.put("timetableCount", activeTimetable != null ? 1 : 0);
                 
+                // 添加调试日志
+                logger.info("=== 调试教练: {} ===", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
+                logger.info("活动课表数量: {}", coachTimetables.size());
+                if (activeTimetable != null) {
+                    logger.info("使用课表ID: {}, 课表名: {}, isWeekly: {}", 
+                        activeTimetable.getId(), activeTimetable.getName(), activeTimetable.getIsWeekly());
+                }
+                
                 // 计算当天课程数
                 LocalDate today = LocalDate.now();
                 String todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -549,10 +557,16 @@ public class AdminController {
                             List<WeeklyInstanceSchedule> validInstanceSchedules = instanceSchedules;
                             weeklyCourses = validInstanceSchedules.size();
                             
+                            logger.info("周固定课表 - 本周总课程数: {}", weeklyCourses);
+                            logger.info("周固定课表 - 今日日期: {}", today);
+                            
                             // 检查当天是否有课程
                             todayCourses = (int) validInstanceSchedules.stream()
                                     .filter(schedule -> schedule.getScheduleDate() != null && schedule.getScheduleDate().equals(today))
                                     .peek(schedule -> {
+                                        logger.info("今日课程: {} {}-{} (日期: {})", 
+                                            schedule.getStudentName(), schedule.getStartTime(), 
+                                            schedule.getEndTime(), schedule.getScheduleDate());
                                         java.util.Map<String, Object> item = new java.util.HashMap<>();
                                         item.put("studentName", schedule.getStudentName());
                                         item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
@@ -560,6 +574,8 @@ public class AdminController {
                                         todayCourseDetails.add(item);
                                     })
                                     .count();
+                            
+                            logger.info("今日课程总数: {}", todayCourses);
                         } catch (Exception e) {
                             // 忽略错误
                         }
@@ -714,6 +730,119 @@ public class AdminController {
         } catch (Exception e) {
             logger.error("清理指定课表重复数据失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("清理指定课表重复数据失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 调试接口：检查杨教练的课表和课程数据
+     */
+    @GetMapping("/debug/yang-coach")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> debugYangCoachData() {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // 查找杨教练（通过用户名或昵称）
+            List<Users> allUsers = userService.getAllApprovedUsers();
+            Users yangCoach = allUsers.stream()
+                .filter(u -> (u.getNickname() != null && u.getNickname().contains("杨")) ||
+                           (u.getUsername() != null && u.getUsername().contains("杨")))
+                .findFirst()
+                .orElse(null);
+            
+            if (yangCoach == null) {
+                result.put("error", "找不到杨教练");
+                return ResponseEntity.ok(result);
+            }
+            
+            result.put("coach", Map.of(
+                "id", yangCoach.getId(),
+                "username", yangCoach.getUsername(),
+                "nickname", yangCoach.getNickname()
+            ));
+            
+            // 获取杨教练的所有课表
+            List<Timetables> allTimetables = timetableService.getUserTimetables(yangCoach.getId());
+            result.put("allTimetablesCount", allTimetables.size());
+            result.put("allTimetables", allTimetables.stream().map(t -> Map.of(
+                "id", t.getId(),
+                "name", t.getName(),
+                "isActive", t.getIsActive(),
+                "isDeleted", t.getIsDeleted(),
+                "isArchived", t.getIsArchived(),
+                "isWeekly", t.getIsWeekly()
+            )).collect(Collectors.toList()));
+            
+            // 获取活动课表
+            List<Timetables> activeTimetables = allTimetables.stream()
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .collect(Collectors.toList());
+            
+            result.put("activeTimetablesCount", activeTimetables.size());
+            
+            // 检查今日课程
+            LocalDate today = LocalDate.now();
+            List<Map<String, Object>> todayCoursesDetails = new ArrayList<>();
+            
+            for (Timetables timetable : activeTimetables) {
+                Map<String, Object> timetableInfo = new HashMap<>();
+                timetableInfo.put("timetableId", timetable.getId());
+                timetableInfo.put("timetableName", timetable.getName());
+                
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    // 周固定课表
+                    try {
+                        List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
+                        List<WeeklyInstanceSchedule> todaySchedules = instanceSchedules.stream()
+                            .filter(s -> s.getScheduleDate() != null && s.getScheduleDate().equals(today))
+                            .collect(Collectors.toList());
+                        
+                        timetableInfo.put("todayCoursesCount", todaySchedules.size());
+                        timetableInfo.put("todayCourses", todaySchedules.stream().map(s -> Map.of(
+                            "id", s.getId(),
+                            "studentName", s.getStudentName(),
+                            "startTime", s.getStartTime(),
+                            "endTime", s.getEndTime(),
+                            "scheduleDate", s.getScheduleDate()
+                        )).collect(Collectors.toList()));
+                    } catch (Exception e) {
+                        timetableInfo.put("error", e.getMessage());
+                    }
+                } else {
+                    // 日期范围课表
+                    try {
+                        List<Schedules> schedules = scheduleService.getTimetableSchedules(timetable.getId(), null);
+                        List<Schedules> todaySchedules = schedules.stream()
+                            .filter(s -> s.getScheduleDate() != null && s.getScheduleDate().equals(today))
+                            .collect(Collectors.toList());
+                        
+                        timetableInfo.put("todayCoursesCount", todaySchedules.size());
+                        timetableInfo.put("todayCourses", todaySchedules.stream().map(s -> Map.of(
+                            "id", s.getId(),
+                            "studentName", s.getStudentName(),
+                            "startTime", s.getStartTime(),
+                            "endTime", s.getEndTime(),
+                            "scheduleDate", s.getScheduleDate()
+                        )).collect(Collectors.toList()));
+                    } catch (Exception e) {
+                        timetableInfo.put("error", e.getMessage());
+                    }
+                }
+                
+                todayCoursesDetails.add(timetableInfo);
+            }
+            
+            result.put("todayCoursesDetails", todayCoursesDetails);
+            result.put("date", today);
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResult);
         }
     }
 
