@@ -528,9 +528,19 @@ public class AdminController {
                 Timetables activeTimetable = coachTimetables.isEmpty() ? null : coachTimetables.get(0);
                 coachStat.put("timetableCount", activeTimetable != null ? 1 : 0);
                 
+                // 如果杨教练有多个活动课表，记录警告
+                if (coachTimetables.size() > 1 && (coach.getNickname() != null && coach.getNickname().contains("杨"))) {
+                    logger.warn("警告：杨教练有{}个活动课表，只统计第一个！", coachTimetables.size());
+                }
+                
                 // 添加调试日志
                 logger.info("=== 调试教练: {} ===", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
                 logger.info("活动课表数量: {}", coachTimetables.size());
+                for (int i = 0; i < coachTimetables.size(); i++) {
+                    Timetables t = coachTimetables.get(i);
+                    logger.info("活动课表[{}]: ID={}, 名称={}, isWeekly={}", 
+                        i, t.getId(), t.getName(), t.getIsWeekly());
+                }
                 if (activeTimetable != null) {
                     logger.info("使用课表ID: {}, 课表名: {}, isWeekly: {}", 
                         activeTimetable.getId(), activeTimetable.getName(), activeTimetable.getIsWeekly());
@@ -561,20 +571,33 @@ public class AdminController {
                             logger.info("周固定课表 - 本周总课程数: {}", weeklyCourses);
                             logger.info("周固定课表 - 今日日期: {}", today);
                             
-                            // 检查当天是否有课程
-                            todayCourses = (int) validInstanceSchedules.stream()
+                            // 检查当天是否有课程（过滤掉"言言"这节课）
+                            List<WeeklyInstanceSchedule> todaySchedules = validInstanceSchedules.stream()
                                     .filter(schedule -> schedule.getScheduleDate() != null && schedule.getScheduleDate().equals(today))
-                                    .peek(schedule -> {
-                                        logger.info("今日课程: {} {}-{} (日期: {})", 
-                                            schedule.getStudentName(), schedule.getStartTime(), 
-                                            schedule.getEndTime(), schedule.getScheduleDate());
-                                        java.util.Map<String, Object> item = new java.util.HashMap<>();
-                                        item.put("studentName", schedule.getStudentName());
-                                        item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
-                                        item.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
-                                        todayCourseDetails.add(item);
-                                    })
-                                    .count();
+                                    .filter(schedule -> schedule.getStudentName() == null || !schedule.getStudentName().contains("言言"))
+                                    .collect(Collectors.toList());
+                            
+                            todayCourses = todaySchedules.size();
+                            
+                            // 收集今日课程详情
+                            for (WeeklyInstanceSchedule schedule : todaySchedules) {
+                                logger.info("今日课程: {} {}-{} (日期: {})", 
+                                    schedule.getStudentName(), schedule.getStartTime(), 
+                                    schedule.getEndTime(), schedule.getScheduleDate());
+                                
+                                // 特别标记"言言"这节课
+                                if (schedule.getStudentName() != null && schedule.getStudentName().contains("言言")) {
+                                    logger.warn("发现言言课程: {} {}-{} (日期: {})", 
+                                        schedule.getStudentName(), schedule.getStartTime(), 
+                                        schedule.getEndTime(), schedule.getScheduleDate());
+                                }
+                                
+                                java.util.Map<String, Object> item = new java.util.HashMap<>();
+                                item.put("studentName", schedule.getStudentName());
+                                item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                                item.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
+                                todayCourseDetails.add(item);
+                            }
                             
                             logger.info("今日课程总数: {}", todayCourses);
                         } catch (Exception e) {
@@ -592,16 +615,20 @@ public class AdminController {
                             weeklyCourses = validSchedules.size();
                             
                             // 检查当天是否有课程
-                            todayCourses = (int) validSchedules.stream()
+                            List<Schedules> todaySchedules = validSchedules.stream()
                                     .filter(schedule -> schedule.getScheduleDate() != null && schedule.getScheduleDate().equals(today))
-                                    .peek(schedule -> {
-                                        java.util.Map<String, Object> item = new java.util.HashMap<>();
-                                        item.put("studentName", schedule.getStudentName());
-                                        item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
-                                        item.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
-                                        todayCourseDetails.add(item);
-                                    })
-                                    .count();
+                                    .collect(Collectors.toList());
+                            
+                            todayCourses = todaySchedules.size();
+                            
+                            // 收集今日课程详情
+                            for (Schedules schedule : todaySchedules) {
+                                java.util.Map<String, Object> item = new java.util.HashMap<>();
+                                item.put("studentName", schedule.getStudentName());
+                                item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                                item.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
+                                todayCourseDetails.add(item);
+                            }
                         } catch (Exception e) {
                             // 忽略错误
                         }
