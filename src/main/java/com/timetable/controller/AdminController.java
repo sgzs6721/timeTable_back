@@ -553,8 +553,8 @@ public class AdminController {
                                             schedule.getScheduleDate().equals(today)) {
                                             java.util.Map<String, Object> item = new java.util.HashMap<>();
                                             item.put("studentName", schedule.getStudentName());
-                                            item.put("startTime", schedule.getStartTime());
-                                            item.put("endTime", schedule.getEndTime());
+                                            item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                                            item.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
                                             todayCourseDetails.add(item);
                                             return 1;
                                         }
@@ -582,8 +582,8 @@ public class AdminController {
                                             schedule.getScheduleDate().equals(today)) {
                                             java.util.Map<String, Object> item = new java.util.HashMap<>();
                                             item.put("studentName", schedule.getStudentName());
-                                            item.put("startTime", schedule.getStartTime());
-                                            item.put("endTime", schedule.getEndTime());
+                                            item.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                                            item.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
                                             todayCourseDetails.add(item);
                                             return 1;
                                         }
