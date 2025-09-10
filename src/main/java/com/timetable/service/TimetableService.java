@@ -810,6 +810,94 @@ public class TimetableService {
     }
 
     /**
+     * 获取所有活动课表的本周课程信息（优化版，一次性返回所有数据）
+     */
+    public List<Map<String, Object>> getActiveTimetablesThisWeekSchedules() {
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        try {
+            // 获取本周的周一和周日
+            LocalDate today = LocalDate.now();
+            LocalDate monday = today.with(DayOfWeek.MONDAY);
+            LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+
+            // 获取所有活动课表
+            List<Timetables> activeTimetables = timetableRepository.findAll()
+                    .stream()
+                    .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                    .collect(Collectors.toList());
+
+            for (Timetables timetable : activeTimetables) {
+                // 获取课表所属用户信息
+                com.timetable.generated.tables.pojos.Users user = userService.findById(timetable.getUserId());
+                if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+                    continue; // 跳过已删除的用户
+                }
+
+                List<com.timetable.generated.tables.pojos.Schedules> weekSchedules = new ArrayList<>();
+
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    // 周固定课表：从周实例数据获取本周课程
+                    try {
+                        List<WeeklyInstanceSchedule> instanceSchedules = 
+                            weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
+                        
+                        // 转换为 Schedules 格式
+                        weekSchedules = instanceSchedules.stream()
+                            .map(instanceSchedule -> {
+                                Schedules schedule = new Schedules();
+                                schedule.setId(instanceSchedule.getId());
+                                schedule.setTimetableId(timetable.getId());
+                                schedule.setStudentName(instanceSchedule.getStudentName());
+                                schedule.setSubject(instanceSchedule.getSubject());
+                                schedule.setDayOfWeek(instanceSchedule.getDayOfWeek());
+                                schedule.setStartTime(instanceSchedule.getStartTime());
+                                schedule.setEndTime(instanceSchedule.getEndTime());
+                                schedule.setScheduleDate(instanceSchedule.getScheduleDate());
+                                schedule.setNote(instanceSchedule.getNote());
+                                return schedule;
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        // 如果获取周实例失败，继续处理下一个课表
+                        continue;
+                    }
+                } else {
+                    // 日期范围课表：获取本周课程
+                    weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(
+                        timetable.getId(), monday, sunday);
+                }
+
+                // 将课程数据添加到结果中
+                for (Schedules schedule : weekSchedules) {
+                    Map<String, Object> scheduleInfo = new HashMap<>();
+                    scheduleInfo.put("id", schedule.getId());
+                    scheduleInfo.put("timetableId", timetable.getId());
+                    scheduleInfo.put("timetableName", timetable.getName());
+                    scheduleInfo.put("ownerNickname", user.getNickname());
+                    scheduleInfo.put("ownerUsername", user.getUsername());
+                    scheduleInfo.put("isWeekly", timetable.getIsWeekly());
+                    scheduleInfo.put("studentName", schedule.getStudentName());
+                    scheduleInfo.put("subject", schedule.getSubject());
+                    scheduleInfo.put("dayOfWeek", schedule.getDayOfWeek());
+                    scheduleInfo.put("startTime", schedule.getStartTime());
+                    scheduleInfo.put("endTime", schedule.getEndTime());
+                    scheduleInfo.put("scheduleDate", schedule.getScheduleDate());
+                    scheduleInfo.put("note", schedule.getNote());
+                    result.add(scheduleInfo);
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("获取活动课表本周课程失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
      * 复制课表到指定用户
      */
     @Transactional

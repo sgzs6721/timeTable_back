@@ -125,6 +125,20 @@ public class AdminController {
                     .body(ApiResponse.error("获取课程失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取所有活动课表的本周课程信息（优化版，一次性返回所有数据）
+     */
+    @GetMapping("/active-timetables/this-week")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesThisWeek() {
+        try {
+            List<Map<String, Object>> result = timetableService.getActiveTimetablesThisWeekSchedules();
+            return ResponseEntity.ok(ApiResponse.success("获取活动课表本周课程成功", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("获取本周课程失败: " + e.getMessage()));
+        }
+    }
     
     /**
      * 更新课表状态（例如，设为活动、归档等）
