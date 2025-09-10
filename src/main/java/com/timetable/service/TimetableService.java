@@ -947,8 +947,8 @@ public class TimetableService {
                     scheduleInfo.put("studentName", schedule.getStudentName());
                     scheduleInfo.put("subject", schedule.getSubject());
                     scheduleInfo.put("dayOfWeek", schedule.getDayOfWeek());
-                    scheduleInfo.put("startTime", schedule.getStartTime());
-                    scheduleInfo.put("endTime", schedule.getEndTime());
+                    scheduleInfo.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                    scheduleInfo.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
                     scheduleInfo.put("scheduleDate", schedule.getScheduleDate());
                     scheduleInfo.put("weekNumber", schedule.getWeekNumber());
                     scheduleInfo.put("note", schedule.getNote());
