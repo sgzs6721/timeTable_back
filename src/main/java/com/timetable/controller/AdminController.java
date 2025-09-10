@@ -139,6 +139,20 @@ public class AdminController {
                     .body(ApiResponse.error("获取本周课程失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取所有活动课表的模板课程信息（优化版，一次性返回所有数据）
+     */
+    @GetMapping("/active-timetables/templates")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTemplates() {
+        try {
+            List<Map<String, Object>> result = timetableService.getActiveTimetablesTemplateSchedules();
+            return ResponseEntity.ok(ApiResponse.success("获取活动课表模板课程成功", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("获取模板课程失败: " + e.getMessage()));
+        }
+    }
     
     /**
      * 更新课表状态（例如，设为活动、归档等）
@@ -581,6 +595,13 @@ public class AdminController {
                         }
                     }
                 }
+                
+                // 对今日课程详情按开始时间排序
+                todayCourseDetails.sort((a, b) -> {
+                    String timeA = (String) a.get("startTime");
+                    String timeB = (String) b.get("startTime");
+                    return timeA.compareTo(timeB);
+                });
                 
                 coachStat.put("todayCourses", todayCourses);
                 coachStat.put("weeklyCourses", weeklyCourses);
