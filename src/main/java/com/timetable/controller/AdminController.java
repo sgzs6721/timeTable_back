@@ -75,8 +75,9 @@ public class AdminController {
      * 获取所有用户的课表
      */
     @GetMapping("/timetables")
-    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getAllTimetables() {
-        List<AdminTimetableDTO> timetables = timetableService.getAllTimetablesWithUser();
+    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getAllTimetables(
+            @RequestParam(value = "activeOnly", required = false, defaultValue = "false") boolean activeOnly) {
+        List<AdminTimetableDTO> timetables = timetableService.getAllTimetablesWithUser(activeOnly);
         return ResponseEntity.ok(ApiResponse.success("获取所有课表成功", timetables));
     }
     

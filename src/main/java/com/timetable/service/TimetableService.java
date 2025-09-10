@@ -357,7 +357,15 @@ public class TimetableService {
      * 获取所有课表并附带用户名、课程数量（管理员功能）
      */
     public List<AdminTimetableDTO> getAllTimetablesWithUser() {
-        List<Timetables> timetables = getAllTimetables(); // 获取所有有效课表
+        return getAllTimetablesWithUser(false);
+    }
+    
+    /**
+     * 获取课表并附带用户名、课程数量（管理员功能）
+     * @param activeOnly 是否只返回活动课表
+     */
+    public List<AdminTimetableDTO> getAllTimetablesWithUser(boolean activeOnly) {
+        List<Timetables> timetables = activeOnly ? getActiveTimetables() : getAllTimetables();
         return timetables.stream()
             .map(t -> {
                 String username = null;
