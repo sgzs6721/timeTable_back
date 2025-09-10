@@ -653,7 +653,8 @@ public class ScheduleController {
             // 检查是否为周固定课表
             com.timetable.generated.tables.pojos.Timetables timetable = timetableService.getTimetableById(timetableId);
             if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
-                weeklyInstanceService.syncTemplateChangesToInstances(timetableId);
+                // 只同步当前时间之后的未来实例
+                weeklyInstanceService.syncTemplateChangesToFutureInstances(timetableId);
             }
         } catch (Exception e) {
             // 记录错误但不影响主要操作
