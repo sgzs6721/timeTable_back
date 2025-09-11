@@ -213,10 +213,10 @@ public class ScheduleService {
                         currentInstance = weeklyInstanceService.generateCurrentWeekInstance(timetableId);
                     } catch (Exception ignore) {}
                 }
-                // 强制做一次“仅未来时段”的选择性同步，避免前端切换时出现延迟
-                if (currentInstance != null) {
-                    weeklyInstanceService.syncTemplateToCurrentInstanceSelectively(currentInstance);
-                }
+                // 注释掉强制同步，避免删除实例课程后又被同步回来
+                // if (currentInstance != null) {
+                //     weeklyInstanceService.syncTemplateToCurrentInstanceSelectively(currentInstance);
+                // }
                 // 再获取本周实例课程
                 List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = 
                     weeklyInstanceService.getCurrentWeekInstanceSchedules(timetableId);
