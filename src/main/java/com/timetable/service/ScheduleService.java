@@ -359,16 +359,17 @@ public class ScheduleService {
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
 
-        // For date-range timetables, weekNumber from request is ignored and set to null.
-        // For weekly timetables, we use the one from the request.
+        // 对不同类型课表的字段进行规范化：
+        // - 日期范围课表：忽略 weekNumber，允许具体 scheduleDate
+        // - 周固定课表：允许 weekNumber；强制 scheduleDate = null（写入模板）
         Timetables timetable = timetableRepository.findById(timetableId);
-        if (timetable != null && timetable.getIsWeekly() == 0) {
-            schedule.setWeekNumber(null);
-        } else {
+        if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
             schedule.setWeekNumber(request.getWeekNumber());
+            schedule.setScheduleDate(null); // 强制写入模板
+        } else {
+            schedule.setWeekNumber(null);
+            schedule.setScheduleDate(request.getScheduleDate());
         }
-
-        schedule.setScheduleDate(request.getScheduleDate());
         schedule.setNote(request.getNote());
         // 设置创建和更新时间
         schedule.setCreatedAt(LocalDateTime.now());
@@ -451,8 +452,15 @@ public class ScheduleService {
         if (request.getWeekNumber() != null) {
             schedule.setWeekNumber(request.getWeekNumber());
         }
-        if (request.getScheduleDate() != null) {
-            schedule.setScheduleDate(request.getScheduleDate());
+        // 对不同类型课表的字段进行规范化更新
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+            // 周固定课表：强制 scheduleDate 维持为 null（模板）
+            schedule.setScheduleDate(null);
+        } else {
+            if (request.getScheduleDate() != null) {
+                schedule.setScheduleDate(request.getScheduleDate());
+            }
         }
         if (request.getNote() != null) {
             schedule.setNote(request.getNote());
@@ -463,7 +471,6 @@ public class ScheduleService {
 
         // 周固定课表模板：仅影响当前周实例中未来时段
         try {
-            Timetables timetable = timetableRepository.findById(timetableId);
             if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1
                     && schedule.getScheduleDate() == null) {
                 weeklyInstanceService.syncSpecificTemplateSchedulesToCurrentInstanceByTime(timetableId,
