@@ -206,6 +206,18 @@ public class ScheduleService {
         if (timetable.getIsWeekly() == 1) {
             // 周固定课表：从周实例数据获取本周课程
             try {
+                // 先确保存在当前周实例
+                WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetableId);
+                if (currentInstance == null) {
+                    try {
+                        currentInstance = weeklyInstanceService.generateCurrentWeekInstance(timetableId);
+                    } catch (Exception ignore) {}
+                }
+                // 强制做一次“仅未来时段”的选择性同步，避免前端切换时出现延迟
+                if (currentInstance != null) {
+                    weeklyInstanceService.syncTemplateToCurrentInstanceSelectively(currentInstance);
+                }
+                // 再获取本周实例课程
                 List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = 
                     weeklyInstanceService.getCurrentWeekInstanceSchedules(timetableId);
                 
