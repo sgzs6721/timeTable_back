@@ -412,7 +412,40 @@ public class WeeklyInstanceService {
      * 获取指定课表的当前周实例
      */
     public WeeklyInstance getCurrentWeekInstance(Long templateTimetableId) {
-        return weeklyInstanceRepository.findCurrentWeekInstanceByTemplateId(templateTimetableId);
+        // 首先尝试获取标记为当前周的实例
+        WeeklyInstance currentInstance = weeklyInstanceRepository.findCurrentWeekInstanceByTemplateId(templateTimetableId);
+        
+        if (currentInstance != null) {
+            // 验证这个实例是否真的是当前周
+            LocalDate now = LocalDate.now();
+            LocalDate weekStart = now.with(DayOfWeek.MONDAY);
+            LocalDate weekEnd = now.with(DayOfWeek.SUNDAY);
+            
+            if (currentInstance.getWeekStartDate().equals(weekStart) && currentInstance.getWeekEndDate().equals(weekEnd)) {
+                return currentInstance;
+            } else {
+                // 标记的当前周实例不是真正的当前周，清除标记
+                logger.warn("发现错误的当前周标记，课表ID: {}, 实例周: {} - {}, 实际当前周: {} - {}", 
+                    templateTimetableId, 
+                    currentInstance.getWeekStartDate(), currentInstance.getWeekEndDate(),
+                    weekStart, weekEnd);
+                weeklyInstanceRepository.clearCurrentWeekFlagByTemplateId(templateTimetableId);
+            }
+        }
+        
+        // 如果没有标记的当前周实例或标记错误，尝试根据当前日期查找本周实例
+        LocalDate now = LocalDate.now();
+        String yearWeek = generateYearWeekString(now);
+        WeeklyInstance thisWeekInstance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
+        
+        if (thisWeekInstance != null) {
+            // 找到本周实例，设置为当前周
+            weeklyInstanceRepository.clearCurrentWeekFlagByTemplateId(templateTimetableId);
+            weeklyInstanceRepository.setCurrentWeekInstance(thisWeekInstance.getId());
+            return thisWeekInstance;
+        }
+        
+        return null;
     }
 
     /**
@@ -420,6 +453,17 @@ public class WeeklyInstanceService {
      */
     public List<WeeklyInstanceSchedule> getCurrentWeekInstanceSchedules(Long templateTimetableId) {
         WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
+        if (currentInstance == null) {
+            // 如果没有当前周实例，尝试自动生成一个
+            try {
+                logger.info("未找到当前周实例，尝试自动生成，课表ID: {}", templateTimetableId);
+                currentInstance = generateCurrentWeekInstance(templateTimetableId);
+            } catch (Exception e) {
+                logger.warn("自动生成当前周实例失败，课表ID: {}, 错误: {}", templateTimetableId, e.getMessage());
+                return new ArrayList<>();
+            }
+        }
+        
         if (currentInstance == null) {
             return new ArrayList<>();
         }
