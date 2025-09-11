@@ -449,6 +449,34 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 获取指定周实例的课程安排
+     */
+    public List<WeeklyInstanceSchedule> getInstanceSchedules(Long instanceId) {
+        WeeklyInstance instance = weeklyInstanceRepository.findById(instanceId);
+        if (instance == null) {
+            logger.warn("周实例不存在，ID: {}", instanceId);
+            return new ArrayList<>();
+        }
+        
+        // 获取实例的所有课程
+        List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instanceId);
+        
+        // 过滤出该周范围内的课程（周一到周日）
+        LocalDate weekStart = instance.getWeekStartDate();
+        LocalDate weekEnd = instance.getWeekEndDate();
+        
+        return allSchedules.stream()
+            .filter(schedule -> {
+                if (schedule.getScheduleDate() == null) {
+                    return false; // 没有日期的课程不显示
+                }
+                LocalDate scheduleDate = schedule.getScheduleDate();
+                return !scheduleDate.isBefore(weekStart) && !scheduleDate.isAfter(weekEnd);
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
      * 获取当前周实例的课程安排（只返回本周范围内的课程）
      */
     public List<WeeklyInstanceSchedule> getCurrentWeekInstanceSchedules(Long templateTimetableId) {
@@ -468,22 +496,8 @@ public class WeeklyInstanceService {
             return new ArrayList<>();
         }
         
-        // 获取实例的所有课程
-        List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(currentInstance.getId());
-        
-        // 过滤出本周范围内的课程（周一到周日）
-        LocalDate weekStart = currentInstance.getWeekStartDate();
-        LocalDate weekEnd = currentInstance.getWeekEndDate();
-        
-        return allSchedules.stream()
-            .filter(schedule -> {
-                if (schedule.getScheduleDate() == null) {
-                    return false; // 没有日期的课程不显示
-                }
-                LocalDate scheduleDate = schedule.getScheduleDate();
-                return !scheduleDate.isBefore(weekStart) && !scheduleDate.isAfter(weekEnd);
-            })
-            .collect(Collectors.toList());
+        // 使用新的方法获取指定实例的课程
+        return getInstanceSchedules(currentInstance.getId());
     }
 
     /**

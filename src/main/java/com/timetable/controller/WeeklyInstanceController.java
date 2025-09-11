@@ -192,7 +192,7 @@ public class WeeklyInstanceController {
         }
 
         // 获取实例信息
-        WeeklyInstance instance = weeklyInstanceService.switchToWeekInstance(instanceId);
+        WeeklyInstance instance = weeklyInstanceService.findById(instanceId);
         if (instance == null) {
             return ResponseEntity.notFound().build();
         }
@@ -205,7 +205,8 @@ public class WeeklyInstanceController {
             }
         }
 
-        List<WeeklyInstanceSchedule> schedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(instance.getTemplateTimetableId());
+        // 获取指定实例的课程，而不是当前周实例的课程
+        List<WeeklyInstanceSchedule> schedules = weeklyInstanceService.getInstanceSchedules(instanceId);
         return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", schedules));
     }
 
