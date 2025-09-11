@@ -374,6 +374,18 @@ public class ScheduleService {
         schedule.setCreatedAt(LocalDateTime.now());
         schedule.setUpdatedAt(LocalDateTime.now());
         scheduleRepository.save(schedule);
+
+        // 周固定课表：如果是模板课程（scheduleDate为空），选择性同步到“当前周实例”的未来时段
+        try {
+            if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1
+                    && schedule.getScheduleDate() == null) {
+                weeklyInstanceService.syncSpecificTemplateSchedulesToCurrentInstanceByTime(timetableId,
+                        java.util.Collections.singletonList(schedule));
+            }
+        } catch (Exception e) {
+            logger.warn("Selective sync to current week instance failed after create. timetableId={}, scheduleId={}",
+                    timetableId, schedule.getId());
+        }
         return schedule;
     }
 
@@ -396,6 +408,19 @@ public class ScheduleService {
         schedule.setNote(request.getNote());
         schedule.setUpdatedAt(LocalDateTime.now());
         scheduleRepository.update(schedule);
+
+        // 周固定课表模板：仅影响当前周实例中未来时段
+        try {
+            Timetables timetable = timetableRepository.findById(timetableId);
+            if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1
+                    && schedule.getScheduleDate() == null) {
+                weeklyInstanceService.syncSpecificTemplateSchedulesToCurrentInstanceByTime(timetableId,
+                        java.util.Collections.singletonList(schedule));
+            }
+        } catch (Exception e) {
+            logger.warn("Selective sync to current week instance failed after update. timetableId={}, scheduleId={}",
+                    timetableId, scheduleId);
+        }
         return schedule;
     }
 
@@ -435,6 +460,19 @@ public class ScheduleService {
 
         schedule.setUpdatedAt(LocalDateTime.now());
         scheduleRepository.update(schedule);
+
+        // 周固定课表模板：仅影响当前周实例中未来时段
+        try {
+            Timetables timetable = timetableRepository.findById(timetableId);
+            if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1
+                    && schedule.getScheduleDate() == null) {
+                weeklyInstanceService.syncSpecificTemplateSchedulesToCurrentInstanceByTime(timetableId,
+                        java.util.Collections.singletonList(schedule));
+            }
+        } catch (Exception e) {
+            logger.warn("Selective sync to current week instance failed after partial update. timetableId={}, scheduleId={}",
+                    timetableId, scheduleId);
+        }
         return schedule;
     }
 
@@ -442,8 +480,21 @@ public class ScheduleService {
      * 删除排课
      */
     public boolean deleteSchedule(Long timetableId, Long scheduleId) {
-        if (!scheduleRepository.existsByIdAndTimetableId(scheduleId, timetableId)) {
+        Schedules schedule = scheduleRepository.findByIdAndTimetableId(scheduleId, timetableId);
+        if (schedule == null) {
             return false;
+        }
+
+        // 周固定课表模板：仅删除当前周实例未来时段的对应实例课程
+        try {
+            Timetables timetable = timetableRepository.findById(timetableId);
+            if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1
+                    && schedule.getScheduleDate() == null) {
+                weeklyInstanceService.deleteCurrentWeekInstanceScheduleIfFuture(timetableId, schedule);
+            }
+        } catch (Exception e) {
+            logger.warn("Selective delete from current week instance failed before delete. timetableId={}, scheduleId={}",
+                    timetableId, scheduleId);
         }
 
         scheduleRepository.deleteById(scheduleId);

@@ -810,6 +810,43 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 当模板课程被删除时：仅删除“当前周实例”中对应且属于未来时间段的实例课程
+     * 仅适用于周固定课表的本周实例
+     */
+    @Transactional
+    public void deleteCurrentWeekInstanceScheduleIfFuture(Long templateTimetableId, Schedules templateSchedule) {
+        if (templateSchedule == null || templateSchedule.getDayOfWeek() == null
+                || templateSchedule.getStartTime() == null) {
+            return;
+        }
+
+        WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
+        if (currentInstance == null) {
+            return;
+        }
+
+        LocalDate scheduleDate = calculateScheduleDate(currentInstance.getWeekStartDate(), templateSchedule.getDayOfWeek());
+        LocalDateTime scheduleStart = LocalDateTime.of(scheduleDate, templateSchedule.getStartTime());
+        if (!scheduleStart.isAfter(LocalDateTime.now())) {
+            // 仅处理未来时间段
+            return;
+        }
+
+        // 精确定位当前周实例当天对应时间段的课程，仅删除非手动添加的记录
+        List<WeeklyInstanceSchedule> daySchedules = weeklyInstanceScheduleRepository
+                .findByWeeklyInstanceIdAndDate(currentInstance.getId(), scheduleDate);
+        for (WeeklyInstanceSchedule s : daySchedules) {
+            boolean sameSlot = Objects.equals(s.getDayOfWeek(), templateSchedule.getDayOfWeek())
+                    && Objects.equals(s.getStartTime(), templateSchedule.getStartTime())
+                    && Objects.equals(s.getEndTime(), templateSchedule.getEndTime());
+            if (sameSlot && (s.getIsManualAdded() == null || !s.getIsManualAdded())) {
+                weeklyInstanceScheduleRepository.delete(s.getId());
+            }
+        }
+        weeklyInstanceRepository.updateLastSyncedAt(currentInstance.getId(), LocalDateTime.now());
+    }
+
+    /**
      * 当模板课程被更新时，更新相关的实例课程
      */
     @Transactional
