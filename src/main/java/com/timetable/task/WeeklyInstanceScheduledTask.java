@@ -35,21 +35,7 @@ public class WeeklyInstanceScheduledTask {
         }
     }
 
-    /**
-     * 每天凌晨2点检查并生成当前周实例（防止遗漏）
-     * cron: 0 0 2 * * * 表示每天的2:00:00执行
-     */
-    @Scheduled(cron = "0 0 2 * * *")
-    public void dailyCheckAndGenerateWeeklyInstances() {
-        logger.info("开始执行每日检查任务：确保当前周实例存在");
-        
-        try {
-            weeklyInstanceService.ensureCurrentWeekInstancesExist();
-            logger.info("每日检查任务执行成功：当前周实例已确保存在");
-        } catch (Exception e) {
-            logger.error("每日检查任务执行失败：生成当前周实例时发生错误", e);
-        }
-    }
+    
 
     /**
      * 手动触发生成当前周实例（用于测试或紧急情况）
