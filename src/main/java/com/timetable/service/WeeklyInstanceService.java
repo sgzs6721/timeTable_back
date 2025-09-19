@@ -1214,7 +1214,7 @@ public class WeeklyInstanceService {
                     List<WeeklyInstanceSchedule> all = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
                     instanceSchedules = all.stream()
                             .filter(s -> targetDate.equals(s.getScheduleDate()))
-                            .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
+                            // 不过滤请假课程，让前端显示所有课程（包括请假的）
                             .collect(Collectors.toList());
                     
                     // 去重：基于学生姓名、开始时间、结束时间的组合
