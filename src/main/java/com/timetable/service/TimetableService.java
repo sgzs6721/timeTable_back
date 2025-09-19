@@ -901,12 +901,9 @@ public class TimetableService {
                         continue;
                     }
                 } else {
-                    // 日期范围课表：获取本周课程，并过滤掉请假的课程
+                    // 日期范围课表：获取本周课程（日期范围课表没有请假功能，直接返回）
                     weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(
-                        timetable.getId(), monday, sunday)
-                        .stream()
-                        .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave()) // 过滤掉请假的课程
-                        .collect(Collectors.toList());
+                        timetable.getId(), monday, sunday);
                 }
 
                 // 将课程数据添加到结果中

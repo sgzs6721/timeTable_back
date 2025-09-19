@@ -1187,11 +1187,10 @@ public class WeeklyInstanceService {
                     instanceSchedules = new ArrayList<>(uniqueSchedules.values());
                 }
             } else {
-                // 日期范围课表：直接取具体日期
+                // 日期范围课表：直接取具体日期（日期范围课表没有请假功能）
                 List<Schedules> daySchedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetable.getId(), targetDate);
-                // 映射为实例样式，并过滤掉请假的课程
+                // 映射为实例样式
                 instanceSchedules = daySchedules.stream()
-                        .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
                         .map(s -> {
                             WeeklyInstanceSchedule w = new WeeklyInstanceSchedule();
                             w.setStudentName(s.getStudentName());

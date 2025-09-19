@@ -232,11 +232,8 @@ public class ScheduleService {
                 return Collections.emptyList();
             }
         } else {
-            // 日期范围课表：获取本周课程，并过滤掉请假的课程
-            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday)
-                .stream()
-                .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
-                .collect(Collectors.toList());
+            // 日期范围课表：获取本周课程（日期范围课表没有请假功能，直接返回）
+            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday);
         }
     }
 
