@@ -879,8 +879,9 @@ public class TimetableService {
                         List<WeeklyInstanceSchedule> instanceSchedules = 
                             weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
                         
-                        // 转换为 Schedules 格式
+                        // 转换为 Schedules 格式，并过滤掉请假的课程
                         weekSchedules = instanceSchedules.stream()
+                            .filter(instanceSchedule -> instanceSchedule.getIsOnLeave() == null || !instanceSchedule.getIsOnLeave()) // 过滤掉请假的课程
                             .map(instanceSchedule -> {
                                 Schedules schedule = new Schedules();
                                 schedule.setId(instanceSchedule.getId());
@@ -900,9 +901,12 @@ public class TimetableService {
                         continue;
                     }
                 } else {
-                    // 日期范围课表：获取本周课程
+                    // 日期范围课表：获取本周课程，并过滤掉请假的课程
                     weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(
-                        timetable.getId(), monday, sunday);
+                        timetable.getId(), monday, sunday)
+                        .stream()
+                        .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave()) // 过滤掉请假的课程
+                        .collect(Collectors.toList());
                 }
 
                 // 将课程数据添加到结果中

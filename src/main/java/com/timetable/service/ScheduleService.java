@@ -221,8 +221,9 @@ public class ScheduleService {
                 List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = 
                     weeklyInstanceService.getCurrentWeekInstanceSchedules(timetableId);
                 
-                // 转换为 Schedules 格式
+                // 转换为 Schedules 格式，并过滤掉请假的课程
                 return instanceSchedules.stream()
+                    .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
                     .map(this::convertWeeklyInstanceScheduleToSchedule)
                     .collect(Collectors.toList());
             } catch (Exception e) {
@@ -231,8 +232,11 @@ public class ScheduleService {
                 return Collections.emptyList();
             }
         } else {
-            // 日期范围课表：获取本周课程
-            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday);
+            // 日期范围课表：获取本周课程，并过滤掉请假的课程
+            return scheduleRepository.findByTimetableIdAndScheduleDateBetween(timetableId, monday, sunday)
+                .stream()
+                .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
+                .collect(Collectors.toList());
         }
     }
 

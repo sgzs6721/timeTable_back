@@ -473,6 +473,7 @@ public class WeeklyInstanceService {
                 LocalDate scheduleDate = schedule.getScheduleDate();
                 return !scheduleDate.isBefore(weekStart) && !scheduleDate.isAfter(weekEnd);
             })
+            .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave()) // 过滤掉请假的课程
             .collect(Collectors.toList());
     }
 
@@ -1168,6 +1169,7 @@ public class WeeklyInstanceService {
                     List<WeeklyInstanceSchedule> all = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
                     instanceSchedules = all.stream()
                             .filter(s -> targetDate.equals(s.getScheduleDate()))
+                            .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
                             .collect(Collectors.toList());
                     
                     // 去重：基于学生姓名、开始时间、结束时间的组合
@@ -1187,17 +1189,19 @@ public class WeeklyInstanceService {
             } else {
                 // 日期范围课表：直接取具体日期
                 List<Schedules> daySchedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetable.getId(), targetDate);
-                // 映射为实例样式
-                instanceSchedules = daySchedules.stream().map(s -> {
-                    WeeklyInstanceSchedule w = new WeeklyInstanceSchedule();
-                    w.setStudentName(s.getStudentName());
-                    w.setSubject(s.getSubject());
-                    w.setDayOfWeek(s.getDayOfWeek());
-                    w.setStartTime(s.getStartTime());
-                    w.setEndTime(s.getEndTime());
-                    w.setScheduleDate(s.getScheduleDate());
-                    return w;
-                }).collect(Collectors.toList());
+                // 映射为实例样式，并过滤掉请假的课程
+                instanceSchedules = daySchedules.stream()
+                        .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave()) // 过滤掉请假的课程
+                        .map(s -> {
+                            WeeklyInstanceSchedule w = new WeeklyInstanceSchedule();
+                            w.setStudentName(s.getStudentName());
+                            w.setSubject(s.getSubject());
+                            w.setDayOfWeek(s.getDayOfWeek());
+                            w.setStartTime(s.getStartTime());
+                            w.setEndTime(s.getEndTime());
+                            w.setScheduleDate(s.getScheduleDate());
+                            return w;
+                        }).collect(Collectors.toList());
             }
 
             if (!instanceSchedules.isEmpty()) {
