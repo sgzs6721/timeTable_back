@@ -125,6 +125,42 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 获取指定课表的当前周实例（包含请假课程）
+     */
+    @GetMapping("/current/{timetableId}/including-leaves")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCurrentWeekInstanceIncludingLeaves(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 检查课表是否属于当前用户或用户是否为管理员
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
+            if (timetable == null) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        WeeklyInstance instance = weeklyInstanceService.getCurrentWeekInstance(timetableId);
+        List<WeeklyInstanceSchedule> schedules = new ArrayList<>();
+        
+        if (instance != null) {
+            schedules = weeklyInstanceService.getCurrentWeekInstanceSchedulesIncludingLeaves(timetableId);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("instance", instance);
+        result.put("schedules", schedules);
+        result.put("hasInstance", instance != null);
+
+        return ResponseEntity.ok(ApiResponse.success("获取当前周实例成功（包含请假）", result));
+    }
+
+    /**
      * 获取指定课表的所有周实例
      */
     @GetMapping("/list/{timetableId}")
