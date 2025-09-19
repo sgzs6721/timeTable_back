@@ -6,6 +6,7 @@ import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
+import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
@@ -40,6 +41,9 @@ public class TimetableService {
 
     @Autowired
     private WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
+
+    @Autowired
+    private WeeklyInstanceRepository weeklyInstanceRepository;
 
     @Autowired
     private UserService userService;
