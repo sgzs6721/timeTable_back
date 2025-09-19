@@ -582,6 +582,18 @@ public class AdminController {
                             todayLeaves = (int) todaySchedulesAll.stream()
                                     .filter(s -> s.getIsOnLeave() != null && s.getIsOnLeave())
                                     .count();
+                            
+                            // 调试日志：检查上官教练的请假统计
+                            if (coach.getNickname() != null && coach.getNickname().contains("上官")) {
+                                logger.info("=== 上官教练调试信息 ===");
+                                logger.info("今日总课程数: {}", todaySchedulesAll.size());
+                                logger.info("今日请假数: {}", todayLeaves);
+                                for (WeeklyInstanceSchedule s : todaySchedulesAll) {
+                                    logger.info("课程: {} {}-{}, isOnLeave: {}, 日期: {}", 
+                                        s.getStudentName(), s.getStartTime(), s.getEndTime(), 
+                                        s.getIsOnLeave(), s.getScheduleDate());
+                                }
+                            }
 
                             // 今日课程数（不含请假，且过滤掉“言言”特殊课）
                             List<WeeklyInstanceSchedule> todaySchedules = todaySchedulesAll.stream()
