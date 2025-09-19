@@ -1266,6 +1266,8 @@ public class WeeklyInstanceService {
                     m.put("endTime", s.getEndTime());
                     // 标记是否来自实例（周固定课表的实例数据）
                     m.put("isFromInstance", timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1);
+                    // 传递请假标记到前端
+                    m.put("isOnLeave", s.getIsOnLeave());
                     return m;
                 }).collect(Collectors.toList());
                 item.put("schedules", schedules);
