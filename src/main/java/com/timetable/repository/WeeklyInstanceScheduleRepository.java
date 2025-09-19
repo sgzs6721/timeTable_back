@@ -188,6 +188,31 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
     }
 
     /**
+     * 更新周实例课程
+     */
+    public WeeklyInstanceSchedule update(WeeklyInstanceSchedule schedule) {
+        dsl.update(table("weekly_instance_schedules"))
+                .set(field("weekly_instance_id"), schedule.getWeeklyInstanceId())
+                .set(field("template_schedule_id"), schedule.getTemplateScheduleId())
+                .set(field("student_name"), schedule.getStudentName())
+                .set(field("subject"), schedule.getSubject())
+                .set(field("day_of_week"), schedule.getDayOfWeek())
+                .set(field("start_time"), schedule.getStartTime())
+                .set(field("end_time"), schedule.getEndTime())
+                .set(field("schedule_date"), schedule.getScheduleDate())
+                .set(field("note"), schedule.getNote())
+                .set(field("is_manual_added"), schedule.getIsManualAdded())
+                .set(field("is_modified"), schedule.getIsModified())
+                .set(field("is_on_leave"), schedule.getIsOnLeave())
+                .set(field("leave_reason"), schedule.getLeaveReason())
+                .set(field("leave_requested_at"), schedule.getLeaveRequestedAt())
+                .set(field("updated_at"), LocalDateTime.now())
+                .where(field("id").eq(schedule.getId()))
+                .execute();
+        return schedule;
+    }
+
+    /**
      * 更新课程的修改状态
      */
     public void markAsModified(Long scheduleId) {
@@ -259,6 +284,9 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         schedule.setNote(record.get("note", String.class));
         schedule.setIsManualAdded(record.get("is_manual_added", Boolean.class));
         schedule.setIsModified(record.get("is_modified", Boolean.class));
+        schedule.setIsOnLeave(record.get("is_on_leave", Boolean.class));
+        schedule.setLeaveReason(record.get("leave_reason", String.class));
+        schedule.setLeaveRequestedAt(record.get("leave_requested_at", LocalDateTime.class));
         schedule.setCreatedAt(record.get("created_at", LocalDateTime.class));
         schedule.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
         return schedule;

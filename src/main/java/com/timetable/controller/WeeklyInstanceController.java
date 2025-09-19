@@ -2,6 +2,7 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.WeeklyInstanceDTO;
+import com.timetable.dto.LeaveRequest;
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.service.WeeklyInstanceService;
@@ -610,5 +611,56 @@ public class WeeklyInstanceController {
         result.put("hasCurrentWeekInstance", hasInstance);
 
         return ResponseEntity.ok(ApiResponse.success("检查完成", result));
+    }
+
+    /**
+     * 学生请假
+     */
+    @PostMapping("/schedules/leave")
+    public ResponseEntity<ApiResponse<WeeklyInstanceSchedule>> requestLeave(
+            @RequestBody LeaveRequest leaveRequest,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            WeeklyInstanceSchedule schedule = weeklyInstanceService.requestLeave(
+                leaveRequest.getScheduleId(), 
+                leaveRequest.getLeaveReason()
+            );
+            return ResponseEntity.ok(ApiResponse.success("请假申请成功", schedule));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("请假申请失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("请假申请失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 取消请假
+     */
+    @PostMapping("/schedules/cancel-leave/{scheduleId}")
+    public ResponseEntity<ApiResponse<WeeklyInstanceSchedule>> cancelLeave(
+            @PathVariable Long scheduleId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            WeeklyInstanceSchedule schedule = weeklyInstanceService.cancelLeave(scheduleId);
+            return ResponseEntity.ok(ApiResponse.success("取消请假成功", schedule));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("取消请假失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("取消请假失败: " + e.getMessage()));
+        }
     }
 }

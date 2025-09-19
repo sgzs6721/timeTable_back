@@ -20,6 +20,9 @@ public class WeeklyInstanceSchedule {
     private String note;
     private Boolean isManualAdded;     // 是否为手动添加（非模板同步）
     private Boolean isModified;        // 是否被手动修改过
+    private Boolean isOnLeave;         // 是否请假
+    private String leaveReason;        // 请假原因
+    private LocalDateTime leaveRequestedAt; // 请假申请时间
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -170,5 +173,29 @@ public class WeeklyInstanceSchedule {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getIsOnLeave() {
+        return isOnLeave;
+    }
+
+    public void setIsOnLeave(Boolean isOnLeave) {
+        this.isOnLeave = isOnLeave;
+    }
+
+    public String getLeaveReason() {
+        return leaveReason;
+    }
+
+    public void setLeaveReason(String leaveReason) {
+        this.leaveReason = leaveReason;
+    }
+
+    public LocalDateTime getLeaveRequestedAt() {
+        return leaveRequestedAt;
+    }
+
+    public void setLeaveRequestedAt(LocalDateTime leaveRequestedAt) {
+        this.leaveRequestedAt = leaveRequestedAt;
     }
 }

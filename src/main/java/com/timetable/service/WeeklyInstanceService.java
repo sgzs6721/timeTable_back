@@ -1021,6 +1021,50 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 学生请假
+     */
+    @Transactional
+    public WeeklyInstanceSchedule requestLeave(Long scheduleId, String leaveReason) {
+        WeeklyInstanceSchedule schedule = weeklyInstanceScheduleRepository.findById(scheduleId);
+        if (schedule == null) {
+            throw new IllegalArgumentException("课程不存在");
+        }
+        
+        if (schedule.getIsOnLeave() != null && schedule.getIsOnLeave()) {
+            throw new IllegalArgumentException("该课程已经请假");
+        }
+        
+        schedule.setIsOnLeave(true);
+        schedule.setLeaveReason(leaveReason);
+        schedule.setLeaveRequestedAt(LocalDateTime.now());
+        schedule.setUpdatedAt(LocalDateTime.now());
+        
+        return weeklyInstanceScheduleRepository.update(schedule);
+    }
+
+    /**
+     * 取消请假
+     */
+    @Transactional
+    public WeeklyInstanceSchedule cancelLeave(Long scheduleId) {
+        WeeklyInstanceSchedule schedule = weeklyInstanceScheduleRepository.findById(scheduleId);
+        if (schedule == null) {
+            throw new IllegalArgumentException("课程不存在");
+        }
+        
+        if (schedule.getIsOnLeave() == null || !schedule.getIsOnLeave()) {
+            throw new IllegalArgumentException("该课程未请假");
+        }
+        
+        schedule.setIsOnLeave(false);
+        schedule.setLeaveReason(null);
+        schedule.setLeaveRequestedAt(null);
+        schedule.setUpdatedAt(LocalDateTime.now());
+        
+        return weeklyInstanceScheduleRepository.update(schedule);
+    }
+
+    /**
      * 检查课表是否有当前周实例
      */
     public boolean hasCurrentWeekInstance(Long templateTimetableId) {
