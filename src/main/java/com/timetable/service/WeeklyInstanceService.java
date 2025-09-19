@@ -478,6 +478,32 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 获取指定周实例的课程安排（包含请假的课程）
+     */
+    public List<WeeklyInstanceSchedule> getInstanceSchedulesIncludingLeaves(Long instanceId) {
+        WeeklyInstance instance = weeklyInstanceRepository.findById(instanceId);
+        if (instance == null) {
+            logger.warn("周实例不存在，ID: {}", instanceId);
+            return new ArrayList<>();
+        }
+
+        List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instanceId);
+
+        LocalDate weekStart = instance.getWeekStartDate();
+        LocalDate weekEnd = instance.getWeekEndDate();
+
+        return allSchedules.stream()
+            .filter(schedule -> {
+                if (schedule.getScheduleDate() == null) {
+                    return false;
+                }
+                LocalDate scheduleDate = schedule.getScheduleDate();
+                return !scheduleDate.isBefore(weekStart) && !scheduleDate.isAfter(weekEnd);
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
      * 获取当前周实例的课程安排（只返回本周范围内的课程）
      */
     public List<WeeklyInstanceSchedule> getCurrentWeekInstanceSchedules(Long templateTimetableId) {
@@ -497,8 +523,27 @@ public class WeeklyInstanceService {
             return new ArrayList<>();
         }
         
-        // 使用新的方法获取指定实例的课程
+        // 使用新的方法获取指定实例的课程（默认不包含请假的）
         return getInstanceSchedules(currentInstance.getId());
+    }
+
+    /**
+     * 获取当前周实例的课程安排（包含请假的课程）
+     */
+    public List<WeeklyInstanceSchedule> getCurrentWeekInstanceSchedulesIncludingLeaves(Long templateTimetableId) {
+        WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
+        if (currentInstance == null) {
+            try {
+                currentInstance = generateCurrentWeekInstance(templateTimetableId);
+            } catch (Exception e) {
+                logger.warn("自动生成当前周实例失败，课表ID: {}, 错误: {}", templateTimetableId, e.getMessage());
+                return new ArrayList<>();
+            }
+        }
+        if (currentInstance == null) {
+            return new ArrayList<>();
+        }
+        return getInstanceSchedulesIncludingLeaves(currentInstance.getId());
     }
 
     /**

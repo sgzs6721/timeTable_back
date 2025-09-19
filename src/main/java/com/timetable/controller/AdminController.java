@@ -564,7 +564,8 @@ public class AdminController {
                     if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly().byteValue() == 1) {
                         // 周固定课表：检查当前周实例
                         try {
-                            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedules(activeTimetable.getId());
+                            // 为统计请假，需要获取包含请假的完整列表
+                            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedulesIncludingLeaves(activeTimetable.getId());
                             // 周实例课程当前实现为物理删除，这里直接统计
                             List<WeeklyInstanceSchedule> validInstanceSchedules = instanceSchedules;
                             weeklyCourses = validInstanceSchedules.size();
@@ -573,7 +574,7 @@ public class AdminController {
                             logger.info("周固定课表 - 今日日期: {}", today);
                             
                             // 检查当天是否有课程（过滤掉"言言"这节课）
-                            List<WeeklyInstanceSchedule> todaySchedulesAll = validInstanceSchedules.stream()
+                            List<WeeklyInstanceSchedule> todaySchedulesAll = instanceSchedules.stream()
                                     .filter(schedule -> schedule.getScheduleDate() != null && schedule.getScheduleDate().equals(today))
                                     .collect(Collectors.toList());
 
