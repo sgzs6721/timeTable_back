@@ -550,6 +550,7 @@ public class AdminController {
                 LocalDate today = LocalDate.now();
                 String todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 int todayCourses = 0;
+                int todayLeaves = 0;
                 
                 // 计算当周课程数（仅统计本周范围内的课程）
                 int weeklyCourses = 0;
@@ -572,11 +573,21 @@ public class AdminController {
                             logger.info("周固定课表 - 今日日期: {}", today);
                             
                             // 检查当天是否有课程（过滤掉"言言"这节课）
-                            List<WeeklyInstanceSchedule> todaySchedules = validInstanceSchedules.stream()
+                            List<WeeklyInstanceSchedule> todaySchedulesAll = validInstanceSchedules.stream()
                                     .filter(schedule -> schedule.getScheduleDate() != null && schedule.getScheduleDate().equals(today))
+                                    .collect(Collectors.toList());
+
+                            // 今日请假数
+                            todayLeaves = (int) todaySchedulesAll.stream()
+                                    .filter(s -> s.getIsOnLeave() != null && s.getIsOnLeave())
+                                    .count();
+
+                            // 今日课程数（不含请假，且过滤掉“言言”特殊课）
+                            List<WeeklyInstanceSchedule> todaySchedules = todaySchedulesAll.stream()
+                                    .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave())
                                     .filter(schedule -> schedule.getStudentName() == null || !schedule.getStudentName().contains("言言"))
                                     .collect(Collectors.toList());
-                            
+
                             todayCourses = todaySchedules.size();
                             
                             // 收集今日课程详情
@@ -643,6 +654,7 @@ public class AdminController {
                 });
                 
                 coachStat.put("todayCourses", todayCourses);
+                coachStat.put("todayLeaves", todayLeaves);
                 coachStat.put("weeklyCourses", weeklyCourses);
                 coachStat.put("todayCourseDetails", todayCourseDetails);
 
