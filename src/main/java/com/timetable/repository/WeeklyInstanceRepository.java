@@ -195,6 +195,20 @@ public class WeeklyInstanceRepository extends BaseRepository {
     }
 
     /**
+     * 根据模板课表ID与日期范围查找周实例（重叠即算）
+     */
+    public List<WeeklyInstance> findByTemplateIdAndDateRange(Long templateTimetableId, LocalDate startDate, LocalDate endDate) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instances"))
+                .where(field("template_timetable_id").eq(templateTimetableId))
+                .and(field("week_start_date").le(endDate))
+                .and(field("week_end_date").ge(startDate))
+                .orderBy(field("week_start_date"))
+                .fetch();
+        return records.map(this::mapToWeeklyInstance);
+    }
+
+    /**
      * 删除周实例
      */
     public void delete(Long id) {

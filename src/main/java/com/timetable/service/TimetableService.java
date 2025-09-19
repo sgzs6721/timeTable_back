@@ -1327,4 +1327,33 @@ public class TimetableService {
             return scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetableId, lastWeekMonday, lastWeekSunday);
         }
     }
+
+    /**
+     * 获取指定课表上月课程数量
+     */
+    public int getLastMonthCourseCountForTimetable(Long timetableId) {
+        Timetables timetable = timetableRepository.findById(timetableId);
+        if (timetable == null) {
+            return 0;
+        }
+
+        LocalDate firstDayThisMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate start = firstDayThisMonth.minusMonths(1); // 上月1日
+        LocalDate end = firstDayThisMonth.minusDays(1);     // 上月最后一天
+
+        if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+            // 周固定课表：找落在上月范围内的所有周实例并累计
+            List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateIdAndDateRange(timetableId, start, end);
+            int total = 0;
+            for (WeeklyInstance ins : instances) {
+                total += weeklyInstanceScheduleRepository.findByDateRange(ins.getId(),
+                        ins.getWeekStartDate().isBefore(start) ? start : ins.getWeekStartDate(),
+                        ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate()).size();
+            }
+            return total;
+        } else {
+            // 日期范围课表：直接按日期统计
+            return scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetableId, start, end);
+        }
+    }
 }

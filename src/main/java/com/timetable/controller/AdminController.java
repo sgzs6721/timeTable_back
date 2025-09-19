@@ -645,6 +645,15 @@ public class AdminController {
                 coachStat.put("todayCourses", todayCourses);
                 coachStat.put("weeklyCourses", weeklyCourses);
                 coachStat.put("todayCourseDetails", todayCourseDetails);
+
+                // 新增：上月课程数
+                int lastMonthCourses = 0;
+                if (activeTimetable != null) {
+                    try {
+                        lastMonthCourses = timetableService.getLastMonthCourseCountForTimetable(activeTimetable.getId());
+                    } catch (Exception ignore) {}
+                }
+                coachStat.put("lastMonthCourses", lastMonthCourses);
                 
                 return coachStat;
             }).collect(Collectors.toList());
