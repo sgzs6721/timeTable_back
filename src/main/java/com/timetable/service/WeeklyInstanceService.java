@@ -1446,4 +1446,53 @@ public class WeeklyInstanceService {
             }
         }
     }
+
+    /**
+     * 获取所有请假记录
+     */
+    public List<Map<String, Object>> getAllLeaveRecords() {
+        List<WeeklyInstanceSchedule> leaveSchedules = weeklyInstanceScheduleRepository.findByIsOnLeave(true);
+        List<Map<String, Object>> leaveRecords = new ArrayList<>();
+        
+        for (WeeklyInstanceSchedule schedule : leaveSchedules) {
+            // 获取课表信息
+            WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+            if (instance == null) continue;
+            
+            Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+            if (timetable == null) continue;
+            
+            // 获取教练信息
+            Users coach = userRepository.findById(timetable.getUserId());
+            String coachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
+            
+            Map<String, Object> record = new HashMap<>();
+            record.put("id", schedule.getId());
+            record.put("coachName", coachName);
+            record.put("timetableName", timetable.getName());
+            record.put("studentName", schedule.getStudentName());
+            record.put("subject", schedule.getSubject());
+            record.put("scheduleDate", schedule.getScheduleDate());
+            record.put("startTime", schedule.getStartTime());
+            record.put("endTime", schedule.getEndTime());
+            record.put("leaveReason", schedule.getLeaveReason());
+            record.put("leaveRequestedAt", schedule.getLeaveRequestedAt());
+            record.put("weekStartDate", instance.getWeekStartDate());
+            record.put("weekEndDate", instance.getWeekEndDate());
+            
+            leaveRecords.add(record);
+        }
+        
+        // 按请假时间倒序排列
+        leaveRecords.sort((a, b) -> {
+            LocalDateTime timeA = (LocalDateTime) a.get("leaveRequestedAt");
+            LocalDateTime timeB = (LocalDateTime) b.get("leaveRequestedAt");
+            if (timeA == null && timeB == null) return 0;
+            if (timeA == null) return 1;
+            if (timeB == null) return -1;
+            return timeB.compareTo(timeA);
+        });
+        
+        return leaveRecords;
+    }
 }

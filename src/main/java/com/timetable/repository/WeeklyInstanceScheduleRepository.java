@@ -291,4 +291,16 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         schedule.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
         return schedule;
     }
+
+    /**
+     * 根据请假状态查找课程
+     */
+    public List<WeeklyInstanceSchedule> findByIsOnLeave(Boolean isOnLeave) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("is_on_leave").eq(isOnLeave))
+                .orderBy(field("leave_requested_at").desc())
+                .fetch();
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
 }

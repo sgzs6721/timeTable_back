@@ -699,4 +699,30 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("取消请假失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取所有请假记录
+     */
+    @GetMapping("/leave-records")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLeaveRecords(
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以查看所有请假记录
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
+        }
+
+        try {
+            List<Map<String, Object>> leaveRecords = weeklyInstanceService.getAllLeaveRecords();
+            return ResponseEntity.ok(ApiResponse.success("获取请假记录成功", leaveRecords));
+        } catch (Exception e) {
+            logger.error("获取请假记录失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("获取请假记录失败: " + e.getMessage()));
+        }
+    }
 }
