@@ -1567,9 +1567,13 @@ public class WeeklyInstanceService {
                 Users coach = userService.findById(timetable.getUserId());
                 String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
                 
-                // 如果指定了教练，只返回该教练的记录
+                // 如果指定了教练，只返回该教练的记录（但管理员可以查看所有记录）
                 if (coachName != null && !coachName.equals(scheduleCoachName)) {
-                    continue;
+                    // 检查当前用户是否为管理员，如果是管理员，则允许查看所有记录
+                    Users currentUser = userService.findByUsername(coachName);
+                    if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+                        continue;
+                    }
                 }
                 
                 Map<String, Object> scheduleRecord = new HashMap<>();
@@ -1610,9 +1614,13 @@ public class WeeklyInstanceService {
                 Users coach = userService.findById(timetable.getUserId());
                 String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
                 
-                // 如果指定了教练，只返回该教练的记录
+                // 如果指定了教练，只返回该教练的记录（但管理员可以查看所有记录）
                 if (coachName != null && !coachName.equals(scheduleCoachName)) {
-                    continue;
+                    // 检查当前用户是否为管理员，如果是管理员，则允许查看所有记录
+                    Users currentUser = userService.findByUsername(coachName);
+                    if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+                        continue;
+                    }
                 }
                 
                 // 获取该课表中该学员的所有课程记录
