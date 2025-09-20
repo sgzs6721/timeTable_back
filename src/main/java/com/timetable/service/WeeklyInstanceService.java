@@ -1685,10 +1685,58 @@ public class WeeklyInstanceService {
             logger.error("获取学员记录失败，学员: {}, 教练: {}, 错误: {}", studentName, coachName, e.getMessage());
         }
         
-        // 获取学员真正的教练信息（从第一条记录中获取）
+        // 获取学员真正的教练信息
         String actualCoachName = "未知教练";
+        
+        // 优先从上课记录中获取教练信息
         if (!schedules.isEmpty()) {
             actualCoachName = (String) schedules.get(0).get("coachName");
+        } else if (!leaves.isEmpty()) {
+            // 如果上课记录为空，从请假记录中获取
+            actualCoachName = (String) leaves.get(0).get("coachName");
+        } else {
+            // 如果都没有记录，尝试从课表中查找该学员的教练
+            try {
+                // 从实例课表中查找
+                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
+                for (WeeklyInstanceSchedule schedule : instanceSchedules) {
+                    WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+                    if (instance != null) {
+                        Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                        if (timetable != null) {
+                            Users coach = userService.findById(timetable.getUserId());
+                            if (coach != null) {
+                                actualCoachName = coach.getNickname() != null ? coach.getNickname() : coach.getUsername();
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // 如果实例课表中没找到，从日期类课表中查找
+                if ("未知教练".equals(actualCoachName)) {
+                    List<Timetables> allTimetables = timetableRepository.findAll();
+                    for (Timetables timetable : allTimetables) {
+                        if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) {
+                            continue;
+                        }
+                        if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                            continue;
+                        }
+                        
+                        List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), studentName);
+                        if (!dateSchedules.isEmpty()) {
+                            Users coach = userService.findById(timetable.getUserId());
+                            if (coach != null) {
+                                actualCoachName = coach.getNickname() != null ? coach.getNickname() : coach.getUsername();
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("获取学员教练信息失败，学员: {}, 错误: {}", studentName, e.getMessage());
+            }
         }
         
         result.put("schedules", schedules);
