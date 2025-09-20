@@ -725,4 +725,62 @@ public class WeeklyInstanceController {
             return ResponseEntity.status(500).body(ApiResponse.error("获取请假记录失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 删除请假记录
+     */
+    @DeleteMapping("/leave-records/{recordId}")
+    public ResponseEntity<ApiResponse<String>> deleteLeaveRecord(
+            @PathVariable Long recordId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以删除请假记录
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
+        }
+
+        try {
+            boolean success = weeklyInstanceService.deleteLeaveRecord(recordId);
+            if (success) {
+                return ResponseEntity.ok(ApiResponse.success("删除请假记录成功", "删除成功"));
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.error("删除请假记录失败"));
+            }
+        } catch (Exception e) {
+            logger.error("删除请假记录失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("删除请假记录失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 批量删除请假记录
+     */
+    @DeleteMapping("/leave-records/batch")
+    public ResponseEntity<ApiResponse<String>> deleteLeaveRecordsBatch(
+            @RequestBody List<Long> recordIds,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以批量删除请假记录
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
+        }
+
+        try {
+            int deletedCount = weeklyInstanceService.deleteLeaveRecordsBatch(recordIds);
+            return ResponseEntity.ok(ApiResponse.success("批量删除请假记录成功", "成功删除 " + deletedCount + " 条记录"));
+        } catch (Exception e) {
+            logger.error("批量删除请假记录失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("批量删除请假记录失败: " + e.getMessage()));
+        }
+    }
 }

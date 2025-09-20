@@ -1497,4 +1497,47 @@ public class WeeklyInstanceService {
         
         return leaveRecords;
     }
+
+    /**
+     * 删除请假记录（取消请假状态）
+     */
+    @Transactional
+    public boolean deleteLeaveRecord(Long scheduleId) {
+        try {
+            WeeklyInstanceSchedule schedule = weeklyInstanceScheduleRepository.findById(scheduleId);
+            if (schedule == null) {
+                return false;
+            }
+            
+            // 取消请假状态
+            schedule.setIsOnLeave(false);
+            schedule.setLeaveReason(null);
+            schedule.setLeaveRequestedAt(null);
+            schedule.setUpdatedAt(LocalDateTime.now());
+            
+            weeklyInstanceScheduleRepository.update(schedule);
+            return true;
+        } catch (Exception e) {
+            logger.error("删除请假记录失败，ID: {}, 错误: {}", scheduleId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 批量删除请假记录
+     */
+    @Transactional
+    public int deleteLeaveRecordsBatch(List<Long> scheduleIds) {
+        int deletedCount = 0;
+        for (Long scheduleId : scheduleIds) {
+            try {
+                if (deleteLeaveRecord(scheduleId)) {
+                    deletedCount++;
+                }
+            } catch (Exception e) {
+                logger.error("批量删除请假记录失败，ID: {}, 错误: {}", scheduleId, e.getMessage());
+            }
+        }
+        return deletedCount;
+    }
 }
