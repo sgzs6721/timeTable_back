@@ -315,4 +315,15 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .fetch();
         return records.map(this::mapToWeeklyInstanceSchedule);
     }
+
+    /**
+     * 获取所有实例课程
+     */
+    public List<WeeklyInstanceSchedule> findAll() {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .orderBy(field("schedule_date").desc(), field("start_time"))
+                .fetch();
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
 }

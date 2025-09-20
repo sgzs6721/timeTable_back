@@ -26,8 +26,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -1678,5 +1680,53 @@ public class WeeklyInstanceService {
         result.put("schedules", schedules);
         result.put("leaves", leaves);
         return result;
+    }
+
+    /**
+     * 获取所有学员列表
+     */
+    public List<String> getAllStudents() {
+        Set<String> studentSet = new HashSet<>();
+        
+        try {
+            // 1. 从实例课表中获取学员
+            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
+            for (WeeklyInstanceSchedule schedule : instanceSchedules) {
+                if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
+                    studentSet.add(schedule.getStudentName().trim());
+                }
+            }
+            
+            // 2. 从日期类课表中获取学员
+            List<Timetables> allTimetables = timetableRepository.findAll();
+            for (Timetables timetable : allTimetables) {
+                // 只处理未删除的课表
+                if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) {
+                    continue;
+                }
+                
+                // 只处理日期类课表（非周课表）
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    continue;
+                }
+                
+                // 获取该课表中的所有课程安排
+                List<Schedules> dateSchedules = scheduleRepository.findByTimetableId(timetable.getId());
+                for (Schedules schedule : dateSchedules) {
+                    if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
+                        studentSet.add(schedule.getStudentName().trim());
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("获取学员列表失败，错误: {}", e.getMessage());
+        }
+        
+        // 转换为列表并排序
+        List<String> students = new ArrayList<>(studentSet);
+        students.sort(String::compareTo);
+        
+        return students;
     }
 }

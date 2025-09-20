@@ -811,4 +811,29 @@ public class WeeklyInstanceController {
             return ResponseEntity.status(500).body(ApiResponse.error("获取学员记录失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取所有学员列表
+     */
+    @GetMapping("/students")
+    public ResponseEntity<ApiResponse<List<String>>> getAllStudents(Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以查看学员列表
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
+        }
+
+        try {
+            List<String> students = weeklyInstanceService.getAllStudents();
+            return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
+        } catch (Exception e) {
+            logger.error("获取学员列表失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("获取学员列表失败: " + e.getMessage()));
+        }
+    }
 }
