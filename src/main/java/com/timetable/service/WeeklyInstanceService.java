@@ -1540,4 +1540,81 @@ public class WeeklyInstanceService {
         }
         return deletedCount;
     }
+
+    /**
+     * 获取学员记录（上课记录和请假记录）
+     */
+    public Map<String, Object> getStudentRecords(String studentName, String coachName) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> schedules = new ArrayList<>();
+        List<Map<String, Object>> leaves = new ArrayList<>();
+        
+        try {
+            // 获取该学员的所有课程记录
+            List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
+            
+            for (WeeklyInstanceSchedule schedule : allSchedules) {
+                // 获取课表信息
+                WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+                if (instance == null) continue;
+                
+                Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                if (timetable == null) continue;
+                
+                // 获取教练信息
+                Users coach = userService.findById(timetable.getUserId());
+                String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
+                
+                // 如果指定了教练，只返回该教练的记录
+                if (coachName != null && !coachName.equals(scheduleCoachName)) {
+                    continue;
+                }
+                
+                Map<String, Object> scheduleRecord = new HashMap<>();
+                scheduleRecord.put("id", schedule.getId());
+                scheduleRecord.put("scheduleDate", schedule.getScheduleDate());
+                scheduleRecord.put("timeRange", schedule.getStartTime() + "-" + schedule.getEndTime());
+                scheduleRecord.put("timetableType", instance.getWeekStartDate() != null ? "实例课表" : "日期类课表");
+                scheduleRecord.put("timetableName", timetable.getName());
+                scheduleRecord.put("status", schedule.getIsOnLeave() != null && schedule.getIsOnLeave() ? "请假" : "正常");
+                scheduleRecord.put("coachName", scheduleCoachName);
+                
+                schedules.add(scheduleRecord);
+                
+                // 如果是请假记录，添加到请假列表
+                if (schedule.getIsOnLeave() != null && schedule.getIsOnLeave()) {
+                    Map<String, Object> leaveRecord = new HashMap<>();
+                    leaveRecord.put("id", schedule.getId());
+                    leaveRecord.put("leaveDate", schedule.getScheduleDate());
+                    leaveRecord.put("timeRange", schedule.getStartTime() + "-" + schedule.getEndTime());
+                    leaveRecord.put("leaveReason", schedule.getLeaveReason());
+                    leaveRecord.put("timetableName", timetable.getName());
+                    leaveRecord.put("coachName", scheduleCoachName);
+                    leaveRecord.put("leaveRequestedAt", schedule.getLeaveRequestedAt());
+                    
+                    leaves.add(leaveRecord);
+                }
+            }
+            
+            // 按日期倒序排列
+            schedules.sort((a, b) -> {
+                String dateA = (String) a.get("scheduleDate");
+                String dateB = (String) b.get("scheduleDate");
+                return dateB.compareTo(dateA);
+            });
+            
+            leaves.sort((a, b) -> {
+                String dateA = (String) a.get("leaveDate");
+                String dateB = (String) b.get("leaveDate");
+                return dateB.compareTo(dateA);
+            });
+            
+        } catch (Exception e) {
+            logger.error("获取学员记录失败，学员: {}, 教练: {}, 错误: {}", studentName, coachName, e.getMessage());
+        }
+        
+        result.put("schedules", schedules);
+        result.put("leaves", leaves);
+        return result;
+    }
 }

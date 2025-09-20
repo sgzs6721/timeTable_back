@@ -783,4 +783,32 @@ public class WeeklyInstanceController {
             return ResponseEntity.status(500).body(ApiResponse.error("批量删除请假记录失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取学员记录
+     */
+    @GetMapping("/student-records")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getStudentRecords(
+            @RequestParam String studentName,
+            @RequestParam(required = false) String coachName,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以查看学员记录
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
+        }
+
+        try {
+            Map<String, Object> studentRecords = weeklyInstanceService.getStudentRecords(studentName, coachName);
+            return ResponseEntity.ok(ApiResponse.success("获取学员记录成功", studentRecords));
+        } catch (Exception e) {
+            logger.error("获取学员记录失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("获取学员记录失败: " + e.getMessage()));
+        }
+    }
 }
