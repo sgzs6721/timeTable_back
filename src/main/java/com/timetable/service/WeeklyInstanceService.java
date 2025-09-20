@@ -1642,8 +1642,10 @@ public class WeeklyInstanceService {
                 String timeA = (String) a.get("timeRange");
                 String timeB = (String) b.get("timeRange");
                 
-                // 先按日期比较
-                int dateCompare = dateB.compareTo(dateA);
+                // 先按日期比较（使用LocalDate进行正确比较）
+                LocalDate localDateA = LocalDate.parse(dateA);
+                LocalDate localDateB = LocalDate.parse(dateB);
+                int dateCompare = localDateB.compareTo(localDateA);
                 if (dateCompare != 0) {
                     return dateCompare;
                 }
@@ -1658,8 +1660,10 @@ public class WeeklyInstanceService {
                 String timeA = (String) a.get("timeRange");
                 String timeB = (String) b.get("timeRange");
                 
-                // 先按日期比较
-                int dateCompare = dateB.compareTo(dateA);
+                // 先按日期比较（使用LocalDate进行正确比较）
+                LocalDate localDateA = LocalDate.parse(dateA);
+                LocalDate localDateB = LocalDate.parse(dateB);
+                int dateCompare = localDateB.compareTo(localDateA);
                 if (dateCompare != 0) {
                     return dateCompare;
                 }
