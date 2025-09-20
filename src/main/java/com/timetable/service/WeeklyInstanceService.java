@@ -1635,7 +1635,7 @@ public class WeeklyInstanceService {
                 }
             }
             
-            // 按日期和时间倒序排列
+            // 3. 统一按日期和时间倒序排列所有记录
             schedules.sort((a, b) -> {
                 String dateA = (String) a.get("scheduleDate");
                 String dateB = (String) b.get("scheduleDate");
@@ -1651,6 +1651,7 @@ public class WeeklyInstanceService {
                 return timeB.compareTo(timeA);
             });
             
+            // 4. 请假记录也按日期和时间倒序排列
             leaves.sort((a, b) -> {
                 String dateA = (String) a.get("leaveDate");
                 String dateB = (String) b.get("leaveDate");
