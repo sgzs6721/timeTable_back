@@ -1167,40 +1167,21 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 根据日期返回"实例逻辑"的活动课表课程（今日从本周实例；跨周日期取对应周实例）
+     * 根据日期返回“实例逻辑”的活动课表课程（今日从本周实例；跨周日期取对应周实例）
      */
     public Map<String, Object> getActiveInstanceSchedulesByDate(String dateStr) {
-        return getActiveInstanceSchedulesByDate(dateStr, null);
-    }
-    
-    /**
-     * 根据日期返回"实例逻辑"的活动课表课程（支持用户权限过滤）
-     */
-    public Map<String, Object> getActiveInstanceSchedulesByDate(String dateStr, Long userId) {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> timetableSchedules = new ArrayList<>();
 
         LocalDate targetDate = LocalDate.parse(dateStr);
 
-        // 获取活动课表（未删除未归档）
-        List<Timetables> activeTimetables;
-        if (userId != null) {
-            // 如果指定了用户ID，只返回该用户的课表
-            activeTimetables = timetableRepository.findByUserId(userId)
-                    .stream()
-                    .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
-                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
-                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
-                    .collect(Collectors.toList());
-        } else {
-            // 如果没有指定用户ID，返回所有活动课表（管理员权限）
-            activeTimetables = timetableRepository.findAll()
-                    .stream()
-                    .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
-                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
-                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
-                    .collect(Collectors.toList());
-        }
+        // 获取所有活动课表（未删除未归档）
+        List<Timetables> activeTimetables = timetableRepository.findAll()
+                .stream()
+                .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                .collect(Collectors.toList());
 
         for (Timetables timetable : activeTimetables) {
             List<WeeklyInstanceSchedule> instanceSchedules = new ArrayList<>();
