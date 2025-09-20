@@ -1685,8 +1685,15 @@ public class WeeklyInstanceService {
             logger.error("获取学员记录失败，学员: {}, 教练: {}, 错误: {}", studentName, coachName, e.getMessage());
         }
         
+        // 获取学员真正的教练信息（从第一条记录中获取）
+        String actualCoachName = "未知教练";
+        if (!schedules.isEmpty()) {
+            actualCoachName = (String) schedules.get(0).get("coachName");
+        }
+        
         result.put("schedules", schedules);
         result.put("leaves", leaves);
+        result.put("actualCoachName", actualCoachName);
         return result;
     }
 
