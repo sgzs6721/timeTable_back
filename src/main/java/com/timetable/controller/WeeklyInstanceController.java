@@ -825,18 +825,19 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
 
-        // 只有管理员可以查看学员列表
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
-        }
-
         try {
             List<String> students;
-            if (showAll) {
-                // 获取所有学员
-                students = weeklyInstanceService.getAllStudentsFromAllTimetables();
+            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+                // 管理员可以查看所有学员或当前教练的学员
+                if (showAll) {
+                    // 获取所有学员
+                    students = weeklyInstanceService.getAllStudentsFromAllTimetables();
+                } else {
+                    // 获取当前教练的学员
+                    students = weeklyInstanceService.getAllStudents(user.getId());
+                }
             } else {
-                // 获取当前教练的学员
+                // 普通用户只能查看自己的学员
                 students = weeklyInstanceService.getAllStudents(user.getId());
             }
             return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
