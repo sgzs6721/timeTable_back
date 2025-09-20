@@ -1683,13 +1683,68 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 获取所有学员列表
+     * 获取当前教练的所有学员列表
      */
-    public List<String> getAllStudents() {
+    public List<String> getAllStudents(Long coachId) {
         Set<String> studentSet = new HashSet<>();
         
         try {
-            // 1. 从实例课表中获取学员
+            // 1. 从实例课表中获取当前教练的学员
+            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
+            for (WeeklyInstanceSchedule schedule : instanceSchedules) {
+                if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
+                    // 获取该课程所属的课表
+                    WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+                    if (instance != null) {
+                        Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                        if (timetable != null && timetable.getUserId().equals(coachId)) {
+                            studentSet.add(schedule.getStudentName().trim());
+                        }
+                    }
+                }
+            }
+            
+            // 2. 从日期类课表中获取当前教练的学员
+            List<Timetables> coachTimetables = timetableRepository.findByUserId(coachId);
+            for (Timetables timetable : coachTimetables) {
+                // 只处理未删除的课表
+                if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) {
+                    continue;
+                }
+                
+                // 只处理日期类课表（非周课表）
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    continue;
+                }
+                
+                // 获取该课表中的所有课程安排
+                List<Schedules> dateSchedules = scheduleRepository.findByTimetableId(timetable.getId());
+                for (Schedules schedule : dateSchedules) {
+                    if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
+                        studentSet.add(schedule.getStudentName().trim());
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("获取学员列表失败，错误: {}", e.getMessage());
+        }
+        
+        // 转换为列表并排序
+        List<String> students = new ArrayList<>(studentSet);
+        students.sort(String::compareTo);
+        
+        return students;
+    }
+
+    /**
+     * 获取所有课表中的学员列表
+     */
+    public List<String> getAllStudentsFromAllTimetables() {
+        Set<String> studentSet = new HashSet<>();
+        
+        try {
+            // 1. 从实例课表中获取所有学员
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                 if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
@@ -1697,7 +1752,7 @@ public class WeeklyInstanceService {
                 }
             }
             
-            // 2. 从日期类课表中获取学员
+            // 2. 从日期类课表中获取所有学员
             List<Timetables> allTimetables = timetableRepository.findAll();
             for (Timetables timetable : allTimetables) {
                 // 只处理未删除的课表
@@ -1720,7 +1775,7 @@ public class WeeklyInstanceService {
             }
             
         } catch (Exception e) {
-            logger.error("获取学员列表失败，错误: {}", e.getMessage());
+            logger.error("获取所有学员列表失败，错误: {}", e.getMessage());
         }
         
         // 转换为列表并排序

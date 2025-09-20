@@ -813,10 +813,12 @@ public class WeeklyInstanceController {
     }
 
     /**
-     * 获取所有学员列表
+     * 获取学员列表
      */
     @GetMapping("/students")
-    public ResponseEntity<ApiResponse<List<String>>> getAllStudents(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<String>>> getAllStudents(
+            @RequestParam(defaultValue = "false") Boolean showAll,
+            Authentication authentication) {
         
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
@@ -829,7 +831,14 @@ public class WeeklyInstanceController {
         }
 
         try {
-            List<String> students = weeklyInstanceService.getAllStudents();
+            List<String> students;
+            if (showAll) {
+                // 获取所有学员
+                students = weeklyInstanceService.getAllStudentsFromAllTimetables();
+            } else {
+                // 获取当前教练的学员
+                students = weeklyInstanceService.getAllStudents(user.getId());
+            }
             return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
         } catch (Exception e) {
             logger.error("获取学员列表失败", e);
