@@ -798,13 +798,16 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
 
-        // 只有管理员可以查看学员记录
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-            return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
-        }
-
         try {
-            Map<String, Object> studentRecords = weeklyInstanceService.getStudentRecords(studentName, coachName);
+            Map<String, Object> studentRecords;
+            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+                // 管理员可以查看所有学员记录
+                studentRecords = weeklyInstanceService.getStudentRecords(studentName, coachName);
+            } else {
+                // 普通用户只能查看自己的学员记录
+                String currentCoachName = user.getNickname() != null ? user.getNickname() : user.getUsername();
+                studentRecords = weeklyInstanceService.getStudentRecords(studentName, currentCoachName);
+            }
             return ResponseEntity.ok(ApiResponse.success("获取学员记录成功", studentRecords));
         } catch (Exception e) {
             logger.error("获取学员记录失败", e);
