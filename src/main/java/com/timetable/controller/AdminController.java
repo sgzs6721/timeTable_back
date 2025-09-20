@@ -671,13 +671,11 @@ public class AdminController {
                 coachStat.put("weeklyCourses", weeklyCourses);
                 coachStat.put("todayCourseDetails", todayCourseDetails);
 
-                // 新增：上月课程数
+                // 新增：上月课程数（包含活动课表和已归档课表）
                 int lastMonthCourses = 0;
-                if (activeTimetable != null) {
-                    try {
-                        lastMonthCourses = timetableService.getLastMonthCourseCountForTimetable(activeTimetable.getId());
-                    } catch (Exception ignore) {}
-                }
+                try {
+                    lastMonthCourses = timetableService.getLastMonthCourseCountForCoach(coach.getId());
+                } catch (Exception ignore) {}
                 coachStat.put("lastMonthCourses", lastMonthCourses);
                 
                 return coachStat;

@@ -1334,7 +1334,7 @@ public class TimetableService {
     }
 
     /**
-     * 获取指定课表上月课程数量
+     * 获取指定课表上月课程数量（包含活动课表和已归档课表）
      */
     public int getLastMonthCourseCountForTimetable(Long timetableId) {
         Timetables timetable = timetableRepository.findById(timetableId);
@@ -1360,5 +1360,52 @@ public class TimetableService {
             // 日期范围课表：直接按日期统计
             return scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetableId, start, end);
         }
+    }
+
+    /**
+     * 获取指定教练上月课程数量（包含活动课表和已归档课表）
+     */
+    public int getLastMonthCourseCountForCoach(Long coachId) {
+        LocalDate firstDayThisMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate start = firstDayThisMonth.minusMonths(1); // 上月1日
+        LocalDate end = firstDayThisMonth.minusDays(1);     // 上月最后一天
+
+        int totalCourses = 0;
+
+        // 1. 统计活动课表的上月课程
+        List<Timetables> activeTimetables = getUserTimetables(coachId)
+            .stream()
+            .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+            .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+            .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+            .collect(Collectors.toList());
+
+        for (Timetables timetable : activeTimetables) {
+            totalCourses += getLastMonthCourseCountForTimetable(timetable.getId());
+        }
+
+        // 2. 统计已归档课表的上月课程
+        List<Timetables> archivedTimetables = getUserTimetables(coachId)
+            .stream()
+            .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+            .filter(t -> t.getIsArchived() != null && t.getIsArchived() == 1)
+            .collect(Collectors.toList());
+
+        for (Timetables timetable : archivedTimetables) {
+            if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                // 周固定课表：找落在上月范围内的所有周实例并累计
+                List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateIdAndDateRange(timetable.getId(), start, end);
+                for (WeeklyInstance ins : instances) {
+                    totalCourses += weeklyInstanceScheduleRepository.findByDateRange(ins.getId(),
+                            ins.getWeekStartDate().isBefore(start) ? start : ins.getWeekStartDate(),
+                            ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate()).size();
+                }
+            } else {
+                // 日期范围课表：直接按日期统计
+                totalCourses += scheduleRepository.countByTimetableIdAndScheduleDateBetween(timetable.getId(), start, end);
+            }
+        }
+
+        return totalCourses;
     }
 }
