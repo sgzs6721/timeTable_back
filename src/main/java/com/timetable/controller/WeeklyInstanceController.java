@@ -259,8 +259,16 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         try {
-            Map<String, Object> map = weeklyInstanceService.getActiveInstanceSchedulesByDate(date);
-            return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", map));
+            // 根据用户角色决定是否传递用户ID
+            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+                // 管理员可以查看所有课表
+                Map<String, Object> map = weeklyInstanceService.getActiveInstanceSchedulesByDate(date);
+                return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", map));
+            } else {
+                // 普通用户只能查看自己的课表
+                Map<String, Object> map = weeklyInstanceService.getActiveInstanceSchedulesByDate(date, user.getId());
+                return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", map));
+            }
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取失败: " + e.getMessage()));
         }
