@@ -1553,10 +1553,17 @@ public class WeeklyInstanceService {
         List<Map<String, Object>> leaves = new ArrayList<>();
         
         try {
+            // 获取当前日期，只显示过去的课程记录
+            LocalDate today = LocalDate.now();
+            
             // 1. 获取实例课表的记录
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
             
             for (WeeklyInstanceSchedule schedule : instanceSchedules) {
+                // 只显示过去的课程记录
+                if (schedule.getScheduleDate() != null && schedule.getScheduleDate().isAfter(today)) {
+                    continue;
+                }
                 // 获取课表信息
                 WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
                 if (instance == null) continue;
@@ -1630,6 +1637,11 @@ public class WeeklyInstanceService {
                 for (Schedules dateSchedule : dateSchedules) {
                     // 只处理有具体日期的记录
                     if (dateSchedule.getScheduleDate() == null) {
+                        continue;
+                    }
+                    
+                    // 只显示过去的课程记录
+                    if (dateSchedule.getScheduleDate().isAfter(today)) {
                         continue;
                     }
                     
