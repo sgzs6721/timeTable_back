@@ -1550,10 +1550,10 @@ public class WeeklyInstanceService {
         List<Map<String, Object>> leaves = new ArrayList<>();
         
         try {
-            // 获取该学员的所有课程记录
-            List<WeeklyInstanceSchedule> allSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
+            // 1. 获取实例课表的记录
+            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
             
-            for (WeeklyInstanceSchedule schedule : allSchedules) {
+            for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                 // 获取课表信息
                 WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
                 if (instance == null) continue;
@@ -1574,7 +1574,7 @@ public class WeeklyInstanceService {
                 scheduleRecord.put("id", schedule.getId());
                 scheduleRecord.put("scheduleDate", schedule.getScheduleDate());
                 scheduleRecord.put("timeRange", schedule.getStartTime() + "-" + schedule.getEndTime());
-                scheduleRecord.put("timetableType", instance.getWeekStartDate() != null ? "实例课表" : "日期类课表");
+                scheduleRecord.put("timetableType", "实例课表");
                 scheduleRecord.put("timetableName", timetable.getName());
                 scheduleRecord.put("status", schedule.getIsOnLeave() != null && schedule.getIsOnLeave() ? "请假" : "正常");
                 scheduleRecord.put("coachName", scheduleCoachName);
@@ -1596,17 +1596,74 @@ public class WeeklyInstanceService {
                 }
             }
             
-            // 按日期倒序排列
+            // 2. 获取日期类课表的记录
+            List<Timetables> allTimetables = timetableRepository.findAll();
+            for (Timetables timetable : allTimetables) {
+                // 只处理日期类课表（非周课表）
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    continue;
+                }
+                
+                // 获取教练信息
+                Users coach = userService.findById(timetable.getUserId());
+                String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
+                
+                // 如果指定了教练，只返回该教练的记录
+                if (coachName != null && !coachName.equals(scheduleCoachName)) {
+                    continue;
+                }
+                
+                // 获取该课表中该学员的所有课程记录
+                List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), studentName);
+                
+                for (Schedules dateSchedule : dateSchedules) {
+                    // 只处理有具体日期的记录
+                    if (dateSchedule.getScheduleDate() == null) {
+                        continue;
+                    }
+                    
+                    Map<String, Object> scheduleRecord = new HashMap<>();
+                    scheduleRecord.put("id", dateSchedule.getId());
+                    scheduleRecord.put("scheduleDate", dateSchedule.getScheduleDate());
+                    scheduleRecord.put("timeRange", dateSchedule.getStartTime() + "-" + dateSchedule.getEndTime());
+                    scheduleRecord.put("timetableType", "日期类课表");
+                    scheduleRecord.put("timetableName", timetable.getName());
+                    scheduleRecord.put("status", "正常"); // 日期类课表暂时不支持请假功能
+                    scheduleRecord.put("coachName", scheduleCoachName);
+                    
+                    schedules.add(scheduleRecord);
+                }
+            }
+            
+            // 按日期和时间倒序排列
             schedules.sort((a, b) -> {
                 String dateA = (String) a.get("scheduleDate");
                 String dateB = (String) b.get("scheduleDate");
-                return dateB.compareTo(dateA);
+                String timeA = (String) a.get("timeRange");
+                String timeB = (String) b.get("timeRange");
+                
+                // 先按日期比较
+                int dateCompare = dateB.compareTo(dateA);
+                if (dateCompare != 0) {
+                    return dateCompare;
+                }
+                // 日期相同时按时间比较
+                return timeB.compareTo(timeA);
             });
             
             leaves.sort((a, b) -> {
                 String dateA = (String) a.get("leaveDate");
                 String dateB = (String) b.get("leaveDate");
-                return dateB.compareTo(dateA);
+                String timeA = (String) a.get("timeRange");
+                String timeB = (String) b.get("timeRange");
+                
+                // 先按日期比较
+                int dateCompare = dateB.compareTo(dateA);
+                if (dateCompare != 0) {
+                    return dateCompare;
+                }
+                // 日期相同时按时间比较
+                return timeB.compareTo(timeA);
             });
             
         } catch (Exception e) {
