@@ -7,8 +7,10 @@ import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
+import com.timetable.repository.UserRepository;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.generated.tables.pojos.Users;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -1463,7 +1465,7 @@ public class WeeklyInstanceService {
             if (timetable == null) continue;
             
             // 获取教练信息
-            Users coach = userRepository.findById(timetable.getUserId());
+            Users coach = userService.findById(timetable.getUserId());
             String coachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
             
             Map<String, Object> record = new HashMap<>();
