@@ -1698,7 +1698,10 @@ public class WeeklyInstanceService {
                     if (instance != null) {
                         Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
                         if (timetable != null && timetable.getUserId().equals(coachId)) {
-                            studentSet.add(schedule.getStudentName().trim());
+                            // 只处理未删除的课表
+                            if (timetable.getIsDeleted() == null || timetable.getIsDeleted() == 0) {
+                                studentSet.add(schedule.getStudentName().trim());
+                            }
                         }
                     }
                 }
@@ -1748,7 +1751,17 @@ public class WeeklyInstanceService {
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                 if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
-                    studentSet.add(schedule.getStudentName().trim());
+                    // 获取该课程所属的课表
+                    WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+                    if (instance != null) {
+                        Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                        if (timetable != null) {
+                            // 只处理未删除的课表
+                            if (timetable.getIsDeleted() == null || timetable.getIsDeleted() == 0) {
+                                studentSet.add(schedule.getStudentName().trim());
+                            }
+                        }
+                    }
                 }
             }
             
