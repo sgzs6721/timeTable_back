@@ -1461,11 +1461,11 @@ public class TimetableService {
             }
         }
 
-        // 按日期时间排序
+        // 按日期时间倒序排列
         records.sort((a, b) -> {
             String k1 = String.format("%s %s", a.get("date"), a.get("startTime"));
             String k2 = String.format("%s %s", b.get("date"), b.get("startTime"));
-            return k1.compareTo(k2);
+            return k2.compareTo(k1); // 倒序
         });
 
         return records;
