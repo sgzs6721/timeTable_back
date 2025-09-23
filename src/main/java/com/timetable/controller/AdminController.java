@@ -711,6 +711,20 @@ public class AdminController {
     }
 
     /**
+     * 获取指定教练的上月课程明细
+     */
+    @GetMapping("/coaches/{coachId}/last-month-records")
+    public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getCoachLastMonthRecords(
+            @PathVariable Long coachId) {
+        try {
+            java.util.List<java.util.Map<String, Object>> records = timetableService.getLastMonthCourseRecordsForCoach(coachId);
+            return ResponseEntity.ok(ApiResponse.success("获取上月课程记录成功", records));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取上月课程记录失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 紧急修复：批量生成所有缺失的当前周实例
      */
     @PostMapping("/emergency-fix/weekly-instances")

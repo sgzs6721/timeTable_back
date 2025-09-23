@@ -1408,4 +1408,66 @@ public class TimetableService {
 
         return totalCourses;
     }
+
+    /**
+     * 获取指定教练上月课程明细（包含活动与已归档课表；周实例与日期模板）
+     */
+    public java.util.List<java.util.Map<String, Object>> getLastMonthCourseRecordsForCoach(Long coachId) {
+        java.util.List<java.util.Map<String, Object>> records = new java.util.ArrayList<>();
+
+        java.time.LocalDate firstDayThisMonth = java.time.LocalDate.now().withDayOfMonth(1);
+        java.time.LocalDate start = firstDayThisMonth.minusMonths(1);
+        java.time.LocalDate end = firstDayThisMonth.minusDays(1);
+
+        // 活动 + 归档课表
+        java.util.List<com.timetable.generated.tables.pojos.Timetables> allTimetables = getUserTimetables(coachId)
+            .stream()
+            .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+            .collect(java.util.stream.Collectors.toList());
+
+        for (com.timetable.generated.tables.pojos.Timetables timetable : allTimetables) {
+            if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                // 周固定：找到覆盖上月范围的所有实例，并取实例课程（含请假）
+                java.util.List<com.timetable.entity.WeeklyInstance> instances = weeklyInstanceRepository
+                    .findByTemplateIdAndDateRange(timetable.getId(), start, end);
+                for (com.timetable.entity.WeeklyInstance ins : instances) {
+                    java.time.LocalDate realStart = ins.getWeekStartDate().isBefore(start) ? start : ins.getWeekStartDate();
+                    java.time.LocalDate realEnd = ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate();
+                    java.util.List<com.timetable.entity.WeeklyInstanceSchedule> sis = weeklyInstanceScheduleRepository
+                        .findByDateRange(ins.getId(), realStart, realEnd);
+                    for (com.timetable.entity.WeeklyInstanceSchedule s : sis) {
+                        java.util.Map<String, Object> item = new java.util.HashMap<>();
+                        item.put("date", s.getScheduleDate());
+                        item.put("startTime", s.getStartTime());
+                        item.put("endTime", s.getEndTime());
+                        item.put("studentName", s.getStudentName());
+                        item.put("isOnLeave", s.getIsOnLeave() != null && s.getIsOnLeave());
+                        records.add(item);
+                    }
+                }
+            } else {
+                // 日期范围：直接取上月范围内模板记录（没有请假标记）
+                java.util.List<com.timetable.generated.tables.pojos.Schedules> list = scheduleRepository
+                    .findByTimetableIdAndScheduleDateBetween(timetable.getId(), start, end);
+                for (com.timetable.generated.tables.pojos.Schedules s : list) {
+                    java.util.Map<String, Object> item = new java.util.HashMap<>();
+                    item.put("date", s.getScheduleDate());
+                    item.put("startTime", s.getStartTime());
+                    item.put("endTime", s.getEndTime());
+                    item.put("studentName", s.getStudentName());
+                    item.put("isOnLeave", false);
+                    records.add(item);
+                }
+            }
+        }
+
+        // 按日期时间排序
+        records.sort((a, b) -> {
+            String k1 = String.format("%s %s", a.get("date"), a.get("startTime"));
+            String k2 = String.format("%s %s", b.get("date"), b.get("startTime"));
+            return k1.compareTo(k2);
+        });
+
+        return records;
+    }
 }
