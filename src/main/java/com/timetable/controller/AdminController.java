@@ -80,6 +80,39 @@ public class AdminController {
         List<AdminTimetableDTO> timetables = timetableService.getAllTimetablesWithUser(activeOnly);
         return ResponseEntity.ok(ApiResponse.success("获取所有课表成功", timetables));
     }
+
+    /**
+     * 有课表（活动或归档）的教练列表，按注册时间倒序
+     */
+    @GetMapping("/coaches/with-timetables")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCoachesWithTimetables() {
+        java.util.List<com.timetable.generated.tables.pojos.Users> users = userService.getAllApprovedUsers();
+        java.util.List<com.timetable.dto.AdminTimetableDTO> all = timetableService.getAllTimetablesWithUser(false);
+        java.util.Set<Long> userIds = all.stream().map(com.timetable.dto.AdminTimetableDTO::getUserId).collect(java.util.stream.Collectors.toSet());
+        java.util.List<java.util.Map<String, Object>> list = users.stream()
+                .filter(u -> userIds.contains(u.getId()))
+                .sorted((a,b) -> {
+                    java.time.LocalDateTime atA = a.getCreatedAt();
+                    java.time.LocalDateTime atB = b.getCreatedAt();
+                    if (atA == null && atB == null) return 0;
+                    if (atA == null) return 1;
+                    if (atB == null) return -1;
+                    return atB.compareTo(atA);
+                })
+                .map(u -> {
+                    java.util.Map<String, Object> m = new java.util.HashMap<>();
+                    m.put("id", u.getId());
+                    m.put("name", u.getNickname() != null ? u.getNickname() : u.getUsername());
+                    m.put("createdAt", u.getCreatedAt());
+                    return m;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("list", list);
+        data.put("total", list.size());
+        return ResponseEntity.ok(ApiResponse.success("获取教练列表成功", data));
+    }
     
     /**
      * 批量获取课表信息（包含用户信息）- 用于合并预览
