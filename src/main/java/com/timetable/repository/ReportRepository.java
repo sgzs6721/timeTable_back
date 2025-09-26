@@ -3,14 +3,18 @@ package com.timetable.repository;
 import com.timetable.generated.tables.pojos.Schedules;
 import org.jooq.DSLContext;
 import org.jooq.Condition;
+import org.jooq.Record;
+import org.jooq.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
 
 import static com.timetable.generated.Tables.SCHEDULES;
 import static com.timetable.generated.Tables.TIMETABLES;
+import static org.jooq.impl.DSL.*;
 
 @Repository
 public class ReportRepository {
@@ -23,55 +27,117 @@ public class ReportRepository {
      * 包括有具体日期的课程和固定课表模板（需要根据day_of_week推算日期）
      */
     public List<Schedules> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
-        // 查询所有课程记录（包括有schedule_date和只有day_of_week的）
-        Condition cond = TIMETABLES.USER_ID.eq(userId)
+        // 1) 固定课表（schedules）中有具体日期的记录
+        Condition baseCond = TIMETABLES.USER_ID.eq(userId)
                 .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
-                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)));
-        
-        // 如果有日期范围，只查询有具体日期的课程
-        if (start != null || end != null) {
-            cond = cond.and(SCHEDULES.SCHEDULE_DATE.isNotNull());
-            if (start != null && end != null) {
-                cond = cond.and(SCHEDULES.SCHEDULE_DATE.between(start, end));
-            } else if (start != null) {
-                cond = cond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
-            } else if (end != null) {
-                cond = cond.and(SCHEDULES.SCHEDULE_DATE.le(end));
-            }
-        }
+                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
+                .and(SCHEDULES.SCHEDULE_DATE.isNotNull());
+        if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
+        if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
+
+        // 2) 周实例（weekly_instance_schedules）中的记录
+        // 表结构：
+        // weekly_instance_schedules.weekly_instance_id -> weekly_instances.id
+        // weekly_instances.template_timetable_id -> timetables.id
+        Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
+                .and(field(name("timetables", "is_deleted"), Byte.class).isNull()
+                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)));
+        if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
+        if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
+
+        // 统一选择与 SCHEDULES 表一致的列顺序/别名，方便映射到 pojo
+        org.jooq.Select<? extends Record> selectTemplate = dsl
+                .select(
+                        SCHEDULES.ID.as("id"),
+                        SCHEDULES.TIMETABLE_ID.as("timetable_id"),
+                        SCHEDULES.STUDENT_NAME.as("student_name"),
+                        SCHEDULES.SUBJECT.as("subject"),
+                        SCHEDULES.DAY_OF_WEEK.as("day_of_week"),
+                        SCHEDULES.START_TIME.as("start_time"),
+                        SCHEDULES.END_TIME.as("end_time"),
+                        SCHEDULES.SCHEDULE_DATE.as("schedule_date"),
+                        SCHEDULES.NOTE.as("note"),
+                        SCHEDULES.CREATED_AT.as("created_at"),
+                        SCHEDULES.UPDATED_AT.as("updated_at")
+                )
+                .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
+                .where(baseCond);
+
+        org.jooq.Select<? extends Record> selectInstance = dsl
+                .select(
+                        field(name("weekly_instance_schedules", "id")).as("id"),
+                        // 这里用模板课表ID当作 timetable_id 以保持含义一致
+                        field(name("weekly_instances", "template_timetable_id"), Long.class).as("timetable_id"),
+                        field(name("weekly_instance_schedules", "student_name"), String.class).as("student_name"),
+                        field(name("weekly_instance_schedules", "subject"), String.class).as("subject"),
+                        field(name("weekly_instance_schedules", "day_of_week"), String.class).as("day_of_week"),
+                        field(name("weekly_instance_schedules", "start_time")),
+                        field(name("weekly_instance_schedules", "end_time")),
+                        field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).as("schedule_date"),
+                        field(name("weekly_instance_schedules", "note"), String.class).as("note"),
+                        field(name("weekly_instance_schedules", "created_at")),
+                        field(name("weekly_instance_schedules", "updated_at"))
+                )
+                .from(table("weekly_instance_schedules"))
+                .join(table("weekly_instances")).on(field(name("weekly_instance_schedules", "weekly_instance_id")).eq(field(name("weekly_instances", "id"))))
+                .join(table("timetables")).on(field(name("weekly_instances", "template_timetable_id")).eq(field(name("timetables", "id"))))
+                .where(instCond);
 
         int offset = (page - 1) * size;
 
-        return dsl.select(SCHEDULES.fields())
-                .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
-                .where(cond)
-                .orderBy(SCHEDULES.SCHEDULE_DATE.desc().nullsLast(), SCHEDULES.START_TIME.desc())
+        Result<Record> unionResult = dsl
+                .selectFrom(selectTemplate.unionAll((org.jooq.Select)selectInstance).asTable("all_schedules"))
+                .orderBy(field(name("schedule_date")).desc(), field(name("start_time")).desc())
                 .limit(size)
                 .offset(offset)
-                .fetchInto(Schedules.class);
+                .fetch();
+
+        List<Schedules> list = new ArrayList<>();
+        for (Record r : unionResult) {
+            Schedules s = new Schedules();
+            s.setId(r.get("id", Long.class));
+            s.setTimetableId(r.get("timetable_id", Long.class));
+            s.setStudentName(r.get("student_name", String.class));
+            s.setSubject(r.get("subject", String.class));
+            s.setDayOfWeek(r.get("day_of_week", String.class));
+            s.setStartTime(r.get("start_time", java.time.LocalTime.class));
+            s.setEndTime(r.get("end_time", java.time.LocalTime.class));
+            s.setScheduleDate(r.get("schedule_date", LocalDate.class));
+            s.setNote(r.get("note", String.class));
+            s.setCreatedAt(r.get("created_at", java.time.LocalDateTime.class));
+            s.setUpdatedAt(r.get("updated_at", java.time.LocalDateTime.class));
+            list.add(s);
+        }
+        return list;
     }
 
     public long countSchedulesByUser(Long userId, LocalDate start, LocalDate end) {
-        Condition cond = TIMETABLES.USER_ID.eq(userId)
+        Condition baseCond = TIMETABLES.USER_ID.eq(userId)
                 .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
-                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)));
-        
-        // 如果有日期范围，只统计有具体日期的课程
-        if (start != null || end != null) {
-            cond = cond.and(SCHEDULES.SCHEDULE_DATE.isNotNull());
-            if (start != null && end != null) {
-                cond = cond.and(SCHEDULES.SCHEDULE_DATE.between(start, end));
-            } else if (start != null) {
-                cond = cond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
-            } else if (end != null) {
-                cond = cond.and(SCHEDULES.SCHEDULE_DATE.le(end));
-            }
-        }
+                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
+                .and(SCHEDULES.SCHEDULE_DATE.isNotNull());
+        if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
+        if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
 
-        return dsl.selectCount()
+        long templateCount = dsl.selectCount()
                 .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
-                .where(cond)
+                .where(baseCond)
                 .fetchOne(0, Long.class);
+
+        Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
+                .and(field(name("timetables", "is_deleted"), Byte.class).isNull()
+                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)));
+        if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
+        if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
+
+        long instanceCount = dsl.selectCount()
+                .from(table("weekly_instance_schedules")
+                        .join(table("weekly_instances")).on(field(name("weekly_instance_schedules", "weekly_instance_id")).eq(field(name("weekly_instances", "id"))))
+                        .join(table("timetables")).on(field(name("weekly_instances", "template_timetable_id")).eq(field(name("timetables", "id")))) )
+                .where(instCond)
+                .fetchOne(0, Long.class);
+
+        return templateCount + instanceCount;
     }
 }
 
