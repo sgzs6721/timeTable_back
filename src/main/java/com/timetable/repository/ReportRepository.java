@@ -23,7 +23,11 @@ public class ReportRepository {
      */
     public List<Schedules> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
         Condition cond = TIMETABLES.USER_ID.eq(userId)
-                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID));
+                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
+                // 过滤已删除的课程
+                .and(SCHEDULES.IS_DELETED.isNull().or(SCHEDULES.IS_DELETED.eq((byte)0)))
+                // 过滤已删除的课表
+                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)));
         if (start != null && end != null) {
             cond = cond.and(SCHEDULES.SCHEDULE_DATE.between(start, end));
         } else if (start != null) {
@@ -45,7 +49,9 @@ public class ReportRepository {
 
     public long countSchedulesByUser(Long userId, LocalDate start, LocalDate end) {
         Condition cond = TIMETABLES.USER_ID.eq(userId)
-                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID));
+                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
+                .and(SCHEDULES.IS_DELETED.isNull().or(SCHEDULES.IS_DELETED.eq((byte)0)))
+                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)));
         if (start != null && end != null) {
             cond = cond.and(SCHEDULES.SCHEDULE_DATE.between(start, end));
         } else if (start != null) {
