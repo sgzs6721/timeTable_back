@@ -1,6 +1,7 @@
 package com.timetable.service;
 
 import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.dto.ScheduleWithCoachDTO;
 import com.timetable.repository.ReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ public class ReportService {
     private ReportRepository reportRepository;
 
     public Map<String, Object> queryHoursPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
-        List<Schedules> list = reportRepository.querySchedulesByUserPaged(userId, start, end, page, size);
+        List<ScheduleWithCoachDTO> list = reportRepository.querySchedulesByUserPaged(userId, start, end, page, size);
         long total = reportRepository.countSchedulesByUser(userId, start, end);
         Map<String, Object> data = new HashMap<>();
         data.put("list", list);
