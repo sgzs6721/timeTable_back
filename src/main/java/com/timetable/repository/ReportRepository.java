@@ -1,6 +1,7 @@
 package com.timetable.repository;
 
 import com.timetable.generated.tables.pojos.Schedules;
+import com.timetable.dto.ScheduleWithCoachDTO;
 import org.jooq.DSLContext;
 import org.jooq.Condition;
 import org.jooq.Record;
@@ -26,7 +27,7 @@ public class ReportRepository {
      * 分页查询指定用户（教练）所有课表下的课程记录
      * 包括有具体日期的课程和固定课表模板（需要根据day_of_week推算日期）
      */
-    public List<Schedules> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
+    public List<ScheduleWithCoachDTO> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
         // 1) 固定课表（schedules）中有具体日期的记录
         LocalDate today = LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
@@ -70,9 +71,12 @@ public class ReportRepository {
                         SCHEDULES.SCHEDULE_DATE.as("schedule_date"),
                         SCHEDULES.NOTE.as("note"),
                         SCHEDULES.CREATED_AT.as("created_at"),
-                        SCHEDULES.UPDATED_AT.as("updated_at")
+                        SCHEDULES.UPDATED_AT.as("updated_at"),
+                        // 添加教练信息
+                        field(name("users", "nickname"), String.class).as("coach_name")
                 )
-                .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
+                .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
+                        .join(table("users")).on(TIMETABLES.USER_ID.eq(field(name("users", "id"), Long.class))))
                 .where(baseCond);
                 
         // 移除了固定课表模板查询，因为它们不应该出现在"我的课时"中
@@ -90,11 +94,14 @@ public class ReportRepository {
                         field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).as("schedule_date"),
                         field(name("weekly_instance_schedules", "note"), String.class).as("note"),
                         field(name("weekly_instance_schedules", "created_at")),
-                        field(name("weekly_instance_schedules", "updated_at"))
+                        field(name("weekly_instance_schedules", "updated_at")),
+                        // 添加教练信息
+                        field(name("users", "nickname"), String.class).as("coach_name")
                 )
                 .from(table("weekly_instance_schedules"))
                 .join(table("weekly_instances")).on(field(name("weekly_instance_schedules", "weekly_instance_id")).eq(field(name("weekly_instances", "id"))))
                 .join(table("timetables")).on(field(name("weekly_instances", "template_timetable_id")).eq(field(name("timetables", "id"))))
+                .join(table("users")).on(field(name("timetables", "user_id"), Long.class).eq(field(name("users", "id"), Long.class)))
                 .where(instCond);
 
         int offset = (page - 1) * size;
@@ -106,7 +113,7 @@ public class ReportRepository {
                 .offset(offset)
                 .fetch();
 
-        List<Schedules> list = new ArrayList<>();
+        List<ScheduleWithCoachDTO> list = new ArrayList<>();
         for (Record r : unionResult) {
             Schedules s = new Schedules();
             s.setId(r.get("id", Long.class));
@@ -135,7 +142,10 @@ public class ReportRepository {
                 }
             }
             
-            list.add(s);
+            // 创建包含教练信息的DTO
+            String coachName = r.get("coach_name", String.class);
+            ScheduleWithCoachDTO dto = new ScheduleWithCoachDTO(s, coachName);
+            list.add(dto);
         }
         return list;
     }
