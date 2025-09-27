@@ -41,7 +41,9 @@ public class ReportRepository {
         // weekly_instances.template_timetable_id -> timetables.id
         Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
                 .and(field(name("timetables", "is_deleted"), Byte.class).isNull()
-                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)));
+                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
+                .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
+                        .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)));
         if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
         if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
 
@@ -126,7 +128,9 @@ public class ReportRepository {
 
         Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
                 .and(field(name("timetables", "is_deleted"), Byte.class).isNull()
-                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)));
+                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
+                .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
+                        .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)));
         if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
         if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
 
