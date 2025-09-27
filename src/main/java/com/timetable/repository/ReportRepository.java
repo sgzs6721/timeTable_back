@@ -29,11 +29,13 @@ public class ReportRepository {
     public List<Schedules> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
         // 1) 固定课表（schedules）中有具体日期的记录
         LocalDate today = LocalDate.now();
+        java.time.LocalTime now = java.time.LocalTime.now();
         Condition baseCond = TIMETABLES.USER_ID.eq(userId)
                 .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
                 .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
                 .and(SCHEDULES.SCHEDULE_DATE.isNotNull())
-                .and(SCHEDULES.SCHEDULE_DATE.le(today)); // 只统计今天及之前的记录
+                .and(SCHEDULES.SCHEDULE_DATE.lt(today) // 昨天及之前的记录
+                        .or(SCHEDULES.SCHEDULE_DATE.eq(today).and(SCHEDULES.START_TIME.le(now)))); // 或者今天的已过时间记录
         if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
         if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
         
@@ -54,7 +56,9 @@ public class ReportRepository {
                         .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
                 .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
                         .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)))
-                .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(today)); // 只查询今天及之前的记录
+                .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
+                        .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
+                                .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
         if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
         if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
 
@@ -138,10 +142,18 @@ public class ReportRepository {
             s.setCreatedAt(r.get("created_at", java.time.LocalDateTime.class));
             s.setUpdatedAt(r.get("updated_at", java.time.LocalDateTime.class));
             
-            // 过滤掉未来的记录
+            // 过滤掉未来的记录（包括今天的未来时间）
             LocalDate recordDate = s.getScheduleDate();
-            if (recordDate != null && recordDate.isAfter(today)) {
-                continue; // 跳过未来的记录
+            if (recordDate != null) {
+                if (recordDate.isAfter(today)) {
+                    continue; // 跳过未来日期的记录
+                } else if (recordDate.isEqual(today)) {
+                    // 如果是今天，还要检查时间是否已过
+                    java.time.LocalTime startTime = s.getStartTime();
+                    if (startTime != null && startTime.isAfter(now)) {
+                        continue; // 跳过今天未来时间的记录
+                    }
+                }
             }
             
             list.add(s);
@@ -151,10 +163,13 @@ public class ReportRepository {
 
     public long countSchedulesByUser(Long userId, LocalDate start, LocalDate end) {
         LocalDate today = LocalDate.now();
+        java.time.LocalTime now = java.time.LocalTime.now();
         Condition baseCond = TIMETABLES.USER_ID.eq(userId)
                 .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
                 .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
-                .and(SCHEDULES.SCHEDULE_DATE.isNotNull());
+                .and(SCHEDULES.SCHEDULE_DATE.isNotNull())
+                .and(SCHEDULES.SCHEDULE_DATE.lt(today) // 昨天及之前的记录
+                        .or(SCHEDULES.SCHEDULE_DATE.eq(today).and(SCHEDULES.START_TIME.le(now)))); // 或者今天的已过时间记录
         if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
         if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
         
@@ -180,7 +195,9 @@ public class ReportRepository {
                         .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
                 .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
                         .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)))
-                .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(today)); // 只统计今天及之前的记录
+                .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
+                        .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
+                                .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
         if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
         if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
 
