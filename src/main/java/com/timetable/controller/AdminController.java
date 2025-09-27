@@ -744,14 +744,20 @@ public class AdminController {
     }
 
     /**
-     * 获取指定教练的上月课程明细
+     * 获取指定教练的上月课程明细（分页）
      */
     @GetMapping("/coaches/{coachId}/last-month-records")
-    public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getCoachLastMonthRecords(
-            @PathVariable Long coachId) {
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCoachLastMonthRecords(
+            @PathVariable Long coachId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            java.util.List<java.util.Map<String, Object>> records = timetableService.getLastMonthCourseRecordsForCoach(coachId);
-            return ResponseEntity.ok(ApiResponse.success("获取上月课程记录成功", records));
+            if (page <= 0 || size <= 0) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("page/size 必须为正整数"));
+            }
+            
+            java.util.Map<String, Object> result = timetableService.getLastMonthCourseRecordsForCoachPaged(coachId, page, size);
+            return ResponseEntity.ok(ApiResponse.success("获取上月课程记录成功", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取上月课程记录失败: " + e.getMessage()));
         }

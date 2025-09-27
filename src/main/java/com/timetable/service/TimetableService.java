@@ -1470,4 +1470,26 @@ public class TimetableService {
 
         return records;
     }
+
+    /**
+     * 获取指定教练上月课程明细（分页）
+     */
+    public java.util.Map<String, Object> getLastMonthCourseRecordsForCoachPaged(Long coachId, int page, int size) {
+        java.util.List<java.util.Map<String, Object>> allRecords = getLastMonthCourseRecordsForCoach(coachId);
+        
+        // 计算分页
+        int total = allRecords.size();
+        int startIndex = (page - 1) * size;
+        int endIndex = Math.min(startIndex + size, total);
+        
+        java.util.List<java.util.Map<String, Object>> pagedRecords = allRecords.subList(startIndex, endIndex);
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("list", pagedRecords);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        
+        return result;
+    }
 }
