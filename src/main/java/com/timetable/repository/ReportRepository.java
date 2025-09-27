@@ -39,13 +39,8 @@ public class ReportRepository {
         if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
         if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
         
-        // 1.5) 固定课表（schedules）中只有day_of_week的记录（根据当前周推算日期）
-        // 只查询今天及之前的记录，不包含未来日期
-        Condition templateCond = TIMETABLES.USER_ID.eq(userId)
-                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
-                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
-                .and(SCHEDULES.SCHEDULE_DATE.isNull())
-                .and(SCHEDULES.DAY_OF_WEEK.isNotNull());
+        // 注意：固定课表模板（只有day_of_week的记录）不应该出现在"我的课时"中
+        // 因为它们是模板，不是实际的课时记录
 
         // 2) 周实例（weekly_instance_schedules）中的记录
         // 表结构：
@@ -80,23 +75,7 @@ public class ReportRepository {
                 .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
                 .where(baseCond);
                 
-        // 固定课表模板查询（只有day_of_week的记录）
-        org.jooq.Select<? extends Record> selectTemplateOnly = dsl
-                .select(
-                        SCHEDULES.ID.as("id"),
-                        SCHEDULES.TIMETABLE_ID.as("timetable_id"),
-                        SCHEDULES.STUDENT_NAME.as("student_name"),
-                        SCHEDULES.SUBJECT.as("subject"),
-                        SCHEDULES.DAY_OF_WEEK.as("day_of_week"),
-                        SCHEDULES.START_TIME.as("start_time"),
-                        SCHEDULES.END_TIME.as("end_time"),
-                        SCHEDULES.SCHEDULE_DATE.as("schedule_date"), // 这里会是null
-                        SCHEDULES.NOTE.as("note"),
-                        SCHEDULES.CREATED_AT.as("created_at"),
-                        SCHEDULES.UPDATED_AT.as("updated_at")
-                )
-                .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
-                .where(templateCond);
+        // 移除了固定课表模板查询，因为它们不应该出现在"我的课时"中
 
         org.jooq.Select<? extends Record> selectInstance = dsl
                 .select(
@@ -121,7 +100,7 @@ public class ReportRepository {
         int offset = (page - 1) * size;
 
         Result<Record> unionResult = dsl
-                .selectFrom(selectTemplate.unionAll((org.jooq.Select)selectTemplateOnly).unionAll((org.jooq.Select)selectInstance).asTable("all_schedules"))
+                .selectFrom(selectTemplate.unionAll((org.jooq.Select)selectInstance).asTable("all_schedules"))
                 .orderBy(field(name("schedule_date")).desc().nullsLast(), field(name("start_time")).desc())
                 .limit(size)
                 .offset(offset)
@@ -173,21 +152,9 @@ public class ReportRepository {
         if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
         if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
         
-        // 固定课表模板条件（只有day_of_week的记录）
-        Condition templateCond = TIMETABLES.USER_ID.eq(userId)
-                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
-                .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
-                .and(SCHEDULES.SCHEDULE_DATE.isNull())
-                .and(SCHEDULES.DAY_OF_WEEK.isNotNull());
-
         long templateCount = dsl.selectCount()
                 .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
                 .where(baseCond)
-                .fetchOne(0, Long.class);
-                
-        long templateOnlyCount = dsl.selectCount()
-                .from(SCHEDULES.join(TIMETABLES).on(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)))
-                .where(templateCond)
                 .fetchOne(0, Long.class);
 
         Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
@@ -208,7 +175,7 @@ public class ReportRepository {
                 .where(instCond)
                 .fetchOne(0, Long.class);
 
-        return templateCount + templateOnlyCount + instanceCount;
+        return templateCount + instanceCount;
     }
 }
 
