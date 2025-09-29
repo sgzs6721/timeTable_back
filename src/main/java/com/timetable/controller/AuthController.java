@@ -439,8 +439,7 @@ public class AuthController {
                 Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
                 boolean isNewUser = (Boolean) loginResult.getOrDefault("isNewUser", false);
                 
-                String html = String.format(
-                    "<!DOCTYPE html>" +
+                String htmlTemplate = "<!DOCTYPE html>" +
                     "<html>" +
                     "<head>" +
                         "<meta charset=\"UTF-8\">" +
@@ -475,7 +474,9 @@ public class AuthController {
                             "}" +
                         "</script>" +
                     "</body>" +
-                    "</html>", 
+                    "</html>";
+                
+                String html = String.format(htmlTemplate, 
                     user.get("username"),
                     user.get("nickname"),
                     user.get("role"),
