@@ -146,6 +146,24 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 删除“下周”的周实例（如果存在），同时删除其所有实例课程
+     */
+    @Transactional
+    public boolean deleteNextWeekInstance(Long templateTimetableId) {
+        LocalDate nextWeekStart = LocalDate.now().with(java.time.DayOfWeek.MONDAY).plusWeeks(1);
+        String yearWeek = generateYearWeekString(nextWeekStart);
+        WeeklyInstance instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
+        if (instance == null) {
+            return false;
+        }
+        // 先删课程
+        weeklyInstanceScheduleRepository.deleteByWeeklyInstanceId(instance.getId());
+        // 再删实例
+        weeklyInstanceRepository.delete(instance.getId());
+        return true;
+    }
+
+    /**
      * 为所有活动课表生成“下周”的周实例
      */
     @Transactional

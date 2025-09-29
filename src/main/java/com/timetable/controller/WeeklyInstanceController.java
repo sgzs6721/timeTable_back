@@ -347,6 +347,36 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 删除下周实例（如果存在）
+     */
+    @DeleteMapping("/next-week/{timetableId}")
+    public ResponseEntity<ApiResponse<String>> deleteNextWeekInstance(
+            @PathVariable Long timetableId,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        // 非管理员需要验证课表归属
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
+            if (timetable == null) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+        try {
+            boolean deleted = weeklyInstanceService.deleteNextWeekInstance(timetableId);
+            if (deleted) {
+                return ResponseEntity.ok(ApiResponse.success("已删除下周实例"));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("未找到下周实例，无需删除"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 在周实例中创建课程
      */
     @PostMapping("/{instanceId}/schedules")
