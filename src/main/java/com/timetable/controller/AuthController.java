@@ -439,44 +439,43 @@ public class AuthController {
                 Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
                 boolean isNewUser = (Boolean) loginResult.getOrDefault("isNewUser", false);
                 
-                String html = String.format("""
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>微信登录成功</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                            .success { color: #52c41a; }
-                            .info { margin: 20px 0; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1 class="success">微信登录成功！</h1>
-                        <div class="info">
-                            <p>用户：%s</p>
-                            <p>昵称：%s</p>
-                            <p>角色：%s</p>
-                            %s
-                        </div>
-                        <script>
-                            // 将token和用户信息传递给父窗口
-                            if (window.opener) {
-                                window.opener.postMessage({
-                                    type: "wechat_login_success",
-                                    token: "%s",
-                                    user: %s,
-                                    isNewUser: %s
-                                }, "*");
-                                window.close();
-                            } else {
-                                // 如果没有父窗口，重定向到前端页面
-                                window.location.href = "http://localhost:3000/login?token=%s&user=%s";
-                            }
-                        </script>
-                    </body>
-                    </html>
-                    """, 
+                String html = String.format(
+                    "<!DOCTYPE html>" +
+                    "<html>" +
+                    "<head>" +
+                        "<meta charset=\"UTF-8\">" +
+                        "<title>微信登录成功</title>" +
+                        "<style>" +
+                            "body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }" +
+                            ".success { color: #52c41a; }" +
+                            ".info { margin: 20px 0; }" +
+                        "</style>" +
+                    "</head>" +
+                    "<body>" +
+                        "<h1 class=\"success\">微信登录成功！</h1>" +
+                        "<div class=\"info\">" +
+                            "<p>用户：%s</p>" +
+                            "<p>昵称：%s</p>" +
+                            "<p>角色：%s</p>" +
+                            "%s" +
+                        "</div>" +
+                        "<script>" +
+                            "// 将token和用户信息传递给父窗口" +
+                            "if (window.opener) {" +
+                                "window.opener.postMessage({" +
+                                    "type: \"wechat_login_success\"," +
+                                    "token: \"%s\"," +
+                                    "user: %s," +
+                                    "isNewUser: %s" +
+                                "}, \"*\");" +
+                                "window.close();" +
+                            "} else {" +
+                                "// 如果没有父窗口，重定向到前端页面" +
+                                "window.location.href = \"http://localhost:3000/login?token=%s&user=%s\";" +
+                            "}" +
+                        "</script>" +
+                    "</body>" +
+                    "</html>", 
                     user.get("username"),
                     user.get("nickname"),
                     user.get("role"),
