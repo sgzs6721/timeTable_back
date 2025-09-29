@@ -463,15 +463,15 @@ public class AuthController {
                             // 将token和用户信息传递给父窗口
                             if (window.opener) {
                                 window.opener.postMessage({
-                                    type: 'wechat_login_success',
-                                    token: '%s',
+                                    type: "wechat_login_success",
+                                    token: "%s",
                                     user: %s,
                                     isNewUser: %s
-                                }, '*');
+                                }, "*");
                                 window.close();
                             } else {
                                 // 如果没有父窗口，重定向到前端页面
-                                window.location.href = 'http://localhost:3000/login?token=%s&user=%s';
+                                window.location.href = "http://localhost:3000/login?token=%s&user=%s";
                             }
                         </script>
                     </body>
@@ -480,7 +480,7 @@ public class AuthController {
                     user.get("username"),
                     user.get("nickname"),
                     user.get("role"),
-                    isNewUser ? "<p style='color: #1890ff;'>欢迎新用户！</p>" : "",
+                    isNewUser ? "<p style=\"color: #1890ff;\">欢迎新用户！</p>" : "",
                     token,
                     user.toString().replace("\"", "\\\""),
                     isNewUser,
