@@ -178,7 +178,7 @@ public class WechatLoginService {
      * 生成微信登录授权URL
      */
     public String generateWechatAuthUrl() {
-        String redirectUri = "http://121.36.91.199:8080/timetable/api/auth/wechat/callback";
+        String redirectUri = "http://121.36.91.199:8088/timetable/api/auth/wechat/callback";
         String scope = "snsapi_userinfo";
         String state = "timetable_wechat_login";
         

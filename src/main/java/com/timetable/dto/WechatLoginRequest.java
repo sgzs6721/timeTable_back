@@ -1,13 +1,10 @@
 package com.timetable.dto;
 
-import javax.validation.constraints.NotBlank;
-
 /**
  * 微信登录请求DTO
  */
 public class WechatLoginRequest {
     
-    @NotBlank(message = "授权码不能为空")
     private String code;
     
     private String state;

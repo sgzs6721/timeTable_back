@@ -1,34 +1,24 @@
 package com.timetable.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * 微信用户信息DTO
  */
 public class WechatUserInfo {
     
-    @JsonProperty("openid")
     private String openid;
     
-    @JsonProperty("nickname")
     private String nickname;
     
-    @JsonProperty("sex")
     private Integer sex;
     
-    @JsonProperty("province")
     private String province;
     
-    @JsonProperty("city")
     private String city;
     
-    @JsonProperty("country")
     private String country;
     
-    @JsonProperty("headimgurl")
     private String headimgurl;
     
-    @JsonProperty("unionid")
     private String unionid;
     
     public WechatUserInfo() {}

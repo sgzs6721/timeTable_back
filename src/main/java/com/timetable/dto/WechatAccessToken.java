@@ -1,28 +1,20 @@
 package com.timetable.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
  * 微信访问令牌DTO
  */
 public class WechatAccessToken {
     
-    @JsonProperty("access_token")
     private String accessToken;
     
-    @JsonProperty("expires_in")
     private Integer expiresIn;
     
-    @JsonProperty("refresh_token")
     private String refreshToken;
     
-    @JsonProperty("openid")
     private String openid;
     
-    @JsonProperty("scope")
     private String scope;
     
-    @JsonProperty("unionid")
     private String unionid;
     
     public WechatAccessToken() {}
