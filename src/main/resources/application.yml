@@ -33,6 +33,14 @@ jwt:
   secret: timetableSecretKey2024ForVoiceSchedulingSystem
   expiration: 86400000 # 24小时
 
+# 微信登录配置
+wechat:
+  app-id: wx966893c31aa9dddd
+  app-secret: 14b4184e440acf0994b5395d441c4019
+  redirect-uri: http://121.36.91.199:8080/timetable/api/auth/wechat/callback
+  scope: snsapi_userinfo
+  state: timetable_wechat_login
+
 # AI API配置 - 请根据实际情况修改
 ai:
   # 语音识别API配置

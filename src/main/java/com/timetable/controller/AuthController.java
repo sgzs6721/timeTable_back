@@ -3,8 +3,10 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AuthRequest;
 import com.timetable.dto.UserRegistrationRequest;
+import com.timetable.dto.WechatLoginRequest;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.UserService;
+import com.timetable.service.WechatLoginService;
 import com.timetable.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,9 @@ public class AuthController {
     
     @Autowired
     private JwtUtil jwtUtil;
+    
+    @Autowired
+    private WechatLoginService wechatLoginService;
     
     /**
      * 用户登录
@@ -367,6 +372,132 @@ public class AuthController {
             logger.error("注销账号过程中发生错误", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("账号注销失败"));
+        }
+    }
+    
+    /**
+     * 微信登录
+     */
+    @PostMapping("/wechat/login")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> wechatLogin(@Valid @RequestBody WechatLoginRequest wechatLoginRequest) {
+        try {
+            logger.info("用户尝试微信登录，授权码: {}", wechatLoginRequest.getCode());
+            
+            // 处理微信登录
+            Map<String, Object> data = wechatLoginService.processWechatLogin(wechatLoginRequest.getCode());
+            
+            logger.info("微信登录成功");
+            return ResponseEntity.ok(ApiResponse.success("微信登录成功", data));
+            
+        } catch (Exception e) {
+            logger.error("微信登录过程中发生错误", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("微信登录失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 获取微信登录授权URL
+     */
+    @GetMapping("/wechat/auth-url")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getWechatAuthUrl() {
+        try {
+            String authUrl = wechatLoginService.generateWechatAuthUrl();
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("authUrl", authUrl);
+            
+            return ResponseEntity.ok(ApiResponse.success("获取微信授权URL成功", data));
+            
+        } catch (Exception e) {
+            logger.error("获取微信授权URL过程中发生错误", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("获取微信授权URL失败"));
+        }
+    }
+    
+    /**
+     * 微信授权回调接口
+     */
+    @GetMapping("/wechat/callback")
+    public ResponseEntity<String> wechatCallback(@RequestParam String code, @RequestParam String state) {
+        try {
+            logger.info("收到微信授权回调，code: {}, state: {}", code, state);
+            
+            // 验证state参数
+            if (!"timetable_wechat_login".equals(state)) {
+                return ResponseEntity.badRequest()
+                        .body("<html><body><h1>授权失败</h1><p>无效的state参数</p></body></html>");
+            }
+            
+            // 处理微信登录
+            Map<String, Object> loginResult = wechatLoginService.processWechatLogin(code);
+            
+            if (loginResult != null && loginResult.containsKey("token")) {
+                // 构建前端页面，包含token和用户信息
+                String token = (String) loginResult.get("token");
+                Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
+                boolean isNewUser = (Boolean) loginResult.getOrDefault("isNewUser", false);
+                
+                String html = String.format("""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>微信登录成功</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                            .success { color: #52c41a; }
+                            .info { margin: 20px 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1 class="success">微信登录成功！</h1>
+                        <div class="info">
+                            <p>用户：%s</p>
+                            <p>昵称：%s</p>
+                            <p>角色：%s</p>
+                            %s
+                        </div>
+                        <script>
+                            // 将token和用户信息传递给父窗口
+                            if (window.opener) {
+                                window.opener.postMessage({
+                                    type: 'wechat_login_success',
+                                    token: '%s',
+                                    user: %s,
+                                    isNewUser: %s
+                                }, '*');
+                                window.close();
+                            } else {
+                                // 如果没有父窗口，重定向到前端页面
+                                window.location.href = 'http://localhost:3000/login?token=%s&user=%s';
+                            }
+                        </script>
+                    </body>
+                    </html>
+                    """, 
+                    user.get("username"),
+                    user.get("nickname"),
+                    user.get("role"),
+                    isNewUser ? "<p style='color: #1890ff;'>欢迎新用户！</p>" : "",
+                    token,
+                    user.toString().replace("\"", "\\\""),
+                    isNewUser,
+                    token,
+                    user.toString().replace("\"", "\\\"")
+                );
+                
+                return ResponseEntity.ok(html);
+            } else {
+                return ResponseEntity.badRequest()
+                        .body("<html><body><h1>登录失败</h1><p>微信登录处理失败</p></body></html>");
+            }
+            
+        } catch (Exception e) {
+            logger.error("微信授权回调处理失败", e);
+            return ResponseEntity.internalServerError()
+                    .body("<html><body><h1>登录失败</h1><p>系统错误：" + e.getMessage() + "</p></body></html>");
         }
     }
     
