@@ -286,27 +286,64 @@ public class AdminController {
     }
     
     /**
-     * 更新用户权限
+     * 管理员编辑用户信息（用户名/昵称/角色）
      */
-    @PutMapping("/users/{userId}/role")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserRole(
+    @PutMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserInfo(
             @PathVariable Long userId,
             @Valid @RequestBody Map<String, String> request) {
-        
-        String newRole = request.get("role");
-        if (newRole == null || (!newRole.equals("USER") && !newRole.equals("ADMIN"))) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("角色必须是USER或ADMIN"));
+        String role = request.get("role");
+        String username = request.get("username");
+        String nickname = request.get("nickname");
+
+        Users user = userService.findById(userId);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在或更新失败"));
         }
-        
-        Map<String, Object> updatedUser = userService.updateUserRole(userId, newRole);
-        
-        if (updatedUser == null) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("用户不存在或更新失败"));
+
+        // 校验并更新角色（可选，但如果传了必须合法）
+        if (role != null) {
+            if (!"USER".equals(role) && !"ADMIN".equals(role)) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("角色必须是USER或ADMIN"));
+            }
+            user.setRole(role);
         }
-        
-        return ResponseEntity.ok(ApiResponse.success("用户权限更新成功", updatedUser));
+
+        // 更新用户名（可选）
+        if (username != null && !username.equals(user.getUsername())) {
+            // 复用用户服务中的校验逻辑
+            try {
+                // 这里直接调用底层仓库更新，或在UserService中新增方法：updateUsernameByAdmin
+                // 为避免重复代码，这里简单做唯一性检查
+                if (userService.existsByUsername(username)) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("新用户名已存在"));
+                }
+                user.setUsername(username);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            }
+        }
+
+        // 更新昵称（可选）
+        if (nickname != null) {
+            if (nickname.length() > 50) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("昵称长度不能超过50个字符"));
+            }
+            user.setNickname(nickname);
+        }
+
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userService.getUserRepository().update(user); // 需要在UserService暴露仓库或封装一个保存方法
+
+        Map<String, Object> dto = new java.util.HashMap<>();
+        dto.put("id", user.getId());
+        dto.put("username", user.getUsername());
+        dto.put("nickname", user.getNickname());
+        dto.put("role", user.getRole());
+        dto.put("createdAt", user.getCreatedAt());
+        dto.put("updatedAt", user.getUpdatedAt());
+
+        return ResponseEntity.ok(ApiResponse.success("用户信息更新成功", dto));
     }
     
     /**

@@ -29,6 +29,10 @@ public class UserService implements UserDetailsService {
     
     @Autowired
     private UserRepository userRepository;
+    // 暴露仓库给控制器少量直接保存（或可封装 save 方法）
+    public UserRepository getUserRepository() {
+        return userRepository;
+    }
     
     @Autowired
     private TimetableRepository timetableRepository;
