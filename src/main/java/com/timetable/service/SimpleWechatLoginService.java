@@ -13,14 +13,20 @@ public class SimpleWechatLoginService {
     
     private String appId;
     private String appSecret;
+    private String redirectUri;
+    private String scope;
+    private String state;
     
     // 微信API地址
     private static final String WECHAT_ACCESS_TOKEN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token";
     private static final String WECHAT_USER_INFO_URL = "https://api.weixin.qq.com/sns/userinfo";
     
-    public SimpleWechatLoginService(String appId, String appSecret) {
+    public SimpleWechatLoginService(String appId, String appSecret, String redirectUri, String scope, String state) {
         this.appId = appId;
         this.appSecret = appSecret;
+        this.redirectUri = redirectUri;
+        this.scope = scope;
+        this.state = state;
     }
     
     /**
@@ -79,10 +85,6 @@ public class SimpleWechatLoginService {
      * 生成微信登录授权URL
      */
     public String generateWechatAuthUrl() {
-        String redirectUri = "http://121.36.91.199:8080/timetable/api/auth/wechat/callback";
-        String scope = "snsapi_userinfo";
-        String state = "timetable_wechat_login";
-        
         return String.format("https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s#wechat_redirect",
                 appId, redirectUri, scope, state);
     }

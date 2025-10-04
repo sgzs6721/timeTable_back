@@ -33,6 +33,15 @@ public class WechatLoginService {
     @Value("${wechat.app-secret}")
     private String appSecret;
     
+    @Value("${wechat.redirect-uri}")
+    private String redirectUri;
+    
+    @Value("${wechat.scope}")
+    private String scope;
+    
+    @Value("${wechat.state}")
+    private String state;
+    
     @Autowired
     private UserRepository userRepository;
     
@@ -178,10 +187,6 @@ public class WechatLoginService {
      * 生成微信登录授权URL
      */
     public String generateWechatAuthUrl() {
-        String redirectUri = "http://121.36.91.199:8088/timetable/api/auth/wechat/callback";
-        String scope = "snsapi_userinfo";
-        String state = "timetable_wechat_login";
-        
         return String.format("https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s#wechat_redirect",
                 appId, redirectUri, scope, state);
     }
