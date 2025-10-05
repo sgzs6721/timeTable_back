@@ -1324,7 +1324,11 @@ public class TimetableService {
             // 周固定课表：从上周实例获取
             WeeklyInstance lastWeekInstance = weeklyInstanceService.findInstanceByDate(timetableId, lastWeekMonday);
             if (lastWeekInstance != null) {
-                return weeklyInstanceScheduleRepository.countByWeeklyInstanceId(lastWeekInstance.getId());
+                List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(lastWeekInstance.getId());
+                // 过滤掉请假课程
+                return (int) schedules.stream()
+                        .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave())
+                        .count();
             }
             return 0;
         } else {
@@ -1351,9 +1355,13 @@ public class TimetableService {
             List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateIdAndDateRange(timetableId, start, end);
             int total = 0;
             for (WeeklyInstance ins : instances) {
-                total += weeklyInstanceScheduleRepository.findByDateRange(ins.getId(),
+                List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findByDateRange(ins.getId(),
                         ins.getWeekStartDate().isBefore(start) ? start : ins.getWeekStartDate(),
-                        ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate()).size();
+                        ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate());
+                // 过滤掉请假课程
+                total += schedules.stream()
+                        .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave())
+                        .count();
             }
             return total;
         } else {
@@ -1396,9 +1404,13 @@ public class TimetableService {
                 // 周固定课表：找落在上月范围内的所有周实例并累计
                 List<WeeklyInstance> instances = weeklyInstanceRepository.findByTemplateIdAndDateRange(timetable.getId(), start, end);
                 for (WeeklyInstance ins : instances) {
-                    totalCourses += weeklyInstanceScheduleRepository.findByDateRange(ins.getId(),
+                    List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findByDateRange(ins.getId(),
                             ins.getWeekStartDate().isBefore(start) ? start : ins.getWeekStartDate(),
-                            ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate()).size();
+                            ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate());
+                    // 过滤掉请假课程
+                    totalCourses += schedules.stream()
+                            .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave())
+                            .count();
                 }
             } else {
                 // 日期范围课表：直接按日期统计
@@ -1411,6 +1423,7 @@ public class TimetableService {
 
     /**
      * 获取指定教练上月课程明细（包含活动与已归档课表；周实例与日期模板）
+     * 注意：此方法不包含请假课程
      */
     public java.util.List<java.util.Map<String, Object>> getLastMonthCourseRecordsForCoach(Long coachId) {
         java.util.List<java.util.Map<String, Object>> records = new java.util.ArrayList<>();
@@ -1427,7 +1440,7 @@ public class TimetableService {
 
         for (com.timetable.generated.tables.pojos.Timetables timetable : allTimetables) {
             if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
-                // 周固定：找到覆盖上月范围的所有实例，并取实例课程（含请假）
+                // 周固定：找到覆盖上月范围的所有实例，并取实例课程（排除请假）
                 java.util.List<com.timetable.entity.WeeklyInstance> instances = weeklyInstanceRepository
                     .findByTemplateIdAndDateRange(timetable.getId(), start, end);
                 for (com.timetable.entity.WeeklyInstance ins : instances) {
@@ -1435,13 +1448,18 @@ public class TimetableService {
                     java.time.LocalDate realEnd = ins.getWeekEndDate().isAfter(end) ? end : ins.getWeekEndDate();
                     java.util.List<com.timetable.entity.WeeklyInstanceSchedule> sis = weeklyInstanceScheduleRepository
                         .findByDateRange(ins.getId(), realStart, realEnd);
+                    // 过滤掉请假课程
                     for (com.timetable.entity.WeeklyInstanceSchedule s : sis) {
+                        // 跳过请假课程
+                        if (s.getIsOnLeave() != null && s.getIsOnLeave()) {
+                            continue;
+                        }
                         java.util.Map<String, Object> item = new java.util.HashMap<>();
                         item.put("date", s.getScheduleDate());
                         item.put("startTime", s.getStartTime());
                         item.put("endTime", s.getEndTime());
                         item.put("studentName", s.getStudentName());
-                        item.put("isOnLeave", s.getIsOnLeave() != null && s.getIsOnLeave());
+                        item.put("isOnLeave", false);
                         records.add(item);
                     }
                 }

@@ -636,8 +636,10 @@ public class AdminController {
                         try {
                             // 为统计请假，需要获取包含请假的完整列表
                             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceService.getCurrentWeekInstanceSchedulesIncludingLeaves(activeTimetable.getId());
-                            // 周实例课程当前实现为物理删除，这里直接统计
-                            List<WeeklyInstanceSchedule> validInstanceSchedules = instanceSchedules;
+                            // 过滤掉请假课程进行统计
+                            List<WeeklyInstanceSchedule> validInstanceSchedules = instanceSchedules.stream()
+                                    .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave())
+                                    .collect(Collectors.toList());
                             weeklyCourses = validInstanceSchedules.size();
                             
                             logger.info("周固定课表 - 本周总课程数: {}", weeklyCourses);
