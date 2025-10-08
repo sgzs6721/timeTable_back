@@ -1111,7 +1111,7 @@ public class WeeklyInstanceService {
     }
 
     /**
-     * 取消请假
+     * 取消请假或恢复取消的课程
      */
     @Transactional
     public WeeklyInstanceSchedule cancelLeave(Long scheduleId) {
@@ -1120,16 +1120,17 @@ public class WeeklyInstanceService {
             throw new IllegalArgumentException("课程不存在");
         }
         
-        if (schedule.getIsOnLeave() == null || !schedule.getIsOnLeave()) {
-            throw new IllegalArgumentException("该课程未请假");
+        // 如果是请假状态，则恢复请假
+        if (schedule.getIsOnLeave() != null && schedule.getIsOnLeave()) {
+            schedule.setIsOnLeave(false);
+            schedule.setLeaveReason(null);
+            schedule.setLeaveRequestedAt(null);
+            schedule.setUpdatedAt(LocalDateTime.now());
+            return weeklyInstanceScheduleRepository.update(schedule);
         }
         
-        schedule.setIsOnLeave(false);
-        schedule.setLeaveReason(null);
-        schedule.setLeaveRequestedAt(null);
-        schedule.setUpdatedAt(LocalDateTime.now());
-        
-        return weeklyInstanceScheduleRepository.update(schedule);
+        // 如果不是请假状态，说明是取消的课程，直接返回（课程已存在，无需恢复）
+        return schedule;
     }
 
     /**
