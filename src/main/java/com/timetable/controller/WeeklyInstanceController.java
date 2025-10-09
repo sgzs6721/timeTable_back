@@ -849,7 +849,7 @@ public class WeeklyInstanceController {
      * 获取学员列表
      */
     @GetMapping("/students")
-    public ResponseEntity<ApiResponse<List<String>>> getAllStudents(
+    public ResponseEntity<ApiResponse<List<com.timetable.dto.StudentSummaryDTO>>> getAllStudents(
             @RequestParam(defaultValue = "false") Boolean showAll,
             Authentication authentication) {
         
@@ -859,19 +859,19 @@ public class WeeklyInstanceController {
         }
 
         try {
-            List<String> students;
+            List<com.timetable.dto.StudentSummaryDTO> students;
             if ("ADMIN".equalsIgnoreCase(user.getRole())) {
                 // 管理员可以查看所有学员或当前教练的学员
                 if (showAll) {
-                    // 获取所有学员
-                    students = weeklyInstanceService.getAllStudentsFromAllTimetables();
+                    // 获取所有学员统计
+                    students = weeklyInstanceService.getStudentSummariesAll();
                 } else {
-                    // 获取当前教练的学员
-                    students = weeklyInstanceService.getAllStudents(user.getId());
+                    // 获取当前教练的学员统计
+                    students = weeklyInstanceService.getStudentSummariesByCoach(user.getId());
                 }
             } else {
-                // 普通用户只能查看自己的学员
-                students = weeklyInstanceService.getAllStudents(user.getId());
+                // 普通用户只能查看自己的学员统计
+                students = weeklyInstanceService.getStudentSummariesByCoach(user.getId());
             }
             return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
         } catch (Exception e) {

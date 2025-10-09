@@ -2,6 +2,7 @@ package com.timetable.service;
 
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
+import com.timetable.dto.StudentSummaryDTO;
 import com.timetable.dto.WeeklyInstanceDTO;
 import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
@@ -1891,5 +1892,101 @@ public class WeeklyInstanceService {
         students.sort(String::compareTo);
         
         return students;
+    }
+
+    /**
+     * 统计某个教练下每个学员的已上课程数（不含请假），并按课程数倒序返回
+     */
+    public List<StudentSummaryDTO> getStudentSummariesByCoach(Long coachId) {
+        Map<String, Integer> studentToCount = new HashMap<>();
+
+        try {
+            // 1) 周实例课程：只统计该教练课表下，且 scheduleDate 不在未来，且未请假的课程
+            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
+            LocalDate today = LocalDate.now();
+            for (WeeklyInstanceSchedule s : instanceSchedules) {
+                if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
+                if (s.getScheduleDate() == null) continue;
+                if (s.getScheduleDate().isAfter(today)) continue; // 未来的不算已上
+                if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue; // 请假不计入
+
+                WeeklyInstance instance = weeklyInstanceRepository.findById(s.getWeeklyInstanceId());
+                if (instance == null) continue;
+                Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                if (timetable == null) continue;
+                if (!Objects.equals(timetable.getUserId(), coachId)) continue;
+                if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
+
+                String name = s.getStudentName().trim();
+                studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+            }
+
+            // 2) 日期类课表：只统计该教练的日期课表，scheduleDate 不在未来
+            List<Timetables> coachTimetables = timetableRepository.findByUserId(coachId);
+            for (Timetables timetable : coachTimetables) {
+                if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) continue; // 只看日期类
+
+                List<com.timetable.generated.tables.pojos.Schedules> dateSchedules = scheduleRepository.findByTimetableId(timetable.getId());
+                for (com.timetable.generated.tables.pojos.Schedules s : dateSchedules) {
+                    if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
+                    if (s.getScheduleDate() == null) continue;
+                    if (s.getScheduleDate().isAfter(today)) continue;
+                    String name = s.getStudentName().trim();
+                    studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("统计学员课程数失败(教练): {}", e.getMessage());
+        }
+
+        // 转为 DTO 并排序
+        List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
+                .map(e -> new StudentSummaryDTO(e.getKey(), e.getValue()))
+                .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
+                .collect(Collectors.toList());
+        return list;
+    }
+
+    /**
+     * 统计所有教练范围内每个学员的已上课程数（不含请假），并倒序
+     */
+    public List<StudentSummaryDTO> getStudentSummariesAll() {
+        Map<String, Integer> studentToCount = new HashMap<>();
+        LocalDate today = LocalDate.now();
+        try {
+            // 周实例（所有课表）
+            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
+            for (WeeklyInstanceSchedule s : instanceSchedules) {
+                if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
+                if (s.getScheduleDate() == null) continue;
+                if (s.getScheduleDate().isAfter(today)) continue;
+                if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue;
+                String name = s.getStudentName().trim();
+                studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+            }
+
+            // 日期类（所有课表）
+            List<Timetables> all = timetableRepository.findAll();
+            for (Timetables timetable : all) {
+                if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) continue;
+                List<com.timetable.generated.tables.pojos.Schedules> dateSchedules = scheduleRepository.findByTimetableId(timetable.getId());
+                for (com.timetable.generated.tables.pojos.Schedules s : dateSchedules) {
+                    if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
+                    if (s.getScheduleDate() == null) continue;
+                    if (s.getScheduleDate().isAfter(today)) continue;
+                    String name = s.getStudentName().trim();
+                    studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("统计学员课程数失败(全部): {}", e.getMessage());
+        }
+        List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
+                .map(e -> new StudentSummaryDTO(e.getKey(), e.getValue()))
+                .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
+                .collect(Collectors.toList());
+        return list;
     }
 }
