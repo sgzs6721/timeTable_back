@@ -2001,8 +2001,9 @@ public class WeeklyInstanceService {
         Map<Long, List<com.timetable.dto.StudentSummaryDTO>> coachStudents = new HashMap<>();
         Map<Long, Integer> coachTotal = new HashMap<>();
         java.time.LocalDate today = java.time.LocalDate.now();
+        Set<Long> deletedCoachIds = new HashSet<>();
         try {
-            // 统计所有未请假且已上课程数的 (每条课关联教练)
+            // 实例课表
             java.util.List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             for (com.timetable.entity.WeeklyInstanceSchedule s : instanceSchedules) {
                 if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
@@ -2016,12 +2017,16 @@ public class WeeklyInstanceService {
                 if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
                 Long coachId = timetable.getUserId();
                 if (coachId == null) continue;
-                // 记教练名
                 if (!coachNameMap.containsKey(coachId)) {
                     com.timetable.generated.tables.pojos.Users coach = userService.findById(coachId);
+                    // 过滤掉已删除教练
+                    if (coach != null && coach.getIsDeleted() != null && coach.getIsDeleted() == 1) {
+                      deletedCoachIds.add(coachId);
+                      continue;
+                    }
                     coachNameMap.put(coachId, coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练");
                 }
-                // 累计学员课时
+                if (deletedCoachIds.contains(coachId)) continue;
                 String studentName = s.getStudentName().trim();
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                 com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(studentName)).findFirst().orElse(null);
@@ -2042,8 +2047,13 @@ public class WeeklyInstanceService {
                 if (coachId == null) continue;
                 if (!coachNameMap.containsKey(coachId)) {
                     com.timetable.generated.tables.pojos.Users coach = userService.findById(coachId);
+                    if (coach != null && coach.getIsDeleted() != null && coach.getIsDeleted() == 1) {
+                      deletedCoachIds.add(coachId);
+                      continue;
+                    }
                     coachNameMap.put(coachId, coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练");
                 }
+                if (deletedCoachIds.contains(coachId)) continue;
                 java.util.List<com.timetable.generated.tables.pojos.Schedules> dateSchedules = scheduleRepository.findByTimetableId(timetable.getId());
                 for (com.timetable.generated.tables.pojos.Schedules s : dateSchedules) {
                     if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
@@ -2064,13 +2074,11 @@ public class WeeklyInstanceService {
         } catch (Exception e) {
             logger.error("统计分组学员课程数失败:", e);
         }
-        // 汇总List
         List<com.timetable.dto.CoachStudentSummaryDTO> result = new ArrayList<>();
         coachStudents.forEach((coachId, stuList) -> {
-            stuList.sort((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount())); // 学员倒序
+            stuList.sort((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()));
             result.add(new com.timetable.dto.CoachStudentSummaryDTO(coachId, coachNameMap.getOrDefault(coachId, "未知教练"), coachTotal.getOrDefault(coachId, 0), stuList));
         });
-        // 教练组倒序
         result.sort((a, b) -> b.getTotalCount().compareTo(a.getTotalCount()));
         return result;
     }
