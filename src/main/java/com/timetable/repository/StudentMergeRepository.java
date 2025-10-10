@@ -36,17 +36,25 @@ public class StudentMergeRepository {
     
     public Long save(StudentMergeDTO merge) {
         String sql = "INSERT INTO student_merges (display_name, student_names, coach_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql, merge.getDisplayName(), 
-            objectMapper.writeValueAsString(merge.getStudentNames()),
-            merge.getCoachId(), LocalDateTime.now(), LocalDateTime.now());
-        return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+        try {
+            jdbcTemplate.update(sql, merge.getDisplayName(), 
+                objectMapper.writeValueAsString(merge.getStudentNames()),
+                merge.getCoachId(), LocalDateTime.now(), LocalDateTime.now());
+            return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+        } catch (Exception e) {
+            throw new RuntimeException("保存学员合并失败", e);
+        }
     }
     
     public void update(StudentMergeDTO merge) {
         String sql = "UPDATE student_merges SET display_name = ?, student_names = ?, updated_at = ? WHERE id = ?";
-        jdbcTemplate.update(sql, merge.getDisplayName(),
-            objectMapper.writeValueAsString(merge.getStudentNames()),
-            LocalDateTime.now(), merge.getId());
+        try {
+            jdbcTemplate.update(sql, merge.getDisplayName(),
+                objectMapper.writeValueAsString(merge.getStudentNames()),
+                LocalDateTime.now(), merge.getId());
+        } catch (Exception e) {
+            throw new RuntimeException("更新学员合并失败", e);
+        }
     }
     
     public void softDelete(Long id) {

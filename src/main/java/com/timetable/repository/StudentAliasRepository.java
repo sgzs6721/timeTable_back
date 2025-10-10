@@ -36,17 +36,25 @@ public class StudentAliasRepository {
     
     public Long save(StudentAliasDTO alias) {
         String sql = "INSERT INTO student_aliases (alias_name, student_names, coach_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql, alias.getAliasName(), 
-            objectMapper.writeValueAsString(alias.getStudentNames()),
-            alias.getCoachId(), LocalDateTime.now(), LocalDateTime.now());
-        return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+        try {
+            jdbcTemplate.update(sql, alias.getAliasName(), 
+                objectMapper.writeValueAsString(alias.getStudentNames()),
+                alias.getCoachId(), LocalDateTime.now(), LocalDateTime.now());
+            return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+        } catch (Exception e) {
+            throw new RuntimeException("保存学员别名失败", e);
+        }
     }
     
     public void update(StudentAliasDTO alias) {
         String sql = "UPDATE student_aliases SET alias_name = ?, student_names = ?, updated_at = ? WHERE id = ?";
-        jdbcTemplate.update(sql, alias.getAliasName(),
-            objectMapper.writeValueAsString(alias.getStudentNames()),
-            LocalDateTime.now(), alias.getId());
+        try {
+            jdbcTemplate.update(sql, alias.getAliasName(),
+                objectMapper.writeValueAsString(alias.getStudentNames()),
+                LocalDateTime.now(), alias.getId());
+        } catch (Exception e) {
+            throw new RuntimeException("更新学员别名失败", e);
+        }
     }
     
     public void softDelete(Long id) {
