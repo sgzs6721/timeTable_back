@@ -58,6 +58,12 @@ public class WeeklyInstanceService {
     @Autowired
     private com.timetable.service.UserService userService;
 
+    @Autowired
+    private com.timetable.service.StudentMergeService studentMergeService;
+
+    @Autowired
+    private com.timetable.service.StudentAliasService studentAliasService;
+
     /**
      * 为指定的固定课表生成当前周实例
      */
@@ -2002,7 +2008,20 @@ public class WeeklyInstanceService {
         Map<Long, Integer> coachTotal = new HashMap<>();
         java.time.LocalDate today = java.time.LocalDate.now();
         Set<Long> deletedCoachIds = new HashSet<>();
+        
+        // 获取所有教练的合并和别名设置
+        Map<Long, List<com.timetable.dto.StudentMergeDTO>> coachMerges = new HashMap<>();
+        Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases = new HashMap<>();
+        
         try {
+            // 预加载所有教练的合并和别名设置
+            List<com.timetable.generated.tables.pojos.Users> allCoaches = userService.getAllApprovedUsers();
+            for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
+                if (coach.getIsDeleted() == null || coach.getIsDeleted() == 0) {
+                    coachMerges.put(coach.getId(), studentMergeService.getMergesByCoach(coach.getId()));
+                    coachAliases.put(coach.getId(), studentAliasService.getAliasesByCoach(coach.getId()));
+                }
+            }
             // 实例课表
             java.util.List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             for (com.timetable.entity.WeeklyInstanceSchedule s : instanceSchedules) {
@@ -2028,10 +2047,15 @@ public class WeeklyInstanceService {
                 }
                 if (deletedCoachIds.contains(coachId)) continue;
                 String studentName = s.getStudentName().trim();
+                
+                // 处理学员合并和别名
+                String displayName = getDisplayStudentName(studentName, coachId, coachMerges, coachAliases);
+                List<String> relatedStudents = getRelatedStudents(studentName, coachId, coachMerges, coachAliases);
+                
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
-                com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(studentName)).findFirst().orElse(null);
+                com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                 if (found == null) {
-                    found = new com.timetable.dto.StudentSummaryDTO(studentName, 1);
+                    found = new com.timetable.dto.StudentSummaryDTO(displayName, 1);
                     list.add(found);
                 } else {
                     found.setAttendedCount(found.getAttendedCount() + 1);
@@ -2081,5 +2105,65 @@ public class WeeklyInstanceService {
         });
         result.sort((a, b) -> b.getTotalCount().compareTo(a.getTotalCount()));
         return result;
+    }
+    
+    /**
+     * 获取学员的显示名称（考虑合并和别名）
+     */
+    private String getDisplayStudentName(String studentName, Long coachId, 
+            Map<Long, List<com.timetable.dto.StudentMergeDTO>> coachMerges,
+            Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases) {
+        
+        // 检查是否在合并设置中
+        List<com.timetable.dto.StudentMergeDTO> merges = coachMerges.get(coachId);
+        if (merges != null) {
+            for (com.timetable.dto.StudentMergeDTO merge : merges) {
+                if (merge.getStudentNames().contains(studentName)) {
+                    return merge.getDisplayName();
+                }
+            }
+        }
+        
+        // 检查是否在别名设置中
+        List<com.timetable.dto.StudentAliasDTO> aliases = coachAliases.get(coachId);
+        if (aliases != null) {
+            for (com.timetable.dto.StudentAliasDTO alias : aliases) {
+                if (alias.getStudentNames().contains(studentName)) {
+                    return alias.getAliasName();
+                }
+            }
+        }
+        
+        return studentName; // 默认返回原名称
+    }
+    
+    /**
+     * 获取学员关联的所有学员名称
+     */
+    private List<String> getRelatedStudents(String studentName, Long coachId,
+            Map<Long, List<com.timetable.dto.StudentMergeDTO>> coachMerges,
+            Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases) {
+        
+        // 检查合并设置
+        List<com.timetable.dto.StudentMergeDTO> merges = coachMerges.get(coachId);
+        if (merges != null) {
+            for (com.timetable.dto.StudentMergeDTO merge : merges) {
+                if (merge.getStudentNames().contains(studentName)) {
+                    return merge.getStudentNames();
+                }
+            }
+        }
+        
+        // 检查别名设置
+        List<com.timetable.dto.StudentAliasDTO> aliases = coachAliases.get(coachId);
+        if (aliases != null) {
+            for (com.timetable.dto.StudentAliasDTO alias : aliases) {
+                if (alias.getStudentNames().contains(studentName)) {
+                    return alias.getStudentNames();
+                }
+            }
+        }
+        
+        return java.util.Arrays.asList(studentName); // 默认只包含自己
     }
 }
