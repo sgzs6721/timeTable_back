@@ -846,34 +846,27 @@ public class WeeklyInstanceController {
     }
 
     /**
-     * 获取学员列表
+     * 获取学员列表，支持分组（全部）/原单列表
      */
     @GetMapping("/students")
-    public ResponseEntity<ApiResponse<List<com.timetable.dto.StudentSummaryDTO>>> getAllStudents(
+    public ResponseEntity<ApiResponse<?>> getAllStudents(
             @RequestParam(defaultValue = "false") Boolean showAll,
             Authentication authentication) {
-        
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-
         try {
-            List<com.timetable.dto.StudentSummaryDTO> students;
-            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-                // 管理员可以查看所有学员或当前教练的学员
-                if (showAll) {
-                    // 获取所有学员统计
-                    students = weeklyInstanceService.getStudentSummariesAll();
-                } else {
-                    // 获取当前教练的学员统计
-                    students = weeklyInstanceService.getStudentSummariesByCoach(user.getId());
-                }
+            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                // 分组返回教练列表
+                List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
+                return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", grouped));
             } else {
-                // 普通用户只能查看自己的学员统计
-                students = weeklyInstanceService.getStudentSummariesByCoach(user.getId());
+                // 保持原有教练/普通模式单纯列表
+                List<com.timetable.dto.StudentSummaryDTO> students =
+                        weeklyInstanceService.getStudentSummariesByCoach(user.getId());
+                return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
             }
-            return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
         } catch (Exception e) {
             logger.error("获取学员列表失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("获取学员列表失败: " + e.getMessage()));
