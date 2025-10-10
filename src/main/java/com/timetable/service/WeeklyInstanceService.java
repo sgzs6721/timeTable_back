@@ -1604,18 +1604,7 @@ public class WeeklyInstanceService {
                     }
                 }
                 
-                Map<String, Object> scheduleRecord = new HashMap<>();
-                scheduleRecord.put("id", schedule.getId());
-                scheduleRecord.put("scheduleDate", schedule.getScheduleDate());
-                scheduleRecord.put("timeRange", schedule.getStartTime() + "-" + schedule.getEndTime());
-                scheduleRecord.put("timetableType", "实例课表");
-                scheduleRecord.put("timetableName", timetable.getName());
-                scheduleRecord.put("status", schedule.getIsOnLeave() != null && schedule.getIsOnLeave() ? "请假" : "正常");
-                scheduleRecord.put("coachName", scheduleCoachName);
-                
-                schedules.add(scheduleRecord);
-                
-                // 如果是请假记录，添加到请假列表
+                // 如果是请假记录，只添加到请假列表
                 if (schedule.getIsOnLeave() != null && schedule.getIsOnLeave()) {
                     Map<String, Object> leaveRecord = new HashMap<>();
                     leaveRecord.put("id", schedule.getId());
@@ -1627,6 +1616,18 @@ public class WeeklyInstanceService {
                     leaveRecord.put("leaveRequestedAt", schedule.getLeaveRequestedAt());
                     
                     leaves.add(leaveRecord);
+                } else {
+                    // 只有正常上课记录才添加到上课记录列表
+                    Map<String, Object> scheduleRecord = new HashMap<>();
+                    scheduleRecord.put("id", schedule.getId());
+                    scheduleRecord.put("scheduleDate", schedule.getScheduleDate());
+                    scheduleRecord.put("timeRange", schedule.getStartTime() + "-" + schedule.getEndTime());
+                    scheduleRecord.put("timetableType", "实例课表");
+                    scheduleRecord.put("timetableName", timetable.getName());
+                    scheduleRecord.put("status", "正常");
+                    scheduleRecord.put("coachName", scheduleCoachName);
+                    
+                    schedules.add(scheduleRecord);
                 }
             }
             
