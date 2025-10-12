@@ -1580,16 +1580,27 @@ public class WeeklyInstanceService {
         List<Map<String, Object>> leaves = new ArrayList<>();
         
         try {
-            // 获取当前日期，只显示过去的课程记录
+            // 获取当前日期和时间，只显示过去的课程记录
             LocalDate today = LocalDate.now();
+            LocalTime currentTime = LocalTime.now();
             
             // 1. 获取实例课表的记录
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
             
             for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                 // 只显示过去的课程记录
-                if (schedule.getScheduleDate() != null && schedule.getScheduleDate().isAfter(today)) {
-                    continue;
+                if (schedule.getScheduleDate() != null) {
+                    LocalDate scheduleDate = schedule.getScheduleDate();
+                    if (scheduleDate.isAfter(today)) {
+                        // 未来日期的课程，跳过
+                        continue;
+                    } else if (scheduleDate.isEqual(today)) {
+                        // 今天的课程，需要检查时间
+                        if (schedule.getEndTime() != null && schedule.getEndTime().isAfter(currentTime)) {
+                            // 今天的课程但结束时间还没到，跳过
+                            continue;
+                        }
+                    }
                 }
                 // 获取课表信息
                 WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
@@ -1669,8 +1680,16 @@ public class WeeklyInstanceService {
                     }
                     
                     // 只显示过去的课程记录
-                    if (dateSchedule.getScheduleDate().isAfter(today)) {
+                    LocalDate scheduleDate = dateSchedule.getScheduleDate();
+                    if (scheduleDate.isAfter(today)) {
+                        // 未来日期的课程，跳过
                         continue;
+                    } else if (scheduleDate.isEqual(today)) {
+                        // 今天的课程，需要检查时间
+                        if (dateSchedule.getEndTime() != null && dateSchedule.getEndTime().isAfter(currentTime)) {
+                            // 今天的课程但结束时间还没到，跳过
+                            continue;
+                        }
                     }
                     
                     Map<String, Object> scheduleRecord = new HashMap<>();
