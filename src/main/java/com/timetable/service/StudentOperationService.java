@@ -95,11 +95,11 @@ public class StudentOperationService {
         
         // 记录操作
         try {
-            String details = objectMapper.writeValueAsString(java.util.Map.of(
-                "updatedInstanceCount", updatedInstanceCount,
-                "updatedDateCount", updatedDateCount,
-                "totalUpdated", updatedInstanceCount + updatedDateCount
-            ));
+            java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
+            detailsMap.put("updatedInstanceCount", updatedInstanceCount);
+            detailsMap.put("updatedDateCount", updatedDateCount);
+            detailsMap.put("totalUpdated", updatedInstanceCount + updatedDateCount);
+            String details = objectMapper.writeValueAsString(detailsMap);
             
             StudentOperationRecord record = new StudentOperationRecord(
                 coachId,
