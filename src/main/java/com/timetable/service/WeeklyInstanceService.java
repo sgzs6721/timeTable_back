@@ -1912,10 +1912,18 @@ public class WeeklyInstanceService {
             // 1) 周实例课程：只统计该教练课表下，且 scheduleDate 不在未来，且未请假的课程
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             LocalDate today = LocalDate.now();
+            LocalTime now = LocalTime.now();
             for (WeeklyInstanceSchedule s : instanceSchedules) {
                 if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
                 if (s.getScheduleDate() == null) continue;
                 if (s.getScheduleDate().isAfter(today)) continue; // 未来的不算已上
+                
+                // 如果是今天的课程，需要检查时间是否已经过去
+                if (s.getScheduleDate().isEqual(today)) {
+                    if (s.getEndTime() == null) continue; // 没有结束时间则不计入
+                    if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
+                }
+                
                 if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue; // 请假不计入
 
                 WeeklyInstance instance = weeklyInstanceRepository.findById(s.getWeeklyInstanceId());
@@ -1940,6 +1948,13 @@ public class WeeklyInstanceService {
                     if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
                     if (s.getScheduleDate() == null) continue;
                     if (s.getScheduleDate().isAfter(today)) continue;
+                    
+                    // 如果是今天的课程，需要检查时间是否已经过去
+                    if (s.getScheduleDate().isEqual(today)) {
+                        if (s.getEndTime() == null) continue; // 没有结束时间则不计入
+                        if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
+                    }
+                    
                     String name = s.getStudentName().trim();
                     studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
                 }
@@ -1962,6 +1977,7 @@ public class WeeklyInstanceService {
     public List<StudentSummaryDTO> getStudentSummariesAll() {
         Map<String, Integer> studentToCount = new HashMap<>();
         LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
         try {
             // 周实例（所有课表）
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
@@ -1969,6 +1985,13 @@ public class WeeklyInstanceService {
                 if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
                 if (s.getScheduleDate() == null) continue;
                 if (s.getScheduleDate().isAfter(today)) continue;
+                
+                // 如果是今天的课程，需要检查时间是否已经过去
+                if (s.getScheduleDate().isEqual(today)) {
+                    if (s.getEndTime() == null) continue; // 没有结束时间则不计入
+                    if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
+                }
+                
                 if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue;
                 String name = s.getStudentName().trim();
                 studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
@@ -1984,6 +2007,13 @@ public class WeeklyInstanceService {
                     if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
                     if (s.getScheduleDate() == null) continue;
                     if (s.getScheduleDate().isAfter(today)) continue;
+                    
+                    // 如果是今天的课程，需要检查时间是否已经过去
+                    if (s.getScheduleDate().isEqual(today)) {
+                        if (s.getEndTime() == null) continue; // 没有结束时间则不计入
+                        if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
+                    }
+                    
                     String name = s.getStudentName().trim();
                     studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
                 }
@@ -2024,10 +2054,18 @@ public class WeeklyInstanceService {
             }
             // 实例课表
             java.util.List<com.timetable.entity.WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
+            java.time.LocalTime now = java.time.LocalTime.now();
             for (com.timetable.entity.WeeklyInstanceSchedule s : instanceSchedules) {
                 if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
                 if (s.getScheduleDate() == null) continue;
                 if (s.getScheduleDate().isAfter(today)) continue;
+                
+                // 如果是今天的课程，需要检查时间是否已经过去
+                if (s.getScheduleDate().isEqual(today)) {
+                    if (s.getEndTime() == null) continue; // 没有结束时间则不计入
+                    if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
+                }
+                
                 if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue;
                 com.timetable.entity.WeeklyInstance instance = weeklyInstanceRepository.findById(s.getWeeklyInstanceId());
                 if (instance == null) continue;
@@ -2083,6 +2121,12 @@ public class WeeklyInstanceService {
                     if (s.getStudentName() == null || s.getStudentName().trim().isEmpty()) continue;
                     if (s.getScheduleDate() == null) continue;
                     if (s.getScheduleDate().isAfter(today)) continue;
+                    
+                    // 如果是今天的课程，需要检查时间是否已经过去
+                    if (s.getScheduleDate().isEqual(today)) {
+                        if (s.getEndTime() == null) continue; // 没有结束时间则不计入
+                        if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
+                    }
                     String studentName = s.getStudentName().trim();
                     List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                     com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(studentName)).findFirst().orElse(null);
