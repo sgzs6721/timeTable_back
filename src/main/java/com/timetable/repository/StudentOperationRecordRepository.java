@@ -93,6 +93,20 @@ public class StudentOperationRecordRepository extends BaseRepository {
     }
 
     /**
+     * 根据教练ID、操作类型和原名称查找操作记录
+     */
+    public StudentOperationRecord findByCoachIdAndOperationTypeAndOldName(Long coachId, String operationType, String oldName) {
+        Record record = dsl.select()
+                .from(table("student_operation_records"))
+                .where(field("coach_id").eq(coachId))
+                .and(field("operation_type").eq(operationType))
+                .and(field("old_name").eq(oldName))
+                .fetchOne();
+        
+        return record != null ? mapToStudentOperationRecord(record) : null;
+    }
+
+    /**
      * 根据ID删除操作记录
      */
     public void deleteById(Long id) {

@@ -46,85 +46,123 @@ public class StudentOperationService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
-     * 重命名学员（创建重命名规则，不直接修改数据）
+     * 重命名学员（创建或更新重命名规则，不直接修改数据）
      */
     public void renameStudent(Long coachId, StudentOperationRequest request) {
-        logger.info("创建重命名规则: {} -> {}", request.getOldName(), request.getNewName());
+        logger.info("创建或更新重命名规则: {} -> {}", request.getOldName(), request.getNewName());
         
-        // 记录操作（创建规则）
         try {
+            // 检查是否已存在相同学员的重命名规则
+            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
+                coachId, "RENAME", request.getOldName());
+            
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "RENAME_RULE");
             detailsMap.put("description", "创建重命名规则，显示时将 '" + request.getOldName() + "' 替换为 '" + request.getNewName() + "'");
             String details = objectMapper.writeValueAsString(detailsMap);
             
-            StudentOperationRecord record = new StudentOperationRecord(
-                coachId,
-                "RENAME",
-                request.getOldName(),
-                request.getNewName(),
-                details
-            );
-            operationRecordRepository.save(record);
-            logger.info("成功创建重命名规则");
+            if (existingRecord != null) {
+                // 更新现有规则
+                existingRecord.setNewName(request.getNewName());
+                existingRecord.setDetails(details);
+                existingRecord.setUpdatedAt(java.time.LocalDateTime.now());
+                operationRecordRepository.update(existingRecord);
+                logger.info("成功更新重命名规则");
+            } else {
+                // 创建新规则
+                StudentOperationRecord record = new StudentOperationRecord(
+                    coachId,
+                    "RENAME",
+                    request.getOldName(),
+                    request.getNewName(),
+                    details
+                );
+                operationRecordRepository.save(record);
+                logger.info("成功创建重命名规则");
+            }
         } catch (Exception e) {
-            logger.error("创建重命名规则失败", e);
+            logger.error("创建或更新重命名规则失败", e);
         }
     }
     
     /**
-     * 删除学员（创建隐藏规则，不直接修改数据）
+     * 删除学员（创建或更新隐藏规则，不直接修改数据）
      */
     public void deleteStudent(Long coachId, String studentName) {
-        // 创建隐藏规则，使学员在列表中不显示
-        logger.info("创建隐藏规则: {}", studentName);
+        // 创建或更新隐藏规则，使学员在列表中不显示
+        logger.info("创建或更新隐藏规则: {}", studentName);
         
-        // 记录操作（创建规则）
         try {
+            // 检查是否已存在相同学员的隐藏规则
+            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
+                coachId, "DELETE", studentName);
+            
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "HIDE_RULE");
             detailsMap.put("description", "创建隐藏规则，使学员 '" + studentName + "' 在列表中不显示");
             String details = objectMapper.writeValueAsString(detailsMap);
             
-            StudentOperationRecord record = new StudentOperationRecord(
-                coachId,
-                "DELETE",
-                studentName,
-                "HIDDEN",
-                details
-            );
-            operationRecordRepository.save(record);
-            logger.info("成功创建隐藏规则");
+            if (existingRecord != null) {
+                // 更新现有规则
+                existingRecord.setDetails(details);
+                existingRecord.setUpdatedAt(java.time.LocalDateTime.now());
+                operationRecordRepository.update(existingRecord);
+                logger.info("成功更新隐藏规则");
+            } else {
+                // 创建新规则
+                StudentOperationRecord record = new StudentOperationRecord(
+                    coachId,
+                    "DELETE",
+                    studentName,
+                    "HIDDEN",
+                    details
+                );
+                operationRecordRepository.save(record);
+                logger.info("成功创建隐藏规则");
+            }
         } catch (Exception e) {
-            logger.error("创建隐藏规则失败", e);
+            logger.error("创建或更新隐藏规则失败", e);
         }
     }
     
     /**
-     * 为学员分配别名（创建别名规则）
+     * 为学员分配别名（创建或更新别名规则）
      */
     public StudentAliasDTO assignAlias(Long coachId, StudentOperationRequest request) {
-        // 创建别名规则
-        logger.info("创建别名规则: {} -> {}", request.getOldName(), request.getAliasName());
+        // 创建或更新别名规则
+        logger.info("创建或更新别名规则: {} -> {}", request.getOldName(), request.getAliasName());
         
-        // 记录操作（创建规则）
         try {
+            // 检查是否已存在相同学员的别名规则
+            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
+                coachId, "ASSIGN_ALIAS", request.getOldName());
+            
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "ALIAS_RULE");
             detailsMap.put("description", "创建别名规则，使学员 '" + request.getOldName() + "' 以别名 '" + request.getAliasName() + "' 显示");
             String details = objectMapper.writeValueAsString(detailsMap);
             
-            StudentOperationRecord record = new StudentOperationRecord(
-                coachId,
-                "ASSIGN_ALIAS",
-                request.getOldName(),
-                request.getAliasName(),
-                details
-            );
-            operationRecordRepository.save(record);
-            logger.info("成功创建别名规则");
+            if (existingRecord != null) {
+                // 更新现有规则
+                existingRecord.setNewName(request.getAliasName());
+                existingRecord.setDetails(details);
+                existingRecord.setUpdatedAt(java.time.LocalDateTime.now());
+                operationRecordRepository.update(existingRecord);
+                logger.info("成功更新别名规则");
+            } else {
+                // 创建新规则
+                StudentOperationRecord record = new StudentOperationRecord(
+                    coachId,
+                    "ASSIGN_ALIAS",
+                    request.getOldName(),
+                    request.getAliasName(),
+                    details
+                );
+                operationRecordRepository.save(record);
+                logger.info("成功创建别名规则");
+            }
         } catch (Exception e) {
-            logger.error("创建别名规则失败", e);
+            logger.error("创建或更新别名规则失败", e);
         }
         
         // 同时创建传统的别名记录（保持兼容性）
