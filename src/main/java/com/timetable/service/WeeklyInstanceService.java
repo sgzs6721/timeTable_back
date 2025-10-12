@@ -2,6 +2,7 @@ package com.timetable.service;
 
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
+import com.timetable.entity.StudentOperationRecord;
 import com.timetable.dto.StudentSummaryDTO;
 import com.timetable.dto.WeeklyInstanceDTO;
 import com.timetable.dto.CoachStudentSummaryDTO;
@@ -10,6 +11,7 @@ import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.UserRepository;
+import com.timetable.repository.StudentOperationRecordRepository;
 import com.timetable.generated.tables.pojos.Timetables;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Users;
@@ -63,6 +65,9 @@ public class WeeklyInstanceService {
 
     @Autowired
     private com.timetable.service.StudentAliasService studentAliasService;
+
+    @Autowired
+    private StudentOperationRecordRepository studentOperationRecordRepository;
 
     /**
      * 为指定的固定课表生成当前周实例
@@ -1926,7 +1931,40 @@ public class WeeklyInstanceService {
     public List<StudentSummaryDTO> getStudentSummariesByCoach(Long coachId) {
         Map<String, Integer> studentToCount = new HashMap<>();
 
+        // 获取该教练的所有学员操作规则
+        Map<String, String> renameRules = new HashMap<>();
+        Set<String> hiddenStudents = new HashSet<>();
+        Map<String, String> aliasRules = new HashMap<>();
+        
         try {
+            List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coachId);
+            
+            // 处理操作记录，构建规则映射
+            for (StudentOperationRecord record : operationRecords) {
+                String operationType = record.getOperationType();
+                String oldName = record.getOldName();
+                String newName = record.getNewName();
+                
+                switch (operationType) {
+                    case "RENAME":
+                        if (newName != null && !newName.trim().isEmpty()) {
+                            renameRules.put(oldName, newName);
+                        }
+                        break;
+                    case "HIDE":
+                        hiddenStudents.add(oldName);
+                        break;
+                    case "ALIAS":
+                        if (newName != null && !newName.trim().isEmpty()) {
+                            aliasRules.put(oldName, newName);
+                        }
+                        break;
+                    case "MERGE":
+                        // 合并操作暂时不在这里处理，因为需要更复杂的逻辑
+                        break;
+                }
+            }
+
             // 1) 周实例课程：只统计该教练课表下，且 scheduleDate 不在未来，且未请假的课程
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             LocalDate today = LocalDate.now();
@@ -1952,6 +1990,9 @@ public class WeeklyInstanceService {
                 if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
 
                 String name = s.getStudentName().trim();
+                // 过滤掉隐藏的学员
+                if (hiddenStudents.contains(name)) continue;
+                
                 studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
             }
 
@@ -1974,6 +2015,9 @@ public class WeeklyInstanceService {
                     }
                     
                     String name = s.getStudentName().trim();
+                    // 过滤掉隐藏的学员
+                    if (hiddenStudents.contains(name)) continue;
+                    
                     studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
                 }
             }
@@ -1981,9 +2025,21 @@ public class WeeklyInstanceService {
             logger.error("统计学员课程数失败(教练): {}", e.getMessage());
         }
 
-        // 转为 DTO 并排序
+        // 转为 DTO 并排序，应用重命名和别名规则
         List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
-                .map(e -> new StudentSummaryDTO(e.getKey(), e.getValue()))
+                .map(e -> {
+                    String originalName = e.getKey();
+                    // 应用重命名规则
+                    String displayName = originalName;
+                    if (renameRules.containsKey(originalName)) {
+                        displayName = renameRules.get(originalName);
+                    }
+                    // 如果没有重命名但有别名，使用别名
+                    else if (aliasRules.containsKey(originalName)) {
+                        displayName = aliasRules.get(originalName);
+                    }
+                    return new StudentSummaryDTO(displayName, e.getValue());
+                })
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
         return list;
@@ -1996,7 +2052,45 @@ public class WeeklyInstanceService {
         Map<String, Integer> studentToCount = new HashMap<>();
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
+        
+        // 获取所有教练的学员操作规则
+        Map<String, String> renameRules = new HashMap<>();
+        Set<String> hiddenStudents = new HashSet<>();
+        Map<String, String> aliasRules = new HashMap<>();
+        
         try {
+            // 获取所有教练的操作规则
+            List<Users> allCoaches = userService.getAllApprovedUsers();
+            for (Users coach : allCoaches) {
+                List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coach.getId());
+                
+                // 处理操作记录，构建规则映射
+                for (StudentOperationRecord record : operationRecords) {
+                    String operationType = record.getOperationType();
+                    String oldName = record.getOldName();
+                    String newName = record.getNewName();
+                    
+                    switch (operationType) {
+                        case "RENAME":
+                            if (newName != null && !newName.trim().isEmpty()) {
+                                renameRules.put(oldName, newName);
+                            }
+                            break;
+                        case "HIDE":
+                            hiddenStudents.add(oldName);
+                            break;
+                        case "ALIAS":
+                            if (newName != null && !newName.trim().isEmpty()) {
+                                aliasRules.put(oldName, newName);
+                            }
+                            break;
+                        case "MERGE":
+                            // 合并操作暂时不在这里处理，因为需要更复杂的逻辑
+                            break;
+                    }
+                }
+            }
+            
             // 周实例（所有课表）
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
             for (WeeklyInstanceSchedule s : instanceSchedules) {
@@ -2012,6 +2106,9 @@ public class WeeklyInstanceService {
                 
                 if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue;
                 String name = s.getStudentName().trim();
+                // 过滤掉隐藏的学员
+                if (hiddenStudents.contains(name)) continue;
+                
                 studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
             }
 
@@ -2033,14 +2130,31 @@ public class WeeklyInstanceService {
                     }
                     
                     String name = s.getStudentName().trim();
+                    // 过滤掉隐藏的学员
+                    if (hiddenStudents.contains(name)) continue;
+                    
                     studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
                 }
             }
         } catch (Exception e) {
             logger.error("统计学员课程数失败(全部): {}", e.getMessage());
         }
+        
+        // 转为 DTO 并排序，应用重命名和别名规则
         List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
-                .map(e -> new StudentSummaryDTO(e.getKey(), e.getValue()))
+                .map(e -> {
+                    String originalName = e.getKey();
+                    // 应用重命名规则
+                    String displayName = originalName;
+                    if (renameRules.containsKey(originalName)) {
+                        displayName = renameRules.get(originalName);
+                    }
+                    // 如果没有重命名但有别名，使用别名
+                    else if (aliasRules.containsKey(originalName)) {
+                        displayName = aliasRules.get(originalName);
+                    }
+                    return new StudentSummaryDTO(displayName, e.getValue());
+                })
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
         return list;
@@ -2061,6 +2175,10 @@ public class WeeklyInstanceService {
         Map<Long, List<com.timetable.dto.StudentMergeDTO>> coachMerges = new HashMap<>();
         Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases = new HashMap<>();
         
+        // 获取所有教练的学员操作规则
+        Map<Long, Map<String, String>> coachRenameRules = new HashMap<>();
+        Map<Long, Set<String>> coachHiddenStudents = new HashMap<>();
+        
         try {
             // 预加载所有教练的合并和别名设置
             List<com.timetable.generated.tables.pojos.Users> allCoaches = userService.getAllApprovedUsers();
@@ -2068,6 +2186,31 @@ public class WeeklyInstanceService {
                 if (coach.getIsDeleted() == null || coach.getIsDeleted() == 0) {
                     coachMerges.put(coach.getId(), studentMergeService.getMergesByCoach(coach.getId()));
                     coachAliases.put(coach.getId(), studentAliasService.getAliasesByCoach(coach.getId()));
+                    
+                    // 获取学员操作规则
+                    List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coach.getId());
+                    Map<String, String> renameRules = new HashMap<>();
+                    Set<String> hiddenStudents = new HashSet<>();
+                    
+                    for (StudentOperationRecord record : operationRecords) {
+                        String operationType = record.getOperationType();
+                        String oldName = record.getOldName();
+                        String newName = record.getNewName();
+                        
+                        switch (operationType) {
+                            case "RENAME":
+                                if (newName != null && !newName.trim().isEmpty()) {
+                                    renameRules.put(oldName, newName);
+                                }
+                                break;
+                            case "HIDE":
+                                hiddenStudents.add(oldName);
+                                break;
+                        }
+                    }
+                    
+                    coachRenameRules.put(coach.getId(), renameRules);
+                    coachHiddenStudents.put(coach.getId(), hiddenStudents);
                 }
             }
             // 实例课表
@@ -2104,9 +2247,20 @@ public class WeeklyInstanceService {
                 if (deletedCoachIds.contains(coachId)) continue;
                 String studentName = s.getStudentName().trim();
                 
+                // 检查是否是隐藏的学员
+                Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
+                if (hiddenStudents != null && hiddenStudents.contains(studentName)) continue;
+                
+                // 应用重命名规则
+                Map<String, String> renameRules = coachRenameRules.get(coachId);
+                String processedName = studentName;
+                if (renameRules != null && renameRules.containsKey(studentName)) {
+                    processedName = renameRules.get(studentName);
+                }
+                
                 // 处理学员合并和别名
-                String displayName = getDisplayStudentName(studentName, coachId, coachMerges, coachAliases);
-                List<String> relatedStudents = getRelatedStudents(studentName, coachId, coachMerges, coachAliases);
+                String displayName = getDisplayStudentName(processedName, coachId, coachMerges, coachAliases);
+                List<String> relatedStudents = getRelatedStudents(processedName, coachId, coachMerges, coachAliases);
                 
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                 com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
@@ -2146,10 +2300,25 @@ public class WeeklyInstanceService {
                         if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
                     }
                     String studentName = s.getStudentName().trim();
+                    
+                    // 检查是否是隐藏的学员
+                    Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
+                    if (hiddenStudents != null && hiddenStudents.contains(studentName)) continue;
+                    
+                    // 应用重命名规则
+                    Map<String, String> renameRules = coachRenameRules.get(coachId);
+                    String processedName = studentName;
+                    if (renameRules != null && renameRules.containsKey(studentName)) {
+                        processedName = renameRules.get(studentName);
+                    }
+                    
+                    // 处理学员合并和别名
+                    String displayName = getDisplayStudentName(processedName, coachId, coachMerges, coachAliases);
+                    
                     List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
-                    com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(studentName)).findFirst().orElse(null);
+                    com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                     if (found == null) {
-                        found = new com.timetable.dto.StudentSummaryDTO(studentName, 1);
+                        found = new com.timetable.dto.StudentSummaryDTO(displayName, 1);
                         list.add(found);
                     } else {
                         found.setAttendedCount(found.getAttendedCount() + 1);
