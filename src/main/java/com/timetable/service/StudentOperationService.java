@@ -6,11 +6,15 @@ import com.timetable.repository.StudentAliasRepository;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
+import com.timetable.repository.ScheduleRepository;
+import com.timetable.repository.StudentOperationRecordRepository;
 import com.timetable.entity.WeeklyInstanceSchedule;
+import com.timetable.entity.StudentOperationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Collections;
@@ -33,6 +37,14 @@ public class StudentOperationService {
     @Autowired
     private WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
     
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+    
+    @Autowired
+    private StudentOperationRecordRepository operationRecordRepository;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    
     /**
      * 重命名学员
      */
@@ -42,6 +54,8 @@ public class StudentOperationService {
         // 获取该教练的所有课表ID
         List<Long> timetableIds = timetableRepository.findTimetableIdsByCoachId(coachId);
         
+        // 更新周实例课程记录中的学员姓名
+        int updatedInstanceCount = 0;
         // 获取所有周实例ID
         List<Long> instanceIds = new ArrayList<>();
         for (Long timetableId : timetableIds) {
@@ -49,20 +63,56 @@ public class StudentOperationService {
             instanceIds.addAll(ids);
         }
         
-        // 更新所有相关的周实例课程记录中的学员姓名
-        int updatedCount = 0;
         for (Long instanceId : instanceIds) {
             List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findByInstanceId(instanceId);
             for (WeeklyInstanceSchedule schedule : schedules) {
                 if (request.getOldName().equals(schedule.getStudentName())) {
                     schedule.setStudentName(request.getNewName());
                     weeklyInstanceScheduleRepository.update(schedule);
-                    updatedCount++;
+                    updatedInstanceCount++;
                 }
             }
         }
         
-        logger.info("成功更新了 {} 条课程记录中的学员姓名", updatedCount);
+        // 更新日期类课表记录中的学员姓名
+        int updatedDateCount = 0;
+        for (Long timetableId : timetableIds) {
+            com.timetable.generated.tables.pojos.Timetables timetable = timetableRepository.findById(timetableId);
+            if (timetable != null && (timetable.getIsWeekly() == null || timetable.getIsWeekly() == 0)) {
+                // 只处理日期类课表
+                List<com.timetable.generated.tables.pojos.Schedules> schedules = scheduleRepository.findByTimetableId(timetableId);
+                for (com.timetable.generated.tables.pojos.Schedules schedule : schedules) {
+                    if (request.getOldName().equals(schedule.getStudentName())) {
+                        schedule.setStudentName(request.getNewName());
+                        scheduleRepository.update(schedule);
+                        updatedDateCount++;
+                    }
+                }
+            }
+        }
+        
+        logger.info("成功更新了 {} 条周实例课程记录和 {} 条日期类课程记录中的学员姓名", updatedInstanceCount, updatedDateCount);
+        
+        // 记录操作
+        try {
+            String details = objectMapper.writeValueAsString(java.util.Map.of(
+                "updatedInstanceCount", updatedInstanceCount,
+                "updatedDateCount", updatedDateCount,
+                "totalUpdated", updatedInstanceCount + updatedDateCount
+            ));
+            
+            StudentOperationRecord record = new StudentOperationRecord(
+                coachId,
+                "RENAME",
+                request.getOldName(),
+                request.getNewName(),
+                details
+            );
+            operationRecordRepository.save(record);
+            logger.info("成功记录重命名操作");
+        } catch (Exception e) {
+            logger.error("记录重命名操作失败", e);
+        }
     }
     
     /**

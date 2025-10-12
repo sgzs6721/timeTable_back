@@ -1,0 +1,50 @@
+package com.timetable.service;
+
+import com.timetable.entity.StudentOperationRecord;
+import com.timetable.repository.StudentOperationRecordRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class StudentOperationRecordService {
+    
+    @Autowired
+    private StudentOperationRecordRepository operationRecordRepository;
+    
+    /**
+     * 根据教练ID获取所有操作记录
+     */
+    public List<StudentOperationRecord> getRecordsByCoachId(Long coachId) {
+        return operationRecordRepository.findByCoachId(coachId);
+    }
+    
+    /**
+     * 根据ID获取操作记录
+     */
+    public StudentOperationRecord getRecordById(Long id) {
+        return operationRecordRepository.findById(id);
+    }
+    
+    /**
+     * 更新操作记录
+     */
+    public StudentOperationRecord updateRecord(StudentOperationRecord record) {
+        return operationRecordRepository.update(record);
+    }
+    
+    /**
+     * 删除操作记录
+     */
+    public void deleteRecord(Long id) {
+        operationRecordRepository.deleteById(id);
+    }
+    
+    /**
+     * 保存操作记录
+     */
+    public StudentOperationRecord saveRecord(StudentOperationRecord record) {
+        return operationRecordRepository.save(record);
+    }
+}
