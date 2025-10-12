@@ -54,10 +54,10 @@ public class StudentOperationController {
             }
             
             studentOperationService.deleteStudent(user.getId(), request.getOldName());
-            return ResponseEntity.ok(ApiResponse.success("删除学员成功", null));
+            return ResponseEntity.ok(ApiResponse.success("创建隐藏规则成功", null));
         } catch (Exception e) {
-            logger.error("删除学员失败", e);
-            return ResponseEntity.status(500).body(ApiResponse.error("删除学员失败: " + e.getMessage()));
+            logger.error("创建隐藏规则失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("创建隐藏规则失败: " + e.getMessage()));
         }
     }
     
@@ -76,6 +76,24 @@ public class StudentOperationController {
         } catch (Exception e) {
             logger.error("分配别名失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("分配别名失败: " + e.getMessage()));
+        }
+        
+        @PostMapping("/merge")
+        public ResponseEntity<ApiResponse<Void>> mergeStudents(
+                @RequestBody com.timetable.dto.StudentMergeRequest request,
+                Authentication authentication) {
+            try {
+                Users user = userService.findByUsername(authentication.getName());
+                if (user == null) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+                }
+                
+                studentOperationService.mergeStudents(user.getId(), request.getDisplayName(), request.getStudentNames());
+                return ResponseEntity.ok(ApiResponse.success("创建合并规则成功", null));
+            } catch (Exception e) {
+                logger.error("创建合并规则失败", e);
+                return ResponseEntity.status(500).body(ApiResponse.error("创建合并规则失败: " + e.getMessage()));
+            }
         }
     }
 }

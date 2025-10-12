@@ -46,59 +46,16 @@ public class StudentOperationService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
-     * 重命名学员
+     * 重命名学员（创建重命名规则，不直接修改数据）
      */
     public void renameStudent(Long coachId, StudentOperationRequest request) {
-        logger.info("重命名学员: {} -> {}", request.getOldName(), request.getNewName());
+        logger.info("创建重命名规则: {} -> {}", request.getOldName(), request.getNewName());
         
-        // 获取该教练的所有课表ID
-        List<Long> timetableIds = timetableRepository.findTimetableIdsByCoachId(coachId);
-        
-        // 更新周实例课程记录中的学员姓名
-        int updatedInstanceCount = 0;
-        // 获取所有周实例ID
-        List<Long> instanceIds = new ArrayList<>();
-        for (Long timetableId : timetableIds) {
-            List<Long> ids = weeklyInstanceRepository.findInstanceIdsByTemplateId(timetableId);
-            instanceIds.addAll(ids);
-        }
-        
-        for (Long instanceId : instanceIds) {
-            List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findByInstanceId(instanceId);
-            for (WeeklyInstanceSchedule schedule : schedules) {
-                if (request.getOldName().equals(schedule.getStudentName())) {
-                    schedule.setStudentName(request.getNewName());
-                    weeklyInstanceScheduleRepository.update(schedule);
-                    updatedInstanceCount++;
-                }
-            }
-        }
-        
-        // 更新日期类课表记录中的学员姓名
-        int updatedDateCount = 0;
-        for (Long timetableId : timetableIds) {
-            com.timetable.generated.tables.pojos.Timetables timetable = timetableRepository.findById(timetableId);
-            if (timetable != null && (timetable.getIsWeekly() == null || timetable.getIsWeekly() == 0)) {
-                // 只处理日期类课表
-                List<com.timetable.generated.tables.pojos.Schedules> schedules = scheduleRepository.findByTimetableId(timetableId);
-                for (com.timetable.generated.tables.pojos.Schedules schedule : schedules) {
-                    if (request.getOldName().equals(schedule.getStudentName())) {
-                        schedule.setStudentName(request.getNewName());
-                        scheduleRepository.update(schedule);
-                        updatedDateCount++;
-                    }
-                }
-            }
-        }
-        
-        logger.info("成功更新了 {} 条周实例课程记录和 {} 条日期类课程记录中的学员姓名", updatedInstanceCount, updatedDateCount);
-        
-        // 记录操作
+        // 记录操作（创建规则）
         try {
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
-            detailsMap.put("updatedInstanceCount", updatedInstanceCount);
-            detailsMap.put("updatedDateCount", updatedDateCount);
-            detailsMap.put("totalUpdated", updatedInstanceCount + updatedDateCount);
+            detailsMap.put("operationType", "RENAME_RULE");
+            detailsMap.put("description", "创建重命名规则，显示时将 '" + request.getOldName() + "' 替换为 '" + request.getNewName() + "'");
             String details = objectMapper.writeValueAsString(detailsMap);
             
             StudentOperationRecord record = new StudentOperationRecord(
@@ -109,25 +66,68 @@ public class StudentOperationService {
                 details
             );
             operationRecordRepository.save(record);
-            logger.info("成功记录重命名操作");
+            logger.info("成功创建重命名规则");
         } catch (Exception e) {
-            logger.error("记录重命名操作失败", e);
+            logger.error("创建重命名规则失败", e);
         }
     }
     
     /**
-     * 删除学员（软删除，不影响课表记录）
+     * 删除学员（创建隐藏规则，不直接修改数据）
      */
     public void deleteStudent(Long coachId, String studentName) {
-        // 这里可以实现删除逻辑
-        // 由于不影响课表记录，主要是标记为不显示
-        logger.info("删除学员: {}", studentName);
+        // 创建隐藏规则，使学员在列表中不显示
+        logger.info("创建隐藏规则: {}", studentName);
+        
+        // 记录操作（创建规则）
+        try {
+            java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
+            detailsMap.put("operationType", "HIDE_RULE");
+            detailsMap.put("description", "创建隐藏规则，使学员 '" + studentName + "' 在列表中不显示");
+            String details = objectMapper.writeValueAsString(detailsMap);
+            
+            StudentOperationRecord record = new StudentOperationRecord(
+                coachId,
+                "DELETE",
+                studentName,
+                "HIDDEN",
+                details
+            );
+            operationRecordRepository.save(record);
+            logger.info("成功创建隐藏规则");
+        } catch (Exception e) {
+            logger.error("创建隐藏规则失败", e);
+        }
     }
     
     /**
-     * 为学员分配别名
+     * 为学员分配别名（创建别名规则）
      */
     public StudentAliasDTO assignAlias(Long coachId, StudentOperationRequest request) {
+        // 创建别名规则
+        logger.info("创建别名规则: {} -> {}", request.getOldName(), request.getAliasName());
+        
+        // 记录操作（创建规则）
+        try {
+            java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
+            detailsMap.put("operationType", "ALIAS_RULE");
+            detailsMap.put("description", "创建别名规则，使学员 '" + request.getOldName() + "' 以别名 '" + request.getAliasName() + "' 显示");
+            String details = objectMapper.writeValueAsString(detailsMap);
+            
+            StudentOperationRecord record = new StudentOperationRecord(
+                coachId,
+                "ASSIGN_ALIAS",
+                request.getOldName(),
+                request.getAliasName(),
+                details
+            );
+            operationRecordRepository.save(record);
+            logger.info("成功创建别名规则");
+        } catch (Exception e) {
+            logger.error("创建别名规则失败", e);
+        }
+        
+        // 同时创建传统的别名记录（保持兼容性）
         StudentAliasDTO alias = new StudentAliasDTO();
         alias.setCoachId(coachId);
         alias.setAliasName(request.getAliasName());
@@ -136,5 +136,34 @@ public class StudentOperationService {
         Long id = studentAliasRepository.save(alias);
         alias.setId(id);
         return alias;
+    }
+    
+    /**
+     * 合并学员（创建合并规则，不直接修改数据）
+     */
+    public void mergeStudents(Long coachId, String displayName, List<String> studentNames) {
+        // 创建合并规则
+        logger.info("创建合并规则: {} -> {}", studentNames, displayName);
+        
+        // 记录操作（创建规则）
+        try {
+            java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
+            detailsMap.put("operationType", "MERGE_RULE");
+            detailsMap.put("description", "创建合并规则，使学员 " + studentNames + " 以统一名称 '" + displayName + "' 显示");
+            detailsMap.put("mergedNames", studentNames);
+            String details = objectMapper.writeValueAsString(detailsMap);
+            
+            StudentOperationRecord record = new StudentOperationRecord(
+                coachId,
+                "MERGE",
+                java.lang.String.join(",", studentNames),
+                displayName,
+                details
+            );
+            operationRecordRepository.save(record);
+            logger.info("成功创建合并规则");
+        } catch (Exception e) {
+            logger.error("创建合并规则失败", e);
+        }
     }
 }
