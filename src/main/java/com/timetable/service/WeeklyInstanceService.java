@@ -1940,6 +1940,13 @@ public class WeeklyInstanceService {
             List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coachId);
             logger.info("教练 {} 共有 {} 条操作记录", coachId, operationRecords.size());
             
+            // 详细打印每条操作记录
+            for (StudentOperationRecord record : operationRecords) {
+                logger.info("操作记录详情: ID={}, 教练ID={}, 操作类型={}, 原名={}, 新名={}",
+                    record.getId(), record.getCoachId(), record.getOperationType(),
+                    record.getOldName(), record.getNewName());
+            }
+            
             // 处理操作记录，构建规则映射
             for (StudentOperationRecord record : operationRecords) {
                 String operationType = record.getOperationType();
@@ -2037,6 +2044,8 @@ public class WeeklyInstanceService {
         List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
                 .map(e -> {
                     String originalName = e.getKey();
+                    logger.info("处理学员: 原始名称={}", originalName);
+                    
                     // 应用重命名规则
                     String displayName = originalName;
                     if (renameRules.containsKey(originalName)) {
@@ -2047,8 +2056,13 @@ public class WeeklyInstanceService {
                     else if (aliasRules.containsKey(originalName)) {
                         displayName = aliasRules.get(originalName);
                         logger.info("应用别名规则: {} -> {}", originalName, displayName);
+                    } else {
+                        logger.info("未找到匹配规则，使用原始名称: {}", originalName);
                     }
-                    return new StudentSummaryDTO(displayName, e.getValue());
+                    
+                    StudentSummaryDTO dto = new StudentSummaryDTO(displayName, e.getValue());
+                    logger.info("创建学员DTO: 显示名称={}, 课程数={}", dto.getStudentName(), dto.getAttendedCount());
+                    return dto;
                 })
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
