@@ -1631,7 +1631,6 @@ public class WeeklyInstanceService {
                     leaveRecord.put("leaveReason", schedule.getLeaveReason());
                     leaveRecord.put("timetableName", timetable.getName());
                     leaveRecord.put("coachName", scheduleCoachName);
-                    leaveRecord.put("leaveRequestedAt", schedule.getLeaveRequestedAt());
                     
                     leaves.add(leaveRecord);
                 } else {
