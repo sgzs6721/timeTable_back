@@ -326,4 +326,16 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .fetch();
         return records.map(this::mapToWeeklyInstanceSchedule);
     }
+    
+    /**
+     * 根据周实例ID查找所有课程
+     */
+    public List<WeeklyInstanceSchedule> findByInstanceId(Long instanceId) {
+        Result<Record> records = dsl.select()
+                .from(table("weekly_instance_schedules"))
+                .where(field("weekly_instance_id").eq(instanceId))
+                .orderBy(field("schedule_date"), field("start_time"))
+                .fetch();
+        return records.map(this::mapToWeeklyInstanceSchedule);
+    }
 }

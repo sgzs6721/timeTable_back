@@ -278,4 +278,14 @@ public class WeeklyInstanceRepository extends BaseRepository {
         
         return records.map(this::mapToWeeklyInstance);
     }
+    
+    /**
+     * 根据模板课表ID查找所有周实例ID
+     */
+    public List<Long> findInstanceIdsByTemplateId(Long templateTimetableId) {
+        return dsl.select(field("id"))
+                .from(table("weekly_instances"))
+                .where(field("template_timetable_id").eq(templateTimetableId))
+                .fetch(field("id", Long.class));
+    }
 }

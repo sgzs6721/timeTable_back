@@ -193,4 +193,16 @@ public class TimetableRepository {
                 .orderBy(com.timetable.generated.tables.Timetables.TIMETABLES.CREATED_AT.desc())
                 .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
     }
-} 
+    
+    /**
+     * 根据教练ID查找所有课表ID
+     */
+    public List<Long> findTimetableIdsByCoachId(Long coachId) {
+        return dsl.select(com.timetable.generated.tables.Timetables.TIMETABLES.ID)
+                .from(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(coachId)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
+                .fetch(com.timetable.generated.tables.Timetables.TIMETABLES.ID);
+    }
+}
