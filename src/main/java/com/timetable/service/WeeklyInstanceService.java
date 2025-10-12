@@ -1938,6 +1938,7 @@ public class WeeklyInstanceService {
         
         try {
             List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coachId);
+            logger.info("教练 {} 共有 {} 条操作记录", coachId, operationRecords.size());
             
             // 处理操作记录，构建规则映射
             for (StudentOperationRecord record : operationRecords) {
@@ -1945,18 +1946,23 @@ public class WeeklyInstanceService {
                 String oldName = record.getOldName();
                 String newName = record.getNewName();
                 
+                logger.info("操作记录: 类型={}, 原名={}, 新名={}", operationType, oldName, newName);
+                
                 switch (operationType) {
                     case "RENAME":
                         if (newName != null && !newName.trim().isEmpty()) {
                             renameRules.put(oldName, newName);
+                            logger.info("添加重命名规则: {} -> {}", oldName, newName);
                         }
                         break;
                     case "DELETE":
                         hiddenStudents.add(oldName);
+                        logger.info("添加隐藏规则: {}", oldName);
                         break;
                     case "ASSIGN_ALIAS":
                         if (newName != null && !newName.trim().isEmpty()) {
                             aliasRules.put(oldName, newName);
+                            logger.info("添加别名规则: {} -> {}", oldName, newName);
                         }
                         break;
                     case "MERGE":
@@ -1964,6 +1970,8 @@ public class WeeklyInstanceService {
                         break;
                 }
             }
+            
+            logger.info("最终规则: 重命名={}, 隐藏={}, 别名={}", renameRules, hiddenStudents, aliasRules);
 
             // 1) 周实例课程：只统计该教练课表下，且 scheduleDate 不在未来，且未请假的课程
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
@@ -2033,15 +2041,19 @@ public class WeeklyInstanceService {
                     String displayName = originalName;
                     if (renameRules.containsKey(originalName)) {
                         displayName = renameRules.get(originalName);
+                        logger.info("应用重命名规则: {} -> {}", originalName, displayName);
                     }
                     // 如果没有重命名但有别名，使用别名
                     else if (aliasRules.containsKey(originalName)) {
                         displayName = aliasRules.get(originalName);
+                        logger.info("应用别名规则: {} -> {}", originalName, displayName);
                     }
                     return new StudentSummaryDTO(displayName, e.getValue());
                 })
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
+        
+        logger.info("最终学员列表: {}", list.stream().map(s -> s.getStudentName()).collect(Collectors.toList()));
         return list;
     }
 
