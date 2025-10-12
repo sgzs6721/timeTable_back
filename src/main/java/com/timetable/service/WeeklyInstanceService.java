@@ -1951,10 +1951,10 @@ public class WeeklyInstanceService {
                             renameRules.put(oldName, newName);
                         }
                         break;
-                    case "HIDE":
+                    case "DELETE":
                         hiddenStudents.add(oldName);
                         break;
-                    case "ALIAS":
+                    case "ASSIGN_ALIAS":
                         if (newName != null && !newName.trim().isEmpty()) {
                             aliasRules.put(oldName, newName);
                         }
@@ -2076,10 +2076,10 @@ public class WeeklyInstanceService {
                                 renameRules.put(oldName, newName);
                             }
                             break;
-                        case "HIDE":
+                        case "DELETE":
                             hiddenStudents.add(oldName);
                             break;
-                        case "ALIAS":
+                        case "ASSIGN_ALIAS":
                             if (newName != null && !newName.trim().isEmpty()) {
                                 aliasRules.put(oldName, newName);
                             }
@@ -2203,7 +2203,7 @@ public class WeeklyInstanceService {
                                     renameRules.put(oldName, newName);
                                 }
                                 break;
-                            case "HIDE":
+                            case "DELETE":
                                 hiddenStudents.add(oldName);
                                 break;
                         }
