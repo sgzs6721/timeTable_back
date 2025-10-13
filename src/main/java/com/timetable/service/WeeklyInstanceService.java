@@ -1947,6 +1947,11 @@ public class WeeklyInstanceService {
                     record.getOldName(), record.getNewName());
             }
             
+            // 特别检查是否有关于"跃跃"的重命名规则
+            boolean hasYueYueRename = operationRecords.stream()
+                .anyMatch(r -> "RENAME".equals(r.getOperationType()) && "跃跃".equals(r.getOldName()));
+            logger.info("是否有关于'跃跃'的重命名规则: {}", hasYueYueRename);
+            
             // 处理操作记录，构建规则映射
             for (StudentOperationRecord record : operationRecords) {
                 String operationType = record.getOperationType();
@@ -1979,6 +1984,13 @@ public class WeeklyInstanceService {
             }
             
             logger.info("最终规则: 重命名={}, 隐藏={}, 别名={}", renameRules, hiddenStudents, aliasRules);
+            
+            // 特别检查是否有"跃跃"的重命名规则
+            if (renameRules.containsKey("跃跃")) {
+                logger.info("找到'跃跃'的重命名规则: {}", renameRules.get("跃跃"));
+            } else {
+                logger.info("没有找到'跃跃'的重命名规则");
+            }
 
             // 1) 周实例课程：只统计该教练课表下，且 scheduleDate 不在未来，且未请假的课程
             List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findAll();
@@ -2060,6 +2072,11 @@ public class WeeklyInstanceService {
                         logger.info("未找到匹配规则，使用原始名称: {}", originalName);
                     }
                     
+                    // 特别检查"跃跃"的处理
+                    if ("跃跃".equals(originalName)) {
+                        logger.info("特别处理'跃跃': 原始名称={}, 显示名称={}", originalName, displayName);
+                    }
+                    
                     StudentSummaryDTO dto = new StudentSummaryDTO(displayName, e.getValue());
                     logger.info("创建学员DTO: 显示名称={}, 课程数={}", dto.getStudentName(), dto.getAttendedCount());
                     return dto;
@@ -2068,6 +2085,11 @@ public class WeeklyInstanceService {
                 .collect(Collectors.toList());
         
         logger.info("最终学员列表: {}", list.stream().map(s -> s.getStudentName()).collect(Collectors.toList()));
+        
+        // 特别检查"跃跃"是否被正确处理
+        boolean hasYueYueInResult = list.stream().anyMatch(s -> "跃跃1".equals(s.getStudentName()));
+        logger.info("最终结果中是否有'跃跃1': {}", hasYueYueInResult);
+        
         return list;
     }
 
