@@ -2177,14 +2177,15 @@ public class WeeklyInstanceService {
         List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
                 .map(e -> {
                     String originalName = e.getKey();
-                    // 应用重命名规则
+                    // 应用重命名规则（支持重命名链）
                     String displayName = originalName;
-                    if (renameRules.containsKey(originalName)) {
-                        displayName = renameRules.get(originalName);
+                    Set<String> visited = new HashSet<>();
+                    while (renameRules.containsKey(displayName) && visited.add(displayName)) {
+                        displayName = renameRules.get(displayName);
                     }
                     // 如果没有重命名但有别名，使用别名
-                    else if (aliasRules.containsKey(originalName)) {
-                        displayName = aliasRules.get(originalName);
+                    if (!visited.contains(originalName) && aliasRules.containsKey(displayName)) {
+                        displayName = aliasRules.get(displayName);
                     }
                     return new StudentSummaryDTO(displayName, e.getValue());
                 })
@@ -2285,19 +2286,9 @@ public class WeeklyInstanceService {
                 Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
                 if (hiddenStudents != null && hiddenStudents.contains(studentName)) continue;
                 
-                // 应用重命名规则
-                Map<String, String> renameRules = coachRenameRules.get(coachId);
-                String processedName = studentName;
-                if (renameRules != null) {
-                    Set<String> visited = new HashSet<>();
-                    while (renameRules.containsKey(processedName) && visited.add(processedName)) {
-                        processedName = renameRules.get(processedName);
-                    }
-                }
-                
-                // 处理学员合并和别名
-                String displayName = getDisplayStudentName(processedName, coachId, coachMerges, coachAliases);
-                List<String> relatedStudents = getRelatedStudents(processedName, coachId, coachMerges, coachAliases);
+                // 处理学员合并和别名，同时应用重命名规则
+                String displayName = getDisplayStudentName(studentName, coachId, coachMerges, coachAliases, coachRenameRules);
+                List<String> relatedStudents = getRelatedStudents(studentName, coachId, coachMerges, coachAliases);
                 
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                 com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
@@ -2342,18 +2333,8 @@ public class WeeklyInstanceService {
                     Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
                     if (hiddenStudents != null && hiddenStudents.contains(studentName)) continue;
                     
-                    // 应用重命名规则
-                    Map<String, String> renameRules = coachRenameRules.get(coachId);
-                    String processedName = studentName;
-                    if (renameRules != null) {
-                        java.util.Set<String> visited = new java.util.HashSet<>();
-                        while (renameRules.containsKey(processedName) && visited.add(processedName)) {
-                            processedName = renameRules.get(processedName);
-                        }
-                    }
-                    
-                    // 处理学员合并和别名
-                    String displayName = getDisplayStudentName(processedName, coachId, coachMerges, coachAliases);
+                    // 处理学员合并和别名，同时应用重命名规则
+                    String displayName = getDisplayStudentName(studentName, coachId, coachMerges, coachAliases, coachRenameRules);
                     
                     List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                     com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
@@ -2381,15 +2362,26 @@ public class WeeklyInstanceService {
     /**
      * 获取学员的显示名称（考虑合并和别名）
      */
-    private String getDisplayStudentName(String studentName, Long coachId, 
+    private String getDisplayStudentName(String studentName, Long coachId,
             Map<Long, List<com.timetable.dto.StudentMergeDTO>> coachMerges,
-            Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases) {
+            Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases,
+            Map<Long, Map<String, String>> coachRenameRules) {
+        
+        // 首先应用重命名规则
+        Map<String, String> renameRules = coachRenameRules.get(coachId);
+        String processedName = studentName;
+        if (renameRules != null) {
+            Set<String> visited = new HashSet<>();
+            while (renameRules.containsKey(processedName) && visited.add(processedName)) {
+                processedName = renameRules.get(processedName);
+            }
+        }
         
         // 检查是否在合并设置中
         List<com.timetable.dto.StudentMergeDTO> merges = coachMerges.get(coachId);
         if (merges != null) {
             for (com.timetable.dto.StudentMergeDTO merge : merges) {
-                if (merge.getStudentNames().contains(studentName)) {
+                if (merge.getStudentNames().contains(processedName)) {
                     return merge.getDisplayName();
                 }
             }
@@ -2399,13 +2391,13 @@ public class WeeklyInstanceService {
         List<com.timetable.dto.StudentAliasDTO> aliases = coachAliases.get(coachId);
         if (aliases != null) {
             for (com.timetable.dto.StudentAliasDTO alias : aliases) {
-                if (alias.getStudentNames().contains(studentName)) {
+                if (alias.getStudentNames().contains(processedName)) {
                     return alias.getAliasName();
                 }
             }
         }
         
-        return studentName; // 默认返回原名称
+        return processedName; // 返回处理后的名称（可能已被重命名）
     }
     
     /**
