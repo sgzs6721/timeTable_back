@@ -1940,6 +1940,7 @@ public class WeeklyInstanceService {
         try {
             // 强制刷新缓存，获取最新数据
             List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coachId);
+            operationRecords.sort(java.util.Comparator.comparing(StudentOperationRecord::getCreatedAt));
             logger.info("教练 {} 共有 {} 条操作记录", coachId, operationRecords.size());
             
             // 详细打印每条操作记录
@@ -2048,34 +2049,32 @@ public class WeeklyInstanceService {
             logger.error("统计学员课程数失败(教练): {}", e.getMessage());
         }
 
-        // 转为 DTO 并排序，应用重命名和别名规则
-        List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
-                .map(e -> {
-                    String originalName = e.getKey();
-                    logger.info("处理学员: 原始名称={}", originalName);
-                    
-                    // 应用重命名规则
-                    String displayName = originalName;
-                    if (renameRules.containsKey(originalName)) {
-                        displayName = renameRules.get(originalName);
-                        logger.info("应用重命名规则: {} -> {}", originalName, displayName);
-                    }
-                    // 如果没有重命名但有别名，使用别名
-                    else if (aliasRules.containsKey(originalName)) {
-                        displayName = aliasRules.get(originalName);
-                        logger.info("应用别名规则: {} -> {}", originalName, displayName);
-                    } else {
-                        logger.info("未找到匹配规则，使用原始名称: {}", originalName);
-                    }
-                    
-                    StudentSummaryDTO dto = new StudentSummaryDTO(displayName, e.getValue());
-                    logger.info("创建学员DTO: 显示名称={}, 课程数={}", dto.getStudentName(), dto.getAttendedCount());
-                    return dto;
-                })
+        // 聚合最终结果，处理重命名链和别名
+        Map<String, Integer> finalStudentToCount = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : studentToCount.entrySet()) {
+            String originalName = entry.getKey();
+            Integer count = entry.getValue();
+
+            // 解析重命名链
+            String currentName = originalName;
+            Set<String> visited = new HashSet<>();
+            while (renameRules.containsKey(currentName) && visited.add(currentName)) {
+                currentName = renameRules.get(currentName);
+            }
+
+            // 应用别名
+            String displayName = aliasRules.getOrDefault(currentName, currentName);
+            
+            finalStudentToCount.put(displayName, finalStudentToCount.getOrDefault(displayName, 0) + count);
+        }
+
+        // 转为 DTO 并排序
+        List<StudentSummaryDTO> list = finalStudentToCount.entrySet().stream()
+                .map(e -> new StudentSummaryDTO(e.getKey(), e.getValue()))
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
         
-        logger.info("最终学员列表: {}", list.stream().map(s -> s.getStudentName()).collect(Collectors.toList()));
+        logger.info("最终学员列表: {}", list.stream().map(StudentSummaryDTO::getStudentName).collect(Collectors.toList()));
         return list;
     }
 
@@ -2223,6 +2222,7 @@ public class WeeklyInstanceService {
                     
                     // 获取学员操作规则
                     List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coach.getId());
+                    operationRecords.sort(java.util.Comparator.comparing(StudentOperationRecord::getCreatedAt));
                     Map<String, String> renameRules = new HashMap<>();
                     Set<String> hiddenStudents = new HashSet<>();
                     
@@ -2288,8 +2288,11 @@ public class WeeklyInstanceService {
                 // 应用重命名规则
                 Map<String, String> renameRules = coachRenameRules.get(coachId);
                 String processedName = studentName;
-                if (renameRules != null && renameRules.containsKey(studentName)) {
-                    processedName = renameRules.get(studentName);
+                if (renameRules != null) {
+                    Set<String> visited = new HashSet<>();
+                    while (renameRules.containsKey(processedName) && visited.add(processedName)) {
+                        processedName = renameRules.get(processedName);
+                    }
                 }
                 
                 // 处理学员合并和别名
@@ -2342,8 +2345,11 @@ public class WeeklyInstanceService {
                     // 应用重命名规则
                     Map<String, String> renameRules = coachRenameRules.get(coachId);
                     String processedName = studentName;
-                    if (renameRules != null && renameRules.containsKey(studentName)) {
-                        processedName = renameRules.get(studentName);
+                    if (renameRules != null) {
+                        java.util.Set<String> visited = new java.util.HashSet<>();
+                        while (renameRules.containsKey(processedName) && visited.add(processedName)) {
+                            processedName = renameRules.get(processedName);
+                        }
                     }
                     
                     // 处理学员合并和别名
