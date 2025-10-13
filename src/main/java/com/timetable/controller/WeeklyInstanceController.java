@@ -872,4 +872,31 @@ public class WeeklyInstanceController {
             return ResponseEntity.status(500).body(ApiResponse.error("获取学员列表失败: " + e.getMessage()));
         }
     }
+    
+    /**
+     * 测试重命名规则
+     */
+    @GetMapping("/test-rename-rules/{coachId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> testRenameRules(
+            @PathVariable Long coachId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以执行测试操作
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("权限不足，只有管理员可以执行测试操作"));
+        }
+
+        try {
+            Map<String, Object> result = weeklyInstanceService.testRenameRules(coachId);
+            return ResponseEntity.ok(ApiResponse.success("测试重命名规则完成", result));
+        } catch (Exception e) {
+            logger.error("测试重命名规则失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("测试失败: " + e.getMessage()));
+        }
+    }
 }

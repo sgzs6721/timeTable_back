@@ -2227,22 +2227,31 @@ public class WeeklyInstanceService {
                     Map<String, String> renameRules = new HashMap<>();
                     Set<String> hiddenStudents = new HashSet<>();
                     
+                    logger.info("教练 {} 共有 {} 条操作记录", coach.getId(), operationRecords.size());
+                    
                     for (StudentOperationRecord record : operationRecords) {
                         String operationType = record.getOperationType();
                         String oldName = record.getOldName();
                         String newName = record.getNewName();
                         
+                        logger.info("操作记录: 教练ID={}, 类型={}, 原名={}, 新名={}",
+                            coach.getId(), operationType, oldName, newName);
+                        
                         switch (operationType) {
                             case "RENAME":
                                 if (newName != null && !newName.trim().isEmpty()) {
                                     renameRules.put(oldName, newName);
+                                    logger.info("添加重命名规则: {} -> {}", oldName, newName);
                                 }
                                 break;
                             case "DELETE":
                                 hiddenStudents.add(oldName);
+                                logger.info("添加隐藏规则: {}", oldName);
                                 break;
                         }
                     }
+                    
+                    logger.info("教练 {} 最终重命名规则: {}", coach.getId(), renameRules);
                     
                     coachRenameRules.put(coach.getId(), renameRules);
                     coachHiddenStudents.put(coach.getId(), hiddenStudents);
@@ -2284,10 +2293,17 @@ public class WeeklyInstanceService {
                 
                 // 检查是否是隐藏的学员
                 Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
-                if (hiddenStudents != null && hiddenStudents.contains(studentName)) continue;
+                if (hiddenStudents != null && hiddenStudents.contains(studentName)) {
+                    logger.debug("学员 {} 被隐藏，跳过", studentName);
+                    continue;
+                }
                 
                 // 处理学员合并和别名，同时应用重命名规则
                 String displayName = getDisplayStudentName(studentName, coachId, coachMerges, coachAliases, coachRenameRules);
+                
+                if (!studentName.equals(displayName)) {
+                    logger.info("学员名称被重命名: {} -> {} (教练ID: {})", studentName, displayName, coachId);
+                }
                 List<String> relatedStudents = getRelatedStudents(studentName, coachId, coachMerges, coachAliases);
                 
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
@@ -2367,14 +2383,21 @@ public class WeeklyInstanceService {
             Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases,
             Map<Long, Map<String, String>> coachRenameRules) {
         
+        logger.debug("处理学员名称: 原始名称={}, 教练ID={}", studentName, coachId);
+        
         // 首先应用重命名规则
         Map<String, String> renameRules = coachRenameRules.get(coachId);
         String processedName = studentName;
         if (renameRules != null) {
+            logger.debug("教练 {} 的重命名规则: {}", coachId, renameRules);
             Set<String> visited = new HashSet<>();
             while (renameRules.containsKey(processedName) && visited.add(processedName)) {
+                String oldName = processedName;
                 processedName = renameRules.get(processedName);
+                logger.debug("应用重命名规则: {} -> {}", oldName, processedName);
             }
+        } else {
+            logger.debug("教练 {} 没有重命名规则", coachId);
         }
         
         // 检查是否在合并设置中
@@ -2382,6 +2405,7 @@ public class WeeklyInstanceService {
         if (merges != null) {
             for (com.timetable.dto.StudentMergeDTO merge : merges) {
                 if (merge.getStudentNames().contains(processedName)) {
+                    logger.debug("学员 {} 在合并设置中，显示名称: {}", processedName, merge.getDisplayName());
                     return merge.getDisplayName();
                 }
             }
@@ -2392,11 +2416,13 @@ public class WeeklyInstanceService {
         if (aliases != null) {
             for (com.timetable.dto.StudentAliasDTO alias : aliases) {
                 if (alias.getStudentNames().contains(processedName)) {
+                    logger.debug("学员 {} 在别名设置中，别名: {}", processedName, alias.getAliasName());
                     return alias.getAliasName();
                 }
             }
         }
         
+        logger.debug("学员 {} 最终显示名称: {}", studentName, processedName);
         return processedName; // 返回处理后的名称（可能已被重命名）
     }
     
@@ -2428,5 +2454,65 @@ public class WeeklyInstanceService {
         }
         
         return java.util.Arrays.asList(studentName); // 默认只包含自己
+    }
+    
+    /**
+     * 测试方法：检查指定教练的重命名规则
+     */
+    public Map<String, Object> testRenameRules(Long coachId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 获取该教练的操作记录
+            List<StudentOperationRecord> operationRecords = studentOperationRecordRepository.findByCoachId(coachId);
+            operationRecords.sort(java.util.Comparator.comparing(StudentOperationRecord::getCreatedAt));
+            
+            logger.info("测试方法 - 教练 {} 共有 {} 条操作记录", coachId, operationRecords.size());
+            
+            Map<String, String> renameRules = new HashMap<>();
+            Set<String> hiddenStudents = new HashSet<>();
+            
+            for (StudentOperationRecord record : operationRecords) {
+                String operationType = record.getOperationType();
+                String oldName = record.getOldName();
+                String newName = record.getNewName();
+                
+                logger.info("测试方法 - 操作记录: 类型={}, 原名={}, 新名={}", operationType, oldName, newName);
+                
+                switch (operationType) {
+                    case "RENAME":
+                        if (newName != null && !newName.trim().isEmpty()) {
+                            renameRules.put(oldName, newName);
+                            logger.info("测试方法 - 添加重命名规则: {} -> {}", oldName, newName);
+                        }
+                        break;
+                    case "DELETE":
+                        hiddenStudents.add(oldName);
+                        logger.info("测试方法 - 添加隐藏规则: {}", oldName);
+                        break;
+                }
+            }
+            
+            result.put("coachId", coachId);
+            result.put("totalRecords", operationRecords.size());
+            result.put("renameRules", renameRules);
+            result.put("hiddenStudents", hiddenStudents);
+            
+            // 测试特定名称的重命名
+            String testName = "跃跃";
+            String processedName = testName;
+            if (renameRules.containsKey(testName)) {
+                processedName = renameRules.get(testName);
+                result.put("testResult", testName + " -> " + processedName);
+            } else {
+                result.put("testResult", testName + " 没有重命名规则");
+            }
+            
+        } catch (Exception e) {
+            logger.error("测试重命名规则失败", e);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
     }
 }
