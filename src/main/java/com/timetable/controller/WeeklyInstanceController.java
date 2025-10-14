@@ -862,15 +862,18 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         try {
-            // 获取被隐藏的学员列表和合并规则
+            // 获取被隐藏的学员列表、合并规则和分配课时规则
             List<String> hiddenStudents = getHiddenStudents();
             java.util.Map<String, String> mergeRules = getMergeRules();
+            java.util.Map<String, Integer> assignHoursRules = getAssignHoursRules();
             
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
                 // 分组返回教练列表
                 List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
                 // 应用合并规则
                 grouped = applyMergeRulesToGrouped(grouped, mergeRules);
+                // 应用分配课时规则
+                grouped = applyAssignHoursToGrouped(grouped, assignHoursRules);
                 // 过滤掉被隐藏的学员
                 grouped = filterHiddenStudentsFromGrouped(grouped, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", grouped));
@@ -880,6 +883,8 @@ public class WeeklyInstanceController {
                         weeklyInstanceService.getStudentSummariesByCoach(user.getId());
                 // 应用合并规则
                 students = applyMergeRulesToList(students, mergeRules);
+                // 应用分配课时规则
+                students = applyAssignHoursToList(students, assignHoursRules);
                 // 过滤掉被隐藏的学员
                 students = filterHiddenStudentsFromList(students, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
@@ -1080,6 +1085,68 @@ public class WeeklyInstanceController {
         } catch (Exception e) {
             logger.error("隐藏学员失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("隐藏学员失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 分配课时（大课功能）- 创建分配课时规则
+     */
+    @PostMapping("/assign-hours")
+    public ResponseEntity<ApiResponse<String>> assignHours(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            String className = (String) request.get("className");
+            List<String> studentNames = (List<String>) request.get("studentNames");
+            String date = (String) request.get("date");
+            String timeRange = (String) request.get("timeRange");
+
+            if (className == null || className.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("课程名称不能为空"));
+            }
+
+            if (studentNames == null || studentNames.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("学员列表不能为空"));
+            }
+
+            if (timeRange == null || timeRange.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("上课时间不能为空"));
+            }
+
+            // 为每个学员创建一条分配课时规则记录
+            int successCount = 0;
+            for (String studentName : studentNames) {
+                try {
+                    StudentOperationRecord record = new StudentOperationRecord();
+                    record.setCoachId(user.getId());
+                    record.setOperationType("ASSIGN_HOURS");
+                    record.setOldName(studentName); // 学员名称
+                    record.setNewName(className); // 大课名称
+                    record.setDetails(String.format("{\"date\":\"%s\",\"timeRange\":\"%s\"}", 
+                        date != null ? date : "", timeRange));
+                    record.setCreatedAt(java.time.LocalDateTime.now());
+                    record.setUpdatedAt(java.time.LocalDateTime.now());
+                    
+                    studentOperationRecordRepository.save(record);
+                    successCount++;
+                } catch (Exception e) {
+                    logger.error("为学员 {} 创建分配课时记录失败: {}", studentName, e.getMessage());
+                }
+            }
+
+            logger.info("分配课时操作: className={}, studentCount={}, successCount={}, userId={}", 
+                       className, studentNames.size(), successCount, user.getId());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                String.format("成功为 %d/%d 个学员分配课时", successCount, studentNames.size()), ""));
+        } catch (Exception e) {
+            logger.error("分配课时失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("分配课时失败: " + e.getMessage()));
         }
     }
 
@@ -1305,6 +1372,89 @@ public class WeeklyInstanceController {
             logger.error("获取合并规则失败", e);
             return new java.util.HashMap<>();
         }
+    }
+    
+    /**
+     * 获取分配课时规则
+     * @return Map<学员名称, 分配的课时数>
+     */
+    private java.util.Map<String, Integer> getAssignHoursRules() {
+        try {
+            java.util.Map<String, Integer> hoursMap = new java.util.HashMap<>();
+            List<StudentOperationRecord> records = studentOperationRecordRepository
+                .findByOperationType("ASSIGN_HOURS");
+            
+            for (StudentOperationRecord record : records) {
+                String studentName = record.getOldName(); // 学员名称存在oldName
+                if (studentName != null && !studentName.trim().isEmpty()) {
+                    hoursMap.put(studentName.trim(), hoursMap.getOrDefault(studentName.trim(), 0) + 1);
+                }
+            }
+            return hoursMap;
+        } catch (Exception e) {
+            logger.error("获取分配课时规则失败", e);
+            return new java.util.HashMap<>();
+        }
+    }
+    
+    /**
+     * 应用分配课时规则到分组列表
+     */
+    private List<com.timetable.dto.CoachStudentSummaryDTO> applyAssignHoursToGrouped(
+            List<com.timetable.dto.CoachStudentSummaryDTO> grouped,
+            java.util.Map<String, Integer> hoursMap) {
+        
+        return grouped.stream()
+            .map(coach -> {
+                List<com.timetable.dto.StudentSummaryDTO> updatedStudents = coach.getStudents()
+                    .stream()
+                    .map(student -> {
+                        String name = student.getStudentName();
+                        if (hoursMap.containsKey(name)) {
+                            com.timetable.dto.StudentSummaryDTO updated = new com.timetable.dto.StudentSummaryDTO();
+                            updated.setStudentName(name);
+                            updated.setAttendedCount(student.getAttendedCount() + hoursMap.get(name));
+                            return updated;
+                        }
+                        return student;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+                
+                // 重新计算总课时
+                int newTotalCount = updatedStudents.stream()
+                    .mapToInt(com.timetable.dto.StudentSummaryDTO::getAttendedCount)
+                    .sum();
+                
+                com.timetable.dto.CoachStudentSummaryDTO newCoach = new com.timetable.dto.CoachStudentSummaryDTO();
+                newCoach.setCoachId(coach.getCoachId());
+                newCoach.setCoachName(coach.getCoachName());
+                newCoach.setTotalCount(newTotalCount);
+                newCoach.setStudents(updatedStudents);
+                
+                return newCoach;
+            })
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * 应用分配课时规则到学员列表
+     */
+    private List<com.timetable.dto.StudentSummaryDTO> applyAssignHoursToList(
+            List<com.timetable.dto.StudentSummaryDTO> students,
+            java.util.Map<String, Integer> hoursMap) {
+        
+        return students.stream()
+            .map(student -> {
+                String name = student.getStudentName();
+                if (hoursMap.containsKey(name)) {
+                    com.timetable.dto.StudentSummaryDTO updated = new com.timetable.dto.StudentSummaryDTO();
+                    updated.setStudentName(name);
+                    updated.setAttendedCount(student.getAttendedCount() + hoursMap.get(name));
+                    return updated;
+                }
+                return student;
+            })
+            .collect(java.util.stream.Collectors.toList());
     }
     
     /**

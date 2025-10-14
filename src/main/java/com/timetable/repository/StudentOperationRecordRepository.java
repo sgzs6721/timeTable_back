@@ -90,6 +90,19 @@ public class StudentOperationRecordRepository extends BaseRepository {
     }
 
     /**
+     * 根据操作类型查找所有操作记录
+     */
+    public List<StudentOperationRecord> findByOperationType(String operationType) {
+        Result<Record> records = dsl.select()
+                .from(table("student_operation_records"))
+                .where(field("operation_type").eq(operationType))
+                .orderBy(field("created_at").desc())
+                .fetch();
+        
+        return records.map(this::mapToStudentOperationRecord);
+    }
+
+    /**
      * 根据ID查找操作记录
      */
     public StudentOperationRecord findById(Long id) {
