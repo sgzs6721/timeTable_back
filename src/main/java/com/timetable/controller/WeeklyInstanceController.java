@@ -1105,6 +1105,7 @@ public class WeeklyInstanceController {
             List<String> studentNames = (List<String>) request.get("studentNames");
             String date = (String) request.get("date");
             String timeRange = (String) request.get("timeRange");
+            Integer hoursPerStudent = (Integer) request.get("hoursPerStudent");
 
             if (className == null || className.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("课程名称不能为空"));
@@ -1118,6 +1119,11 @@ public class WeeklyInstanceController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("上课时间不能为空"));
             }
 
+            // 设置默认值
+            if (hoursPerStudent == null || hoursPerStudent <= 0) {
+                hoursPerStudent = 1;
+            }
+
             // 为每个学员创建一条分配课时规则记录
             int successCount = 0;
             for (String studentName : studentNames) {
@@ -1127,8 +1133,8 @@ public class WeeklyInstanceController {
                     record.setOperationType("ASSIGN_HOURS");
                     record.setOldName(studentName); // 学员名称
                     record.setNewName(className); // 大课名称
-                    record.setDetails(String.format("{\"date\":\"%s\",\"timeRange\":\"%s\"}", 
-                        date != null ? date : "", timeRange));
+                    record.setDetails(String.format("{\"date\":\"%s\",\"timeRange\":\"%s\",\"hoursPerStudent\":%d}", 
+                        date != null ? date : "", timeRange, hoursPerStudent));
                     record.setCreatedAt(java.time.LocalDateTime.now());
                     record.setUpdatedAt(java.time.LocalDateTime.now());
                     
