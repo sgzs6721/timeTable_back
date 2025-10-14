@@ -897,6 +897,7 @@ public class WeeklyInstanceController {
     public ResponseEntity<ApiResponse<List<StudentOperationRecord>>> getOperationRecords(
             @RequestParam(defaultValue = "false") Boolean showAll,
             @RequestParam(required = false) String studentName,
+            @RequestParam(required = false) Long coachId,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -913,8 +914,13 @@ public class WeeklyInstanceController {
                 // 首先根据用户权限获取基础记录集
                 List<StudentOperationRecord> baseRecords;
                 if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                    // 管理员可以查看所有记录
                     baseRecords = studentOperationRecordRepository.findAll();
+                } else if (coachId != null) {
+                    // 如果指定了教练ID，查询该教练的记录
+                    baseRecords = studentOperationRecordRepository.findByCoachId(coachId);
                 } else {
+                    // 默认查询当前用户的记录
                     baseRecords = studentOperationRecordRepository.findByCoachId(user.getId());
                 }
                 
