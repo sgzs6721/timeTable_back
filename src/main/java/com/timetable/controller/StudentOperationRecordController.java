@@ -111,8 +111,8 @@ public class StudentOperationRecordController {
                 return ResponseEntity.notFound().build();
             }
             
-            // 检查是否是当前用户的记录
-            if (!record.getCoachId().equals(user.getId())) {
+            // 检查是否是当前用户的记录或者是管理员
+            if (!record.getCoachId().equals(user.getId()) && !"ADMIN".equalsIgnoreCase(user.getRole())) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限删除此记录"));
             }
             
