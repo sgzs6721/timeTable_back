@@ -24,10 +24,10 @@ public class StudentOperationRecordRepository extends BaseRepository {
     /**
      * 保存学员操作记录
      */
-    public StudentOperationRecord save(StudentOperationRecord record) {
+    public Long save(StudentOperationRecord record) {
         if (record.getId() == null) {
-            // 创建新记录
-            int affectedRows = dsl.insertInto(table("student_operation_records"))
+            // 创建新记录 - 使用JOOQ的returningResult来获取生成的ID
+            Record result = dsl.insertInto(table("student_operation_records"))
                     .set(field("coach_id"), record.getCoachId())
                     .set(field("operation_type"), record.getOperationType())
                     .set(field("old_name"), record.getOldName())
@@ -35,25 +35,21 @@ public class StudentOperationRecordRepository extends BaseRepository {
                     .set(field("details"), record.getDetails())
                     .set(field("created_at"), record.getCreatedAt())
                     .set(field("updated_at"), record.getUpdatedAt())
-                    .execute();
+                    .returningResult(field("id"))
+                    .fetchOne();
             
-            if (affectedRows > 0) {
-                // 查询获取ID
-                Record result = dsl.select(field("id"))
-                        .from(table("student_operation_records"))
-                        .where(field("coach_id").eq(record.getCoachId()))
-                        .and(field("operation_type").eq(record.getOperationType()))
-                        .and(field("old_name").eq(record.getOldName()))
-                        .and(field("created_at").eq(record.getCreatedAt()))
-                        .fetchOne();
-                
-                if (result != null) {
-                    record.setId(result.get("id", Long.class));
-                }
+            if (result != null) {
+                Long generatedId = result.get("id", Long.class);
+                record.setId(generatedId);
+                System.out.println("DEBUG: 成功插入记录，ID: " + generatedId + ", 教练ID: " + record.getCoachId() + ", 操作类型: " + record.getOperationType() + ", 原名: " + record.getOldName() + ", 新名: " + record.getNewName());
+                return generatedId;
+            } else {
+                System.out.println("ERROR: 插入记录失败，result为null");
+                return null;
             }
         } else {
             // 更新现有记录
-            dsl.update(table("student_operation_records"))
+            int affectedRows = dsl.update(table("student_operation_records"))
                     .set(field("coach_id"), record.getCoachId())
                     .set(field("operation_type"), record.getOperationType())
                     .set(field("old_name"), record.getOldName())
@@ -62,9 +58,10 @@ public class StudentOperationRecordRepository extends BaseRepository {
                     .set(field("updated_at"), LocalDateTime.now())
                     .where(field("id").eq(record.getId()))
                     .execute();
+            
+            System.out.println("DEBUG: 更新记录，ID: " + record.getId() + ", 影响行数: " + affectedRows);
+            return record.getId();
         }
-        
-        return record;
     }
 
     /**

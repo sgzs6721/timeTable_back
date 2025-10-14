@@ -45,6 +45,8 @@ public class StudentOperationRecordService {
      * 保存操作记录
      */
     public StudentOperationRecord saveRecord(StudentOperationRecord record) {
-        return operationRecordRepository.save(record);
+        Long id = operationRecordRepository.save(record);
+        record.setId(id);
+        return record;
     }
 }

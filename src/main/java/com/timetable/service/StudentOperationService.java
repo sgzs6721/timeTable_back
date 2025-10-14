@@ -49,7 +49,7 @@ public class StudentOperationService {
      * 重命名学员（创建或更新重命名规则，不直接修改数据）
      */
     public void renameStudent(Long coachId, StudentOperationRequest request) {
-        logger.info("创建或更新重命名规则: {} -> {}", request.getOldName(), request.getNewName());
+        logger.info("创建或更新重命名规则: {} -> {} (教练ID: {})", request.getOldName(), request.getNewName(), coachId);
         
         try {
             // 检查是否已存在相同学员的重命名规则
@@ -67,7 +67,7 @@ public class StudentOperationService {
                 existingRecord.setDetails(details);
                 existingRecord.setUpdatedAt(java.time.LocalDateTime.now());
                 operationRecordRepository.update(existingRecord);
-                logger.info("成功更新重命名规则");
+                logger.info("成功更新重命名规则 (ID: {}, 教练ID: {})", existingRecord.getId(), coachId);
             } else {
                 // 创建新规则
                 StudentOperationRecord record = new StudentOperationRecord(
@@ -77,8 +77,8 @@ public class StudentOperationService {
                     request.getNewName(),
                     details
                 );
-                operationRecordRepository.save(record);
-                logger.info("成功创建重命名规则");
+                Long recordId = operationRecordRepository.save(record);
+                logger.info("成功创建重命名规则 (ID: {}, 教练ID: {})", recordId, coachId);
             }
         } catch (Exception e) {
             logger.error("创建或更新重命名规则失败", e);
@@ -117,8 +117,8 @@ public class StudentOperationService {
                     "HIDDEN",
                     details
                 );
-                operationRecordRepository.save(record);
-                logger.info("成功创建隐藏规则");
+                Long recordId = operationRecordRepository.save(record);
+                logger.info("成功创建隐藏规则 (ID: {}, 教练ID: {})", recordId, coachId);
             }
         } catch (Exception e) {
             logger.error("创建或更新隐藏规则失败", e);
@@ -158,8 +158,8 @@ public class StudentOperationService {
                     request.getAliasName(),
                     details
                 );
-                operationRecordRepository.save(record);
-                logger.info("成功创建别名规则");
+                Long recordId = operationRecordRepository.save(record);
+                logger.info("成功创建别名规则 (ID: {}, 教练ID: {})", recordId, coachId);
             }
         } catch (Exception e) {
             logger.error("创建或更新别名规则失败", e);
@@ -198,8 +198,8 @@ public class StudentOperationService {
                 displayName,
                 details
             );
-            operationRecordRepository.save(record);
-            logger.info("成功创建合并规则");
+            Long recordId = operationRecordRepository.save(record);
+            logger.info("成功创建合并规则 (ID: {}, 教练ID: {})", recordId, coachId);
         } catch (Exception e) {
             logger.error("创建合并规则失败", e);
         }

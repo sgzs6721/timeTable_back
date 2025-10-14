@@ -2230,6 +2230,15 @@ public class WeeklyInstanceService {
                     logger.info("getStudentGroupByCoachSummaryAll - 教练 {} ({}) 共有 {} 条操作记录", 
                         coach.getId(), coach.getNickname() != null ? coach.getNickname() : coach.getUsername(), operationRecords.size());
                     
+                    // 如果是杨教练，输出详细信息
+                    if (coach.getId().equals(6L)) {
+                        logger.info("DEBUG: 杨教练的所有操作记录:");
+                        for (StudentOperationRecord record : operationRecords) {
+                            logger.info("  记录ID: {}, 操作类型: {}, 原名: {}, 新名: {}, 创建时间: {}", 
+                                record.getId(), record.getOperationType(), record.getOldName(), record.getNewName(), record.getCreatedAt());
+                        }
+                    }
+                    
                     for (StudentOperationRecord record : operationRecords) {
                         String operationType = record.getOperationType();
                         String oldName = record.getOldName();
