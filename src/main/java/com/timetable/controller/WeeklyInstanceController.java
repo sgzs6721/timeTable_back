@@ -907,22 +907,22 @@ public class WeeklyInstanceController {
             
             List<StudentOperationRecord> records;
             
-            // 如果指定了学员名称，需要特殊处理
+            // 首先根据用户权限和参数获取基础记录集
+            List<StudentOperationRecord> baseRecords;
+            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll && coachId == null) {
+                // 管理员查看全部记录且未指定教练ID
+                baseRecords = studentOperationRecordRepository.findAll();
+            } else if (coachId != null) {
+                // 指定了教练ID，查询该教练的记录
+                baseRecords = studentOperationRecordRepository.findByCoachId(coachId);
+            } else {
+                // 默认查询当前用户的记录
+                baseRecords = studentOperationRecordRepository.findByCoachId(user.getId());
+            }
+            
+            // 如果指定了学员名称，需要过滤特定学员的记录
             if (studentName != null && !studentName.trim().isEmpty()) {
                 final String trimmedStudentName = studentName.trim();
-                
-                // 首先根据用户权限获取基础记录集
-                List<StudentOperationRecord> baseRecords;
-                if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
-                    // 管理员可以查看所有记录
-                    baseRecords = studentOperationRecordRepository.findAll();
-                } else if (coachId != null) {
-                    // 如果指定了教练ID，查询该教练的记录
-                    baseRecords = studentOperationRecordRepository.findByCoachId(coachId);
-                } else {
-                    // 默认查询当前用户的记录
-                    baseRecords = studentOperationRecordRepository.findByCoachId(user.getId());
-                }
                 
                 // 过滤出与该学员相关的记录（考虑重命名转换）
                 records = baseRecords.stream()
@@ -940,12 +940,8 @@ public class WeeklyInstanceController {
                     .collect(java.util.stream.Collectors.toList());
                     
             } else {
-                // 没有指定学员名称的情况
-                if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
-                    records = studentOperationRecordRepository.findAll();
-                } else {
-                    records = studentOperationRecordRepository.findByCoachId(user.getId());
-                }
+                // 没有指定学员名称，返回基础记录集（已经根据权限和教练ID过滤过了）
+                records = baseRecords;
             }
             
             return ResponseEntity.ok(ApiResponse.success("获取操作记录成功", records));
