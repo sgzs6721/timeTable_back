@@ -9,6 +9,7 @@ public class StudentOperationRecord {
     private Long id;
     private Long coachId;
     private String operationType; // RENAME, DELETE, ASSIGN_ALIAS, MERGE
+    private Long studentId; // 学员ID，引用student_names表
     private String oldName;
     private String newName; // 对于重命名操作，存储新名称；对于其他操作，存储操作描述
     private String details; // 操作详情，JSON格式
@@ -20,6 +21,17 @@ public class StudentOperationRecord {
     public StudentOperationRecord(Long coachId, String operationType, String oldName, String newName, String details) {
         this.coachId = coachId;
         this.operationType = operationType;
+        this.oldName = oldName;
+        this.newName = newName;
+        this.details = details;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    public StudentOperationRecord(Long coachId, String operationType, Long studentId, String oldName, String newName, String details) {
+        this.coachId = coachId;
+        this.operationType = operationType;
+        this.studentId = studentId;
         this.oldName = oldName;
         this.newName = newName;
         this.details = details;
@@ -42,6 +54,14 @@ public class StudentOperationRecord {
     
     public void setCoachId(Long coachId) {
         this.coachId = coachId;
+    }
+    
+    public Long getStudentId() {
+        return studentId;
+    }
+    
+    public void setStudentId(Long studentId) {
+        this.studentId = studentId;
     }
     
     public String getOperationType() {

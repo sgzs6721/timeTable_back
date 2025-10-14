@@ -78,4 +78,48 @@ public class StudentNamesRepository {
                 .limit(limit)
                 .fetchInto(String.class);
     }
+    
+    /**
+     * 根据名称和用户ID查找学员ID，如果不存在则创建
+     */
+    public Long findOrCreateStudentId(String name, Long userId) {
+        // 先查找是否存在
+        Long existingId = dsl.select(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.ID)
+                .from(com.timetable.generated.tables.StudentNames.STUDENT_NAMES)
+                .where(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.NAME.eq(name.trim()))
+                .and(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.USER_ID.eq(userId))
+                .fetchOneInto(Long.class);
+        
+        if (existingId != null) {
+            return existingId;
+        }
+        
+        // 不存在则创建
+        Long newId = dsl.insertInto(com.timetable.generated.tables.StudentNames.STUDENT_NAMES)
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.NAME, name.trim())
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.USER_ID, userId)
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.USAGE_COUNT, 1)
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.FIRST_USED_AT, 
+                     java.time.LocalDateTime.now())
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.LAST_USED_AT, 
+                     java.time.LocalDateTime.now())
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.CREATED_AT, 
+                     java.time.LocalDateTime.now())
+                .set(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.UPDATED_AT, 
+                     java.time.LocalDateTime.now())
+                .returningResult(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.ID)
+                .fetchOne()
+                .getValue(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.ID);
+        
+        return newId;
+    }
+    
+    /**
+     * 根据学员ID获取学员信息
+     */
+    public StudentNames findById(Long studentId) {
+        return dsl.selectFrom(com.timetable.generated.tables.StudentNames.STUDENT_NAMES)
+                .where(com.timetable.generated.tables.StudentNames.STUDENT_NAMES.ID.eq(studentId))
+                .fetchOneInto(StudentNames.class);
+    }
 } 

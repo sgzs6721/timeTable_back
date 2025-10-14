@@ -8,6 +8,7 @@ import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.StudentOperationRecordRepository;
+import com.timetable.repository.StudentNamesRepository;
 import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.entity.StudentOperationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ public class StudentOperationService {
     @Autowired
     private StudentOperationRecordRepository operationRecordRepository;
     
+    @Autowired
+    private StudentNamesRepository studentNamesRepository;
+    
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
@@ -56,7 +60,11 @@ public class StudentOperationService {
         logger.info("创建或更新重命名规则: '{}' -> '{}' (教练ID: {})", trimmedOldName, trimmedNewName, coachId);
         
         try {
-            // 检查是否已存在相同学员的重命名规则，使用trim后的名称
+            // 根据学员名称获取或创建学员ID
+            Long studentId = studentNamesRepository.findOrCreateStudentId(trimmedOldName, coachId);
+            logger.info("学员 '{}' 的ID: {}", trimmedOldName, studentId);
+            
+            // 检查是否已存在相同学员的重命名规则，优先使用学员ID
             StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
                 coachId, "RENAME", trimmedOldName);
             
@@ -66,23 +74,25 @@ public class StudentOperationService {
             String details = objectMapper.writeValueAsString(detailsMap);
             
             if (existingRecord != null) {
-                // 更新现有规则，使用trim后的名称
+                // 更新现有规则，使用学员ID和trim后的名称
+                existingRecord.setStudentId(studentId);
                 existingRecord.setNewName(trimmedNewName);
                 existingRecord.setDetails(details);
                 existingRecord.setUpdatedAt(java.time.LocalDateTime.now());
                 operationRecordRepository.update(existingRecord);
-                logger.info("成功更新重命名规则 (ID: {}, 教练ID: {})", existingRecord.getId(), coachId);
+                logger.info("成功更新重命名规则 (ID: {}, 学员ID: {}, 教练ID: {})", existingRecord.getId(), studentId, coachId);
             } else {
-                // 创建新规则，使用trim后的名称
+                // 创建新规则，使用学员ID和trim后的名称
                 StudentOperationRecord record = new StudentOperationRecord(
                     coachId,
                     "RENAME",
+                    studentId,
                     trimmedOldName,
                     trimmedNewName,
                     details
                 );
                 Long recordId = operationRecordRepository.save(record);
-                logger.info("成功创建重命名规则 (ID: {}, 教练ID: {})", recordId, coachId);
+                logger.info("成功创建重命名规则 (ID: {}, 学员ID: {}, 教练ID: {})", recordId, studentId, coachId);
             }
         } catch (Exception e) {
             logger.error("创建或更新重命名规则失败", e);
