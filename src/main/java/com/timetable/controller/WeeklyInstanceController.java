@@ -894,21 +894,36 @@ public class WeeklyInstanceController {
             
             List<StudentOperationRecord> records;
             
-            // 如果是管理员且请求查看所有记录
-            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
-                records = studentOperationRecordRepository.findAll();
-            } else {
-                // 普通用户或管理员不查看全部时，只返回自己的记录
-                records = studentOperationRecordRepository.findByCoachId(user.getId());
-            }
-            
-            // 如果指定了学员名称，过滤出与该学员相关的记录
+            // 如果指定了学员名称，需要特殊处理
             if (studentName != null && !studentName.trim().isEmpty()) {
                 final String trimmedStudentName = studentName.trim();
+                
+                // 对于指定学员名称的查询，直接查询所有记录然后过滤
+                // 这样可以确保找到跨教练的重命名记录
+                records = studentOperationRecordRepository.findAll();
+                
+                // 过滤出与该学员相关的记录（考虑重命名转换）
                 records = records.stream()
-                    .filter(record -> trimmedStudentName.equals(record.getOldName()) || 
-                                    trimmedStudentName.equals(record.getNewName()))
+                    .filter(record -> {
+                        // 直接匹配：学员名称匹配oldName或newName
+                        if (trimmedStudentName.equals(record.getOldName()) || 
+                            trimmedStudentName.equals(record.getNewName())) {
+                            return true;
+                        }
+                        
+                        // 反向查找：如果studentName是重命名后的名字，找到原名相关的记录
+                        // 例如：studentName="跃跃2"，需要找到"跃跃"->"跃跃2"的记录
+                        return false;
+                    })
                     .collect(java.util.stream.Collectors.toList());
+                    
+            } else {
+                // 没有指定学员名称的情况
+                if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                    records = studentOperationRecordRepository.findAll();
+                } else {
+                    records = studentOperationRecordRepository.findByCoachId(user.getId());
+                }
             }
             
             return ResponseEntity.ok(ApiResponse.success("获取操作记录成功", records));
