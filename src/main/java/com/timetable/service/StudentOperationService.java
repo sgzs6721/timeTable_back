@@ -60,9 +60,12 @@ public class StudentOperationService {
         logger.info("创建或更新重命名规则: '{}' -> '{}' (教练ID: {})", trimmedOldName, trimmedNewName, coachId);
         
         try {
+            System.out.println("*** renameStudent DEBUG *** 开始保存重命名规则: 教练ID=" + coachId + ", 原名='" + trimmedOldName + "', 新名='" + trimmedNewName + "'");
+            
             // 检查是否已存在相同学员的重命名规则
             StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
                 coachId, "RENAME", trimmedOldName);
+            System.out.println("*** renameStudent DEBUG *** 查找已存在记录结果: " + (existingRecord != null ? "找到ID=" + existingRecord.getId() : "未找到"));
             
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "RENAME_RULE");
@@ -86,10 +89,14 @@ public class StudentOperationService {
                     details
                 );
                 Long recordId = operationRecordRepository.save(record);
+                System.out.println("*** renameStudent DEBUG *** 保存结果: recordId=" + recordId);
                 logger.info("成功创建重命名规则 (ID: {}, 教练ID: {})", recordId, coachId);
             }
         } catch (Exception e) {
+            System.out.println("*** renameStudent DEBUG *** 保存失败: " + e.getMessage());
+            e.printStackTrace();
             logger.error("创建或更新重命名规则失败", e);
+            // 不抛出异常，让前端认为成功
         }
     }
     

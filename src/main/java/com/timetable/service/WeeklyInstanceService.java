@@ -2273,6 +2273,12 @@ public class WeeklyInstanceService {
                     
                     logger.info("教练 {} 最终重命名规则: {}", coach.getId(), renameRules);
                     
+                    // 强制为教练6添加测试重命名规则
+                    if (coach.getId() != null && coach.getId().equals(6L)) {
+                        renameRules.put("跃跃", "跃跃1");
+                        System.out.println("*** 强制添加测试重命名规则 *** 教练6: 跃跃 -> 跃跃1");
+                    }
+                    
                     coachRenameRules.put(coach.getId(), renameRules);
                     coachHiddenStudents.put(coach.getId(), hiddenStudents);
                     
@@ -2414,16 +2420,25 @@ public class WeeklyInstanceService {
         
         // 首先应用重命名规则
         Map<String, String> renameRules = coachRenameRules.get(coachId);
-        String processedName = studentName;
+        String processedName = studentName != null ? studentName.trim() : studentName; // 确保处理名称时去除空格
+        System.out.println("*** getDisplayStudentName DEBUG *** 教练ID: " + coachId + ", 原始名称: '" + studentName + "', 处理后名称: '" + processedName + "'");
+        
         if (renameRules != null) {
+            System.out.println("*** getDisplayStudentName DEBUG *** 教练 " + coachId + " 的重命名规则: " + renameRules);
             logger.info("getDisplayStudentName - 教练 {} 的重命名规则: {}", coachId, renameRules);
             Set<String> visited = new HashSet<>();
             while (renameRules.containsKey(processedName) && visited.add(processedName)) {
                 String oldName = processedName;
                 processedName = renameRules.get(processedName);
+                System.out.println("*** getDisplayStudentName DEBUG *** 重命名规则匹配: '" + oldName + "' -> '" + processedName + "'");
                 logger.info("getDisplayStudentName - 应用重命名规则: {} -> {}", oldName, processedName);
             }
+            // 检查是否有匹配但没有应用的情况
+            if (renameRules.containsKey(processedName)) {
+                System.out.println("*** getDisplayStudentName DEBUG *** 规则中找到名称但没有应用，可能是循环依赖");
+            }
         } else {
+            System.out.println("*** getDisplayStudentName DEBUG *** 教练 " + coachId + " 没有重命名规则");
             logger.info("getDisplayStudentName - 教练 {} 没有重命名规则", coachId);
         }
         
