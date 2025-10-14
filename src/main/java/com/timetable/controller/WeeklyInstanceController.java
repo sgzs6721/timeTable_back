@@ -969,33 +969,32 @@ public class WeeklyInstanceController {
 
             displayName = displayName.trim();
             
-            // 为每个学员创建合并操作记录
+            // 查找第一个学员所属的教练ID作为合并记录的教练ID
+            Long coachId = null;
             for (String studentName : studentNames) {
-                if (studentName == null || studentName.trim().isEmpty()) {
-                    continue;
+                if (studentName != null && !studentName.trim().isEmpty()) {
+                    coachId = weeklyInstanceService.findCoachIdByStudentName(studentName.trim());
+                    if (coachId != null) {
+                        break;
+                    }
                 }
-                
-                studentName = studentName.trim();
-                
-                // 查找学员所属的教练ID
-                Long coachId = weeklyInstanceService.findCoachIdByStudentName(studentName);
-                if (coachId == null) {
-                    coachId = user.getId(); // 如果找不到，使用当前用户ID
-                }
-
-                // 创建合并操作记录
-                StudentOperationRecord record = new StudentOperationRecord();
-                record.setCoachId(coachId);
-                record.setOperationType("MERGE");
-                record.setOldName(studentName);
-                record.setNewName(displayName); // 合并后的显示名称
-                record.setDetails("{\"operationType\":\"MERGE_STUDENT\",\"description\":\"合并学员\",\"displayName\":\"" + displayName + "\",\"originalStudents\":" + studentNames.toString() + "}");
-                record.setCreatedAt(java.time.LocalDateTime.now());
-                record.setUpdatedAt(java.time.LocalDateTime.now());
-
-                // 保存操作记录
-                weeklyInstanceService.saveOrUpdateMergeRule(record);
             }
+            if (coachId == null) {
+                coachId = user.getId(); // 如果找不到，使用当前用户ID
+            }
+
+            // 创建一条合并操作记录
+            StudentOperationRecord record = new StudentOperationRecord();
+            record.setCoachId(coachId);
+            record.setOperationType("MERGE");
+            record.setOldName(String.join(",", studentNames)); // 将所有学员名称用逗号连接
+            record.setNewName(displayName); // 合并后的显示名称
+            record.setDetails("{\"operationType\":\"MERGE_STUDENT\",\"description\":\"合并学员\",\"displayName\":\"" + displayName + "\",\"originalStudents\":" + studentNames.toString() + "}");
+            record.setCreatedAt(java.time.LocalDateTime.now());
+            record.setUpdatedAt(java.time.LocalDateTime.now());
+
+            // 保存操作记录
+            weeklyInstanceService.saveOrUpdateMergeRule(record);
 
             logger.info("合并学员操作: displayName={}, studentNames={}, userId={}", 
                        displayName, studentNames, user.getId());
