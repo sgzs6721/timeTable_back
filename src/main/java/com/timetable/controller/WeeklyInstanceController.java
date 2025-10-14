@@ -862,12 +862,15 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         try {
-            // 获取被隐藏的学员列表
+            // 获取被隐藏的学员列表和合并规则
             List<String> hiddenStudents = getHiddenStudents();
+            java.util.Map<String, String> mergeRules = getMergeRules();
             
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
                 // 分组返回教练列表
                 List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
+                // 应用合并规则
+                grouped = applyMergeRulesToGrouped(grouped, mergeRules);
                 // 过滤掉被隐藏的学员
                 grouped = filterHiddenStudentsFromGrouped(grouped, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", grouped));
@@ -875,6 +878,8 @@ public class WeeklyInstanceController {
                 // 保持原有教练/普通模式单纯列表
                 List<com.timetable.dto.StudentSummaryDTO> students =
                         weeklyInstanceService.getStudentSummariesByCoach(user.getId());
+                // 应用合并规则
+                students = applyMergeRulesToList(students, mergeRules);
                 // 过滤掉被隐藏的学员
                 students = filterHiddenStudentsFromList(students, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
@@ -1249,6 +1254,37 @@ public class WeeklyInstanceController {
     }
     
     /**
+     * 获取合并规则映射
+     */
+    private java.util.Map<String, String> getMergeRules() {
+        try {
+            List<StudentOperationRecord> mergeRecords = studentOperationRecordRepository.findAll()
+                .stream()
+                .filter(record -> "MERGE".equals(record.getOperationType()))
+                .collect(java.util.stream.Collectors.toList());
+            
+            java.util.Map<String, String> mergeMap = new java.util.HashMap<>();
+            for (StudentOperationRecord record : mergeRecords) {
+                String oldNames = record.getOldName();
+                String newName = record.getNewName();
+                if (oldNames != null && newName != null) {
+                    // 处理逗号分隔的多个学员名称
+                    String[] names = oldNames.split(",");
+                    for (String name : names) {
+                        if (name != null && !name.trim().isEmpty()) {
+                            mergeMap.put(name.trim(), newName.trim());
+                        }
+                    }
+                }
+            }
+            return mergeMap;
+        } catch (Exception e) {
+            logger.error("获取合并规则失败", e);
+            return new java.util.HashMap<>();
+        }
+    }
+    
+    /**
      * 从分组列表中过滤掉被隐藏的学员
      */
     private List<com.timetable.dto.CoachStudentSummaryDTO> filterHiddenStudentsFromGrouped(
@@ -1291,5 +1327,83 @@ public class WeeklyInstanceController {
         return students.stream()
             .filter(student -> !hiddenStudents.contains(student.getStudentName()))
             .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * 应用合并规则到分组学员列表
+     */
+    private List<com.timetable.dto.CoachStudentSummaryDTO> applyMergeRulesToGrouped(
+            List<com.timetable.dto.CoachStudentSummaryDTO> grouped, 
+            java.util.Map<String, String> mergeRules) {
+        
+        return grouped.stream()
+            .map(coach -> {
+                // 应用合并规则到学员列表
+                java.util.Map<String, com.timetable.dto.StudentSummaryDTO> mergedStudents = new java.util.HashMap<>();
+                
+                for (com.timetable.dto.StudentSummaryDTO student : coach.getStudents()) {
+                    String originalName = student.getStudentName();
+                    String mergedName = mergeRules.getOrDefault(originalName, originalName);
+                    
+                    if (mergedStudents.containsKey(mergedName)) {
+                        // 如果已存在合并后的学员，累加课时
+                        com.timetable.dto.StudentSummaryDTO existing = mergedStudents.get(mergedName);
+                        existing.setAttendedCount(existing.getAttendedCount() + student.getAttendedCount());
+                    } else {
+                        // 创建新的学员记录
+                        com.timetable.dto.StudentSummaryDTO mergedStudent = new com.timetable.dto.StudentSummaryDTO();
+                        mergedStudent.setStudentName(mergedName);
+                        mergedStudent.setAttendedCount(student.getAttendedCount());
+                        mergedStudent.setCoachId(student.getCoachId());
+                        mergedStudents.put(mergedName, mergedStudent);
+                    }
+                }
+                
+                // 转换为列表并重新计算总课时
+                List<com.timetable.dto.StudentSummaryDTO> studentList = new java.util.ArrayList<>(mergedStudents.values());
+                int newTotalCount = studentList.stream()
+                    .mapToInt(com.timetable.dto.StudentSummaryDTO::getAttendedCount)
+                    .sum();
+                
+                // 创建新的教练对象
+                com.timetable.dto.CoachStudentSummaryDTO newCoach = new com.timetable.dto.CoachStudentSummaryDTO();
+                newCoach.setCoachId(coach.getCoachId());
+                newCoach.setCoachName(coach.getCoachName());
+                newCoach.setTotalCount(newTotalCount);
+                newCoach.setStudents(studentList);
+                
+                return newCoach;
+            })
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * 应用合并规则到学员列表
+     */
+    private List<com.timetable.dto.StudentSummaryDTO> applyMergeRulesToList(
+            List<com.timetable.dto.StudentSummaryDTO> students, 
+            java.util.Map<String, String> mergeRules) {
+        
+        java.util.Map<String, com.timetable.dto.StudentSummaryDTO> mergedStudents = new java.util.HashMap<>();
+        
+        for (com.timetable.dto.StudentSummaryDTO student : students) {
+            String originalName = student.getStudentName();
+            String mergedName = mergeRules.getOrDefault(originalName, originalName);
+            
+            if (mergedStudents.containsKey(mergedName)) {
+                // 如果已存在合并后的学员，累加课时
+                com.timetable.dto.StudentSummaryDTO existing = mergedStudents.get(mergedName);
+                existing.setAttendedCount(existing.getAttendedCount() + student.getAttendedCount());
+            } else {
+                // 创建新的学员记录
+                com.timetable.dto.StudentSummaryDTO mergedStudent = new com.timetable.dto.StudentSummaryDTO();
+                mergedStudent.setStudentName(mergedName);
+                mergedStudent.setAttendedCount(student.getAttendedCount());
+                mergedStudent.setCoachId(student.getCoachId());
+                mergedStudents.put(mergedName, mergedStudent);
+            }
+        }
+        
+        return new java.util.ArrayList<>(mergedStudents.values());
     }
 }
