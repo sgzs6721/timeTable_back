@@ -910,12 +910,16 @@ public class WeeklyInstanceController {
             if (studentName != null && !studentName.trim().isEmpty()) {
                 final String trimmedStudentName = studentName.trim();
                 
-                // 对于指定学员名称的查询，直接查询所有记录然后过滤
-                // 这样可以确保找到跨教练的重命名记录
-                records = studentOperationRecordRepository.findAll();
+                // 首先根据用户权限获取基础记录集
+                List<StudentOperationRecord> baseRecords;
+                if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                    baseRecords = studentOperationRecordRepository.findAll();
+                } else {
+                    baseRecords = studentOperationRecordRepository.findByCoachId(user.getId());
+                }
                 
                 // 过滤出与该学员相关的记录（考虑重命名转换）
-                records = records.stream()
+                records = baseRecords.stream()
                     .filter(record -> {
                         // 直接匹配：学员名称匹配oldName或newName
                         if (trimmedStudentName.equals(record.getOldName()) || 
