@@ -862,14 +862,21 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         try {
+            // 获取被隐藏的学员列表
+            List<String> hiddenStudents = getHiddenStudents();
+            
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
                 // 分组返回教练列表
                 List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
+                // 过滤掉被隐藏的学员
+                grouped = filterHiddenStudentsFromGrouped(grouped, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", grouped));
             } else {
                 // 保持原有教练/普通模式单纯列表
                 List<com.timetable.dto.StudentSummaryDTO> students =
                         weeklyInstanceService.getStudentSummariesByCoach(user.getId());
+                // 过滤掉被隐藏的学员
+                students = filterHiddenStudentsFromList(students, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", students));
             }
         } catch (Exception e) {
@@ -1155,5 +1162,70 @@ public class WeeklyInstanceController {
             logger.error("强制刷新学员列表失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("强制刷新学员列表失败: " + e.getMessage()));
         }
+    }
+    
+    /**
+     * 获取被隐藏的学员列表
+     */
+    private List<String> getHiddenStudents() {
+        try {
+            List<StudentOperationRecord> hideRecords = studentOperationRecordRepository.findAll()
+                .stream()
+                .filter(record -> "HIDE".equals(record.getOperationType()))
+                .collect(java.util.stream.Collectors.toList());
+            
+            return hideRecords.stream()
+                .map(StudentOperationRecord::getOldName)
+                .filter(name -> name != null && !name.trim().isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            logger.error("获取隐藏学员列表失败", e);
+            return new java.util.ArrayList<>();
+        }
+    }
+    
+    /**
+     * 从分组列表中过滤掉被隐藏的学员
+     */
+    private List<com.timetable.dto.CoachStudentSummaryDTO> filterHiddenStudentsFromGrouped(
+            List<com.timetable.dto.CoachStudentSummaryDTO> grouped, 
+            List<String> hiddenStudents) {
+        
+        return grouped.stream()
+            .map(coach -> {
+                // 过滤掉被隐藏的学员
+                List<com.timetable.dto.StudentSummaryDTO> filteredStudents = coach.getStudents()
+                    .stream()
+                    .filter(student -> !hiddenStudents.contains(student.getStudentName()))
+                    .collect(java.util.stream.Collectors.toList());
+                
+                // 重新计算总课时
+                int newTotalCount = filteredStudents.stream()
+                    .mapToInt(com.timetable.dto.StudentSummaryDTO::getAttendedCount)
+                    .sum();
+                
+                // 创建新的教练对象
+                com.timetable.dto.CoachStudentSummaryDTO newCoach = new com.timetable.dto.CoachStudentSummaryDTO();
+                newCoach.setCoachId(coach.getCoachId());
+                newCoach.setCoachName(coach.getCoachName());
+                newCoach.setTotalCount(newTotalCount);
+                newCoach.setStudents(filteredStudents);
+                
+                return newCoach;
+            })
+            .filter(coach -> coach.getStudents() != null && !coach.getStudents().isEmpty())
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * 从学员列表中过滤掉被隐藏的学员
+     */
+    private List<com.timetable.dto.StudentSummaryDTO> filterHiddenStudentsFromList(
+            List<com.timetable.dto.StudentSummaryDTO> students, 
+            List<String> hiddenStudents) {
+        
+        return students.stream()
+            .filter(student -> !hiddenStudents.contains(student.getStudentName()))
+            .collect(java.util.stream.Collectors.toList());
     }
 }
