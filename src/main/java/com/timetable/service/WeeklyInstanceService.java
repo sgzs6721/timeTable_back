@@ -2400,7 +2400,7 @@ public class WeeklyInstanceService {
             Map<Long, List<com.timetable.dto.StudentAliasDTO>> coachAliases,
             Map<Long, Map<String, String>> coachRenameRules) {
         
-        logger.info("getDisplayStudentName - 处理学员名称: 原始名称={}, 教练ID={}", studentName, coachId);
+                logger.info("getDisplayStudentName - 处理学员名称: 原始名称={}, 教练ID={}", studentName, coachId);
         
         // 首先应用重命名规则
         Map<String, String> renameRules = coachRenameRules.get(coachId);

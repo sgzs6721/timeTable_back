@@ -30,7 +30,6 @@ public class StudentOperationRecordRepository extends BaseRepository {
             Record result = dsl.insertInto(table("student_operation_records"))
                     .set(field("coach_id"), record.getCoachId())
                     .set(field("operation_type"), record.getOperationType())
-                    .set(field("student_id"), record.getStudentId())
                     .set(field("old_name"), record.getOldName())
                     .set(field("new_name"), record.getNewName())
                     .set(field("details"), record.getDetails())
@@ -42,7 +41,7 @@ public class StudentOperationRecordRepository extends BaseRepository {
             if (result != null) {
                 Long generatedId = result.get("id", Long.class);
                 record.setId(generatedId);
-                System.out.println("DEBUG: 成功插入记录，ID: " + generatedId + ", 教练ID: " + record.getCoachId() + ", 学员ID: " + record.getStudentId() + ", 操作类型: " + record.getOperationType() + ", 原名: " + record.getOldName() + ", 新名: " + record.getNewName());
+                System.out.println("DEBUG: 成功插入记录，ID: " + generatedId + ", 教练ID: " + record.getCoachId() + ", 操作类型: " + record.getOperationType() + ", 原名: " + record.getOldName() + ", 新名: " + record.getNewName());
                 return generatedId;
             } else {
                 System.out.println("ERROR: 插入记录失败，result为null");
@@ -53,7 +52,6 @@ public class StudentOperationRecordRepository extends BaseRepository {
             int affectedRows = dsl.update(table("student_operation_records"))
                     .set(field("coach_id"), record.getCoachId())
                     .set(field("operation_type"), record.getOperationType())
-                    .set(field("student_id"), record.getStudentId())
                     .set(field("old_name"), record.getOldName())
                     .set(field("new_name"), record.getNewName())
                     .set(field("details"), record.getDetails())
@@ -137,7 +135,7 @@ public class StudentOperationRecordRepository extends BaseRepository {
         operationRecord.setId(record.get("id", Long.class));
         operationRecord.setCoachId(record.get("coach_id", Long.class));
         operationRecord.setOperationType(record.get("operation_type", String.class));
-        operationRecord.setStudentId(record.get("student_id", Long.class));
+        // operationRecord.setStudentId(record.get("student_id", Long.class)); // 暂时注释掉，数据库还没有这个字段
         operationRecord.setOldName(record.get("old_name", String.class));
         operationRecord.setNewName(record.get("new_name", String.class));
         operationRecord.setDetails(record.get("details", String.class));
