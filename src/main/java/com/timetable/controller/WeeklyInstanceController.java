@@ -943,6 +943,71 @@ public class WeeklyInstanceController {
      * 重命名学员 (临时API)
      */
     /**
+     * 合并学员 (临时API)
+     */
+    @PostMapping("/merge-students")
+    public ResponseEntity<ApiResponse<String>> mergeStudents(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            String displayName = (String) request.get("displayName");
+            @SuppressWarnings("unchecked")
+            List<String> studentNames = (List<String>) request.get("studentNames");
+            
+            if (displayName == null || displayName.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("合并后名称不能为空"));
+            }
+            
+            if (studentNames == null || studentNames.size() < 2) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("至少需要选择两个学员进行合并"));
+            }
+
+            displayName = displayName.trim();
+            
+            // 为每个学员创建合并操作记录
+            for (String studentName : studentNames) {
+                if (studentName == null || studentName.trim().isEmpty()) {
+                    continue;
+                }
+                
+                studentName = studentName.trim();
+                
+                // 查找学员所属的教练ID
+                Long coachId = weeklyInstanceService.findCoachIdByStudentName(studentName);
+                if (coachId == null) {
+                    coachId = user.getId(); // 如果找不到，使用当前用户ID
+                }
+
+                // 创建合并操作记录
+                StudentOperationRecord record = new StudentOperationRecord();
+                record.setCoachId(coachId);
+                record.setOperationType("MERGE");
+                record.setOldName(studentName);
+                record.setNewName(displayName); // 合并后的显示名称
+                record.setDetails("{\"operationType\":\"MERGE_STUDENT\",\"description\":\"合并学员\",\"displayName\":\"" + displayName + "\",\"originalStudents\":" + studentNames.toString() + "}");
+                record.setCreatedAt(java.time.LocalDateTime.now());
+                record.setUpdatedAt(java.time.LocalDateTime.now());
+
+                // 保存操作记录
+                weeklyInstanceService.saveOrUpdateMergeRule(record);
+            }
+
+            logger.info("合并学员操作: displayName={}, studentNames={}, userId={}", 
+                       displayName, studentNames, user.getId());
+
+            return ResponseEntity.ok(ApiResponse.success("学员合并成功", ""));
+        } catch (Exception e) {
+            logger.error("合并学员失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("合并学员失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 隐藏学员 (临时API)
      */
     @PostMapping("/hide-student")

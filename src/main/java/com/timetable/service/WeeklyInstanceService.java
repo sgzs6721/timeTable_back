@@ -2670,4 +2670,8 @@ public class WeeklyInstanceService {
     public void saveOrUpdateHideRule(StudentOperationRecord record) {
         studentOperationRecordRepository.save(record);
     }
+    
+    public void saveOrUpdateMergeRule(StudentOperationRecord record) {
+        studentOperationRecordRepository.save(record);
+    }
 }
