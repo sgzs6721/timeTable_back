@@ -49,32 +49,36 @@ public class StudentOperationService {
      * 重命名学员（创建或更新重命名规则，不直接修改数据）
      */
     public void renameStudent(Long coachId, StudentOperationRequest request) {
-        logger.info("创建或更新重命名规则: {} -> {} (教练ID: {})", request.getOldName(), request.getNewName(), coachId);
+        // 确保名称一致性：trim处理
+        String trimmedOldName = request.getOldName() != null ? request.getOldName().trim() : request.getOldName();
+        String trimmedNewName = request.getNewName() != null ? request.getNewName().trim() : request.getNewName();
+        
+        logger.info("创建或更新重命名规则: '{}' -> '{}' (教练ID: {})", trimmedOldName, trimmedNewName, coachId);
         
         try {
-            // 检查是否已存在相同学员的重命名规则
+            // 检查是否已存在相同学员的重命名规则，使用trim后的名称
             StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
-                coachId, "RENAME", request.getOldName());
+                coachId, "RENAME", trimmedOldName);
             
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "RENAME_RULE");
-            detailsMap.put("description", "创建重命名规则，显示时将 '" + request.getOldName() + "' 替换为 '" + request.getNewName() + "'");
+            detailsMap.put("description", "创建重命名规则，显示时将 '" + trimmedOldName + "' 替换为 '" + trimmedNewName + "'");
             String details = objectMapper.writeValueAsString(detailsMap);
             
             if (existingRecord != null) {
-                // 更新现有规则
-                existingRecord.setNewName(request.getNewName());
+                // 更新现有规则，使用trim后的名称
+                existingRecord.setNewName(trimmedNewName);
                 existingRecord.setDetails(details);
                 existingRecord.setUpdatedAt(java.time.LocalDateTime.now());
                 operationRecordRepository.update(existingRecord);
                 logger.info("成功更新重命名规则 (ID: {}, 教练ID: {})", existingRecord.getId(), coachId);
             } else {
-                // 创建新规则
+                // 创建新规则，使用trim后的名称
                 StudentOperationRecord record = new StudentOperationRecord(
                     coachId,
                     "RENAME",
-                    request.getOldName(),
-                    request.getNewName(),
+                    trimmedOldName,
+                    trimmedNewName,
                     details
                 );
                 Long recordId = operationRecordRepository.save(record);

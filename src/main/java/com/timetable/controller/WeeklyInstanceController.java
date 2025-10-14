@@ -921,4 +921,31 @@ public class WeeklyInstanceController {
             return ResponseEntity.status(500).body(ApiResponse.error("调试失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 强制清除缓存并重新获取学员列表
+     */
+    @GetMapping("/students/force-refresh")
+    public ResponseEntity<ApiResponse<?>> forceRefreshStudents(
+            @RequestParam(defaultValue = "false") Boolean showAll,
+            Authentication authentication) {
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        try {
+            // 强制刷新，不使用任何缓存
+            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
+                return ResponseEntity.ok(ApiResponse.success("强制刷新学员列表成功", grouped));
+            } else {
+                List<com.timetable.dto.StudentSummaryDTO> students =
+                        weeklyInstanceService.getStudentSummariesByCoach(user.getId());
+                return ResponseEntity.ok(ApiResponse.success("强制刷新学员列表成功", students));
+            }
+        } catch (Exception e) {
+            logger.error("强制刷新学员列表失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("强制刷新学员列表失败: " + e.getMessage()));
+        }
+    }
 }

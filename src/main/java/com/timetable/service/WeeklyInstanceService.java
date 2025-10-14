@@ -1967,8 +1967,11 @@ public class WeeklyInstanceService {
                 switch (operationType) {
                     case "RENAME":
                         if (newName != null && !newName.trim().isEmpty()) {
-                            renameRules.put(oldName, newName);
-                            logger.info("添加重命名规则: {} -> {}", oldName, newName);
+                            // 确保oldName也被trim，保持一致性
+                            String trimmedOldName = oldName != null ? oldName.trim() : oldName;
+                            String trimmedNewName = newName.trim();
+                            renameRules.put(trimmedOldName, trimmedNewName);
+                            logger.info("添加重命名规则: '{}' -> '{}'", trimmedOldName, trimmedNewName);
                         }
                         break;
                     case "DELETE":
@@ -2250,8 +2253,11 @@ public class WeeklyInstanceService {
                         switch (operationType) {
                             case "RENAME":
                                 if (newName != null && !newName.trim().isEmpty()) {
-                                    renameRules.put(oldName, newName);
-                                    logger.info("getStudentGroupByCoachSummaryAll - 添加重命名规则: {} -> {} (教练ID: {})", oldName, newName, coach.getId());
+                                    // 确保oldName也被trim，保持一致性
+                                    String trimmedOldName = oldName != null ? oldName.trim() : oldName;
+                                    String trimmedNewName = newName.trim();
+                                    renameRules.put(trimmedOldName, trimmedNewName);
+                                    logger.info("getStudentGroupByCoachSummaryAll - 添加重命名规则: '{}' -> '{}' (教练ID: {})", trimmedOldName, trimmedNewName, coach.getId());
                                 }
                                 break;
                             case "DELETE":
