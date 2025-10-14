@@ -1776,24 +1776,30 @@ public class WeeklyInstanceService {
                     // 先按日期比较（使用LocalDate进行正确比较）
                     LocalDate localDateA = LocalDate.parse(dateA);
                     LocalDate localDateB = LocalDate.parse(dateB);
+                    
+                    // 日期倒序：较新的日期排在前面
                     int dateCompare = localDateB.compareTo(localDateA);
                     if (dateCompare != 0) {
                         return dateCompare;
                     }
                     
                     // 日期相同时按时间比较
-                    if (timeA != null && timeB != null) {
+                    if (timeA != null && timeB != null && !timeA.isEmpty() && !timeB.isEmpty()) {
                         // 提取开始时间进行比较
-                        String startTimeA = timeA.split("-")[0];
-                        String startTimeB = timeB.split("-")[0];
+                        String startTimeA = timeA.split("-")[0].trim();
+                        String startTimeB = timeB.split("-")[0].trim();
                         LocalTime localTimeA = LocalTime.parse(startTimeA);
                         LocalTime localTimeB = LocalTime.parse(startTimeB);
+                        
+                        // 时间倒序：较晚的时间排在前面
                         return localTimeB.compareTo(localTimeA);
                     }
                     
                     return 0;
                 } catch (Exception e) {
-                    logger.warn("排序比较失败: {}", e.getMessage());
+                    logger.warn("排序比较失败: dateA={}, dateB={}, timeA={}, timeB={}, error={}", 
+                        a.get("scheduleDate"), b.get("scheduleDate"), 
+                        a.get("timeRange"), b.get("timeRange"), e.getMessage());
                     return 0;
                 }
             });
