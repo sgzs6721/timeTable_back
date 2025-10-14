@@ -1584,36 +1584,68 @@ public class WeeklyInstanceService {
         List<Map<String, Object>> schedules = new ArrayList<>();
         List<Map<String, Object>> leaves = new ArrayList<>();
         
-        // 反向查找：如果传入的是重命名后的名字，需要找到原始名字
-        String originalStudentName = studentName;
+        // 需要查询的学员名称列表（包括原始名和所有被合并的学员名）
+        List<String> studentNamesToQuery = new ArrayList<>();
         String displayName = studentName;
         
         try {
-            // 查找所有重命名规则，看看是否有规则的newName等于当前studentName
+            // 查找所有操作记录
             List<StudentOperationRecord> allRecords = studentOperationRecordRepository.findAll();
+            
+            // 1. 反向查找：如果传入的是重命名后的名字，需要找到原始名字
+            String originalStudentName = studentName;
             for (StudentOperationRecord record : allRecords) {
                 if ("RENAME".equals(record.getOperationType()) && 
                     studentName.equals(record.getNewName())) {
                     // 找到了！这是重命名后的名字，原始名字是oldName
                     originalStudentName = record.getOldName();
                     displayName = record.getNewName();
-                    logger.info("学员详情反向查找: 显示名='{}' -> 原始名='{}'", displayName, originalStudentName);
+                    logger.info("学员详情反向查找(重命名): 显示名='{}' -> 原始名='{}'", displayName, originalStudentName);
+                    break;
+                }
+            }
+            studentNamesToQuery.add(originalStudentName);
+            
+            // 2. 查找合并规则：如果当前学员是合并后的结果，需要找到所有被合并的学员
+            for (StudentOperationRecord record : allRecords) {
+                if ("MERGE".equals(record.getOperationType()) && 
+                    studentName.equals(record.getNewName())) {
+                    // 找到了合并规则！解析所有被合并的学员名
+                    String oldNames = record.getOldName();
+                    if (oldNames != null && !oldNames.trim().isEmpty()) {
+                        String[] names = oldNames.split(",");
+                        for (String name : names) {
+                            String trimmedName = name.trim();
+                            if (!trimmedName.isEmpty() && !studentNamesToQuery.contains(trimmedName)) {
+                                studentNamesToQuery.add(trimmedName);
+                                logger.info("学员详情反向查找(合并): 显示名='{}' -> 包含被合并学员='{}'", displayName, trimmedName);
+                            }
+                        }
+                    }
                     break;
                 }
             }
         } catch (Exception e) {
             logger.error("反向查找学员原始名字失败: {}", e.getMessage());
+            // 如果查找失败，至少要查询原始的studentName
+            if (studentNamesToQuery.isEmpty()) {
+                studentNamesToQuery.add(studentName);
+            }
         }
         
-        logger.info("获取学员记录: 显示名={}, 原始名={}, 教练={}", displayName, originalStudentName, coachName);
+        logger.info("获取学员记录: 显示名={}, 需要查询的学员名={}, 教练={}", displayName, studentNamesToQuery, coachName);
         
         try {
             // 获取当前日期和时间，只显示过去的课程记录
             LocalDate today = LocalDate.now();
             LocalTime currentTime = LocalTime.now();
             
-            // 1. 获取实例课表的记录（使用原始名字查询）
-            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(originalStudentName);
+            // 遍历所有需要查询的学员名称（包括原始名和所有被合并的学员名）
+            for (String queryName : studentNamesToQuery) {
+                logger.info("查询学员记录: {}", queryName);
+                
+                // 1. 获取实例课表的记录
+                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(queryName);
             
             for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                 // 只显示过去的课程记录
@@ -1676,29 +1708,29 @@ public class WeeklyInstanceService {
                 }
             }
             
-            // 2. 获取日期类课表的记录
-            List<Timetables> allTimetables = timetableRepository.findAll();
-            for (Timetables timetable : allTimetables) {
-                // 只处理日期类课表（非周课表）
-                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
-                    continue;
-                }
-                
-                // 获取教练信息
-                Users coach = userService.findById(timetable.getUserId());
-                String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
-                
-                // 如果指定了教练，只返回该教练的记录（但管理员可以查看所有记录）
-                if (coachName != null && !coachName.equals(scheduleCoachName)) {
-                    // 检查当前用户是否为管理员，如果是管理员，则允许查看所有记录
-                    Users currentUser = userService.findByUsername(coachName);
-                    if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+                // 2. 获取日期类课表的记录
+                List<Timetables> allTimetables = timetableRepository.findAll();
+                for (Timetables timetable : allTimetables) {
+                    // 只处理日期类课表（非周课表）
+                    if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
                         continue;
                     }
-                }
-                
-                // 获取该课表中该学员的所有课程记录（使用原始名字查询）
-                List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), originalStudentName);
+                    
+                    // 获取教练信息
+                    Users coach = userService.findById(timetable.getUserId());
+                    String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
+                    
+                    // 如果指定了教练，只返回该教练的记录（但管理员可以查看所有记录）
+                    if (coachName != null && !coachName.equals(scheduleCoachName)) {
+                        // 检查当前用户是否为管理员，如果是管理员，则允许查看所有记录
+                        Users currentUser = userService.findByUsername(coachName);
+                        if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+                            continue;
+                        }
+                    }
+                    
+                    // 获取该课表中该学员的所有课程记录
+                    List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), queryName);
                 
                 for (Schedules dateSchedule : dateSchedules) {
                     // 只处理有具体日期的记录
@@ -1730,7 +1762,8 @@ public class WeeklyInstanceService {
                     
                     schedules.add(scheduleRecord);
                 }
-            }
+                }
+            } // 结束遍历studentNamesToQuery的循环
             
             // 3. 统一按日期和时间倒序排列所有记录
             schedules.sort((a, b) -> {
@@ -1774,6 +1807,7 @@ public class WeeklyInstanceService {
         
         // 获取学员真正的教练信息
         String actualCoachName = "未知教练";
+        String primaryStudentName = studentNamesToQuery.isEmpty() ? studentName : studentNamesToQuery.get(0);
         
         // 优先从上课记录中获取教练信息
         if (!schedules.isEmpty()) {
@@ -1784,8 +1818,8 @@ public class WeeklyInstanceService {
         } else {
             // 如果都没有记录，尝试从课表中查找该学员的教练
             try {
-                // 从实例课表中查找（使用原始名字）
-                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(originalStudentName);
+                // 从实例课表中查找（使用第一个学员名）
+                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(primaryStudentName);
                 for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                     WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
                     if (instance != null) {
@@ -1811,7 +1845,7 @@ public class WeeklyInstanceService {
                             continue;
                         }
                         
-                        List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), originalStudentName);
+                        List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), primaryStudentName);
                         if (!dateSchedules.isEmpty()) {
                             Users coach = userService.findById(timetable.getUserId());
                             if (coach != null) {
@@ -1830,10 +1864,11 @@ public class WeeklyInstanceService {
         result.put("leaves", leaves);
         result.put("actualCoachName", actualCoachName);
         result.put("studentDisplayName", displayName);  // 重命名后的显示名称
-        result.put("studentOriginalName", originalStudentName);  // 原始名称
+        result.put("studentOriginalName", primaryStudentName);  // 原始名称
+        result.put("mergedStudentNames", studentNamesToQuery);  // 所有被合并的学员名称
         
-        logger.info("返回学员记录: 显示名={}, 原始名={}, 上课记录数={}, 请假记录数={}", 
-            displayName, originalStudentName, schedules.size(), leaves.size());
+        logger.info("返回学员记录: 显示名={}, 查询的学员名={}, 上课记录数={}, 请假记录数={}", 
+            displayName, studentNamesToQuery, schedules.size(), leaves.size());
         
         return result;
     }
