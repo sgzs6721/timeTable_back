@@ -1037,10 +1037,27 @@ public class WeeklyInstanceController {
 
             studentName = studentName.trim();
             
-            // 查找学员所属的教练ID
-            Long coachId = weeklyInstanceService.findCoachIdByStudentName(studentName);
+            // 获取教练ID，优先使用前端传递的coachId
+            Long coachId = null;
+            Object coachIdObj = request.get("coachId");
+            if (coachIdObj != null) {
+                if (coachIdObj instanceof Number) {
+                    coachId = ((Number) coachIdObj).longValue();
+                } else if (coachIdObj instanceof String) {
+                    try {
+                        coachId = Long.parseLong((String) coachIdObj);
+                    } catch (NumberFormatException e) {
+                        // 忽略解析错误，使用默认逻辑
+                    }
+                }
+            }
+            
+            // 如果前端没有传递coachId，则查找学员所属的教练ID
             if (coachId == null) {
-                coachId = user.getId(); // 如果找不到，使用当前用户ID
+                coachId = weeklyInstanceService.findCoachIdByStudentName(studentName);
+                if (coachId == null) {
+                    coachId = user.getId(); // 如果找不到，使用当前用户ID
+                }
             }
 
             // 创建隐藏操作记录
