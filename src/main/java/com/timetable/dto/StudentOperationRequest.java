@@ -22,3 +22,4 @@ public class StudentOperationRequest {
     public String getAliasName() { return aliasName; }
     public void setAliasName(String aliasName) { this.aliasName = aliasName; }
 }
+

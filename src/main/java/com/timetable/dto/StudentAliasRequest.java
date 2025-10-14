@@ -21,3 +21,4 @@ public class StudentAliasRequest {
     public List<String> getStudentNames() { return studentNames; }
     public void setStudentNames(List<String> studentNames) { this.studentNames = studentNames; }
 }
+

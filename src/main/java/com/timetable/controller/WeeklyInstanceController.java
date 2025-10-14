@@ -899,4 +899,26 @@ public class WeeklyInstanceController {
             return ResponseEntity.status(500).body(ApiResponse.error("测试失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 公开的测试重命名规则（不需要管理员权限）
+     */
+    @GetMapping("/debug-rename-rules/{coachId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> debugRenameRules(
+            @PathVariable Long coachId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            Map<String, Object> result = weeklyInstanceService.testRenameRules(coachId);
+            return ResponseEntity.ok(ApiResponse.success("调试重命名规则完成", result));
+        } catch (Exception e) {
+            logger.error("调试重命名规则失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("调试失败: " + e.getMessage()));
+        }
+    }
 }
