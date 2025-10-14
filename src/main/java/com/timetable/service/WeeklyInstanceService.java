@@ -2420,8 +2420,14 @@ public class WeeklyInstanceService {
         }
         List<com.timetable.dto.CoachStudentSummaryDTO> result = new ArrayList<>();
         coachStudents.forEach((coachId, stuList) -> {
-            stuList.sort((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()));
-            result.add(new com.timetable.dto.CoachStudentSummaryDTO(coachId, coachNameMap.getOrDefault(coachId, "未知教练"), coachTotal.getOrDefault(coachId, 0), stuList));
+            // 只添加有有效教练名称和学员的数据
+            String coachName = coachNameMap.get(coachId);
+            if (coachName != null && !coachName.trim().isEmpty() && !stuList.isEmpty()) {
+                stuList.sort((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()));
+                result.add(new com.timetable.dto.CoachStudentSummaryDTO(coachId, coachName, coachTotal.getOrDefault(coachId, 0), stuList));
+            } else {
+                logger.warn("跳过无效教练数据: coachId={}, coachName='{}', 学员数量={}", coachId, coachName, stuList.size());
+            }
         });
         result.sort((a, b) -> b.getTotalCount().compareTo(a.getTotalCount()));
         return result;
