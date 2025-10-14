@@ -1584,13 +1584,36 @@ public class WeeklyInstanceService {
         List<Map<String, Object>> schedules = new ArrayList<>();
         List<Map<String, Object>> leaves = new ArrayList<>();
         
+        // 反向查找：如果传入的是重命名后的名字，需要找到原始名字
+        String originalStudentName = studentName;
+        String displayName = studentName;
+        
+        try {
+            // 查找所有重命名规则，看看是否有规则的newName等于当前studentName
+            List<StudentOperationRecord> allRecords = studentOperationRecordRepository.findAll();
+            for (StudentOperationRecord record : allRecords) {
+                if ("RENAME".equals(record.getOperationType()) && 
+                    studentName.equals(record.getNewName())) {
+                    // 找到了！这是重命名后的名字，原始名字是oldName
+                    originalStudentName = record.getOldName();
+                    displayName = record.getNewName();
+                    logger.info("学员详情反向查找: 显示名='{}' -> 原始名='{}'", displayName, originalStudentName);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            logger.error("反向查找学员原始名字失败: {}", e.getMessage());
+        }
+        
+        logger.info("获取学员记录: 显示名={}, 原始名={}, 教练={}", displayName, originalStudentName, coachName);
+        
         try {
             // 获取当前日期和时间，只显示过去的课程记录
             LocalDate today = LocalDate.now();
             LocalTime currentTime = LocalTime.now();
             
-            // 1. 获取实例课表的记录
-            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
+            // 1. 获取实例课表的记录（使用原始名字查询）
+            List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(originalStudentName);
             
             for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                 // 只显示过去的课程记录
@@ -1674,8 +1697,8 @@ public class WeeklyInstanceService {
                     }
                 }
                 
-                // 获取该课表中该学员的所有课程记录
-                List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), studentName);
+                // 获取该课表中该学员的所有课程记录（使用原始名字查询）
+                List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), originalStudentName);
                 
                 for (Schedules dateSchedule : dateSchedules) {
                     // 只处理有具体日期的记录
@@ -1761,8 +1784,8 @@ public class WeeklyInstanceService {
         } else {
             // 如果都没有记录，尝试从课表中查找该学员的教练
             try {
-                // 从实例课表中查找
-                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(studentName);
+                // 从实例课表中查找（使用原始名字）
+                List<WeeklyInstanceSchedule> instanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(originalStudentName);
                 for (WeeklyInstanceSchedule schedule : instanceSchedules) {
                     WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
                     if (instance != null) {
@@ -1788,7 +1811,7 @@ public class WeeklyInstanceService {
                             continue;
                         }
                         
-                        List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), studentName);
+                        List<Schedules> dateSchedules = scheduleRepository.findByTimetableIdAndStudentName(timetable.getId(), originalStudentName);
                         if (!dateSchedules.isEmpty()) {
                             Users coach = userService.findById(timetable.getUserId());
                             if (coach != null) {
@@ -1806,6 +1829,12 @@ public class WeeklyInstanceService {
         result.put("schedules", schedules);
         result.put("leaves", leaves);
         result.put("actualCoachName", actualCoachName);
+        result.put("studentDisplayName", displayName);  // 重命名后的显示名称
+        result.put("studentOriginalName", originalStudentName);  // 原始名称
+        
+        logger.info("返回学员记录: 显示名={}, 原始名={}, 上课记录数={}, 请假记录数={}", 
+            displayName, originalStudentName, schedules.size(), leaves.size());
+        
         return result;
     }
 

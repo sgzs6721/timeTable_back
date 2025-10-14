@@ -65,6 +65,18 @@ public class StudentOperationRecordRepository extends BaseRepository {
     }
 
     /**
+     * 查找所有操作记录
+     */
+    public List<StudentOperationRecord> findAll() {
+        Result<Record> records = dsl.select()
+                .from(table("student_operation_records"))
+                .orderBy(field("created_at").desc())
+                .fetch();
+        
+        return records.map(this::mapToStudentOperationRecord);
+    }
+    
+    /**
      * 根据教练ID查找所有操作记录
      */
     public List<StudentOperationRecord> findByCoachId(Long coachId) {
