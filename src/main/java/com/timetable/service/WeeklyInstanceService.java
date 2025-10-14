@@ -2082,6 +2082,10 @@ public class WeeklyInstanceService {
 
         // 聚合最终结果，处理重命名链和别名
         Map<String, Integer> finalStudentToCount = new HashMap<>();
+        logger.info("开始处理重命名规则，学员数量: {}", studentToCount.size());
+        logger.info("原始学员列表: {}", studentToCount.keySet());
+        logger.info("重命名规则映射: {}", renameRules);
+        
         for (Map.Entry<String, Integer> entry : studentToCount.entrySet()) {
             String originalName = entry.getKey();
             Integer count = entry.getValue();
@@ -2089,13 +2093,21 @@ public class WeeklyInstanceService {
             // 解析重命名链
             String currentName = originalName;
             Set<String> visited = new HashSet<>();
+            logger.info("处理学员: '{}', 课时数: {}", originalName, count);
+            
             while (renameRules.containsKey(currentName) && visited.add(currentName)) {
-                currentName = renameRules.get(currentName);
+                String nextName = renameRules.get(currentName);
+                logger.info("  应用重命名规则: '{}' -> '{}'", currentName, nextName);
+                currentName = nextName;
             }
 
             // 应用别名
             String displayName = aliasRules.getOrDefault(currentName, currentName);
+            if (!displayName.equals(currentName)) {
+                logger.info("  应用别名规则: '{}' -> '{}'", currentName, displayName);
+            }
             
+            logger.info("  最终显示名称: '{}'", displayName);
             finalStudentToCount.put(displayName, finalStudentToCount.getOrDefault(displayName, 0) + count);
         }
 
