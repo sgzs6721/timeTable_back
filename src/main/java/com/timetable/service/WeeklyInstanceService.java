@@ -1932,6 +1932,49 @@ public class WeeklyInstanceService {
         return studentOperationRecordRepository.findByCoachId(coachId);
     }
     
+    /**
+     * 根据学员名称查找其所属的教练ID
+     */
+    public Long findCoachIdByStudentName(String studentName) {
+        try {
+            // 1. 先从周实例课程中查找
+            List<WeeklyInstanceSchedule> schedules = weeklyInstanceScheduleRepository.findAll();
+            for (WeeklyInstanceSchedule schedule : schedules) {
+                if (studentName.equals(schedule.getStudentName())) {
+                    WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+                    if (instance != null) {
+                        Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                        if (timetable != null) {
+                            logger.info("从周实例课程找到学员 '{}' 属于教练ID: {}", studentName, timetable.getUserId());
+                            return timetable.getUserId();
+                        }
+                    }
+                }
+            }
+            
+            // 2. 如果周实例中没找到，从日期类课表中查找
+            List<Timetables> allTimetables = timetableRepository.findAll();
+            for (Timetables timetable : allTimetables) {
+                if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) continue;
+                
+                List<com.timetable.generated.tables.pojos.Schedules> schedulesList = scheduleRepository.findByTimetableId(timetable.getId());
+                for (com.timetable.generated.tables.pojos.Schedules s : schedulesList) {
+                    if (studentName.equals(s.getStudentName())) {
+                        logger.info("从日期课表找到学员 '{}' 属于教练ID: {}", studentName, timetable.getUserId());
+                        return timetable.getUserId();
+                    }
+                }
+            }
+            
+            logger.warn("未找到学员 '{}' 所属的教练", studentName);
+            return null;
+        } catch (Exception e) {
+            logger.error("查找学员所属教练失败: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+    
     public void saveOrUpdateRenameRule(com.timetable.entity.StudentOperationRecord record) {
         try {
             // 检查是否已存在相同的重命名规则

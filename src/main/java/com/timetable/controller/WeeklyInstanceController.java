@@ -893,9 +893,30 @@ public class WeeklyInstanceController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("学员名称不能为空"));
             }
             
-            // 直接调用数据库保存
+            // 查找该学员所属的教练ID
+            Long targetCoachId = null;
+            
+            // 从请求中获取coachId（如果前端传了）
+            if (request.containsKey("coachId")) {
+                targetCoachId = Long.valueOf(request.get("coachId").toString());
+                logger.info("从请求中获取教练ID: {}", targetCoachId);
+            } else {
+                // 如果前端没传coachId，则查找学员所属的教练
+                targetCoachId = weeklyInstanceService.findCoachIdByStudentName(oldName.trim());
+                logger.info("通过学员名称查找教练ID: {} -> {}", oldName.trim(), targetCoachId);
+            }
+            
+            // 如果找不到教练ID，使用当前登录用户的ID
+            if (targetCoachId == null) {
+                targetCoachId = user.getId();
+                logger.warn("未找到学员所属教练，使用当前用户ID: {}", targetCoachId);
+            }
+            
+            logger.info("保存重命名规则 - 用户名: {}, 教练ID: {}, 原名: '{}', 新名: '{}'", 
+                authentication.getName(), targetCoachId, oldName.trim(), newName.trim());
+            
             com.timetable.entity.StudentOperationRecord record = new com.timetable.entity.StudentOperationRecord();
-            record.setCoachId(user.getId());
+            record.setCoachId(targetCoachId);
             record.setOperationType("RENAME");
             record.setOldName(oldName.trim());
             record.setNewName(newName.trim());
@@ -903,7 +924,12 @@ public class WeeklyInstanceController {
             record.setCreatedAt(java.time.LocalDateTime.now());
             record.setUpdatedAt(java.time.LocalDateTime.now());
             
+            logger.info("准备保存重命名规则记录: coachId={}, operationType={}, oldName='{}', newName='{}'",
+                record.getCoachId(), record.getOperationType(), record.getOldName(), record.getNewName());
+            
             weeklyInstanceService.saveOrUpdateRenameRule(record);
+            
+            logger.info("重命名规则保存完成");
             
             return ResponseEntity.ok(ApiResponse.success("重命名规则创建成功", "OK"));
         } catch (Exception e) {
