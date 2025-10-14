@@ -2101,7 +2101,7 @@ public class WeeklyInstanceService {
 
         // 转为 DTO 并排序
         List<StudentSummaryDTO> list = finalStudentToCount.entrySet().stream()
-                .map(e -> new StudentSummaryDTO(e.getKey(), e.getValue()))
+                .map(e -> new StudentSummaryDTO(null, coachId, e.getKey(), e.getValue()))
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
         
@@ -2218,7 +2218,7 @@ public class WeeklyInstanceService {
                     if (!visited.contains(originalName) && aliasRules.containsKey(displayName)) {
                         displayName = aliasRules.get(displayName);
                     }
-                    return new StudentSummaryDTO(displayName, e.getValue());
+                    return new StudentSummaryDTO(null, null, displayName, e.getValue()); // 全部学员列表，没有特定教练ID
                 })
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
@@ -2361,7 +2361,7 @@ public class WeeklyInstanceService {
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                 com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                 if (found == null) {
-                    found = new com.timetable.dto.StudentSummaryDTO(null, displayName, 1);
+                    found = new com.timetable.dto.StudentSummaryDTO(null, coachId, displayName, 1);
                     list.add(found);
                 } else {
                     found.setAttendedCount(found.getAttendedCount() + 1);
@@ -2407,7 +2407,7 @@ public class WeeklyInstanceService {
                     List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                     com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                     if (found == null) {
-                        found = new com.timetable.dto.StudentSummaryDTO(null, displayName, 1);
+                        found = new com.timetable.dto.StudentSummaryDTO(null, coachId, displayName, 1);
                         list.add(found);
                     } else {
                         found.setAttendedCount(found.getAttendedCount() + 1);
