@@ -1767,38 +1767,68 @@ public class WeeklyInstanceService {
             
             // 3. 统一按日期和时间倒序排列所有记录
             schedules.sort((a, b) -> {
-                String dateA = (String) a.get("scheduleDate");
-                String dateB = (String) b.get("scheduleDate");
-                String timeA = (String) a.get("timeRange");
-                String timeB = (String) b.get("timeRange");
-                
-                // 先按日期比较（使用LocalDate进行正确比较）
-                LocalDate localDateA = LocalDate.parse(dateA);
-                LocalDate localDateB = LocalDate.parse(dateB);
-                int dateCompare = localDateB.compareTo(localDateA);
-                if (dateCompare != 0) {
-                    return dateCompare;
+                try {
+                    String dateA = (String) a.get("scheduleDate");
+                    String dateB = (String) b.get("scheduleDate");
+                    String timeA = (String) a.get("timeRange");
+                    String timeB = (String) b.get("timeRange");
+                    
+                    // 先按日期比较（使用LocalDate进行正确比较）
+                    LocalDate localDateA = LocalDate.parse(dateA);
+                    LocalDate localDateB = LocalDate.parse(dateB);
+                    int dateCompare = localDateB.compareTo(localDateA);
+                    if (dateCompare != 0) {
+                        return dateCompare;
+                    }
+                    
+                    // 日期相同时按时间比较
+                    if (timeA != null && timeB != null) {
+                        // 提取开始时间进行比较
+                        String startTimeA = timeA.split("-")[0];
+                        String startTimeB = timeB.split("-")[0];
+                        LocalTime localTimeA = LocalTime.parse(startTimeA);
+                        LocalTime localTimeB = LocalTime.parse(startTimeB);
+                        return localTimeB.compareTo(localTimeA);
+                    }
+                    
+                    return 0;
+                } catch (Exception e) {
+                    logger.warn("排序比较失败: {}", e.getMessage());
+                    return 0;
                 }
-                // 日期相同时按时间比较
-                return timeB.compareTo(timeA);
             });
             
             // 4. 请假记录也按日期和时间倒序排列
             leaves.sort((a, b) -> {
-                String dateA = (String) a.get("leaveDate");
-                String dateB = (String) b.get("leaveDate");
-                String timeA = (String) a.get("timeRange");
-                String timeB = (String) b.get("timeRange");
-                
-                // 先按日期比较（使用LocalDate进行正确比较）
-                LocalDate localDateA = LocalDate.parse(dateA);
-                LocalDate localDateB = LocalDate.parse(dateB);
-                int dateCompare = localDateB.compareTo(localDateA);
-                if (dateCompare != 0) {
-                    return dateCompare;
+                try {
+                    String dateA = (String) a.get("leaveDate");
+                    String dateB = (String) b.get("leaveDate");
+                    String timeA = (String) a.get("timeRange");
+                    String timeB = (String) b.get("timeRange");
+                    
+                    // 先按日期比较（使用LocalDate进行正确比较）
+                    LocalDate localDateA = LocalDate.parse(dateA);
+                    LocalDate localDateB = LocalDate.parse(dateB);
+                    int dateCompare = localDateB.compareTo(localDateA);
+                    if (dateCompare != 0) {
+                        return dateCompare;
+                    }
+                    
+                    // 日期相同时按时间比较
+                    if (timeA != null && timeB != null) {
+                        // 提取开始时间进行比较
+                        String startTimeA = timeA.split("-")[0];
+                        String startTimeB = timeB.split("-")[0];
+                        LocalTime localTimeA = LocalTime.parse(startTimeA);
+                        LocalTime localTimeB = LocalTime.parse(startTimeB);
+                        return localTimeB.compareTo(localTimeA);
+                    }
+                    
+                    return 0;
+                } catch (Exception e) {
+                    logger.warn("请假记录排序比较失败: {}", e.getMessage());
+                    return 0;
                 }
-                // 日期相同时按时间比较
-                return timeB.compareTo(timeA);
             });
             
         } catch (Exception e) {
