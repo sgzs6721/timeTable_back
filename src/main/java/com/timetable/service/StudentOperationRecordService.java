@@ -14,6 +14,13 @@ public class StudentOperationRecordService {
     private StudentOperationRecordRepository operationRecordRepository;
     
     /**
+     * 获取所有操作记录（管理员用）
+     */
+    public List<StudentOperationRecord> getAllRecords() {
+        return operationRecordRepository.findAll();
+    }
+    
+    /**
      * 根据教练ID获取所有操作记录
      */
     public List<StudentOperationRecord> getRecordsByCoachId(Long coachId) {

@@ -24,10 +24,11 @@ public class StudentOperationRecordController {
     private UserService userService;
     
     /**
-     * 获取当前用户的所有学员操作记录
+     * 获取操作记录（管理员可以查看所有记录，普通用户只能查看自己的记录）
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<StudentOperationRecord>>> getOperationRecords(
+            @RequestParam(defaultValue = "false") Boolean showAll,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -35,7 +36,16 @@ public class StudentOperationRecordController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
-            List<StudentOperationRecord> records = operationRecordService.getRecordsByCoachId(user.getId());
+            List<StudentOperationRecord> records;
+            
+            // 如果是管理员且请求查看所有记录
+            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                records = operationRecordService.getAllRecords();
+            } else {
+                // 普通用户或管理员不查看全部时，只返回自己的记录
+                records = operationRecordService.getRecordsByCoachId(user.getId());
+            }
+            
             return ResponseEntity.ok(ApiResponse.success("获取操作记录成功", records));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("获取操作记录失败: " + e.getMessage()));

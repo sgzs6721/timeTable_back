@@ -5,6 +5,8 @@ import com.timetable.dto.WeeklyInstanceDTO;
 import com.timetable.dto.LeaveRequest;
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
+import com.timetable.entity.StudentOperationRecord;
+import com.timetable.repository.StudentOperationRecordRepository;
 import com.timetable.service.WeeklyInstanceService;
 import com.timetable.service.TimetableService;
 import com.timetable.service.UserService;
@@ -43,6 +45,9 @@ public class WeeklyInstanceController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private StudentOperationRecordRepository studentOperationRecordRepository;
 
     /**
      * 为指定课表生成当前周实例
@@ -873,6 +878,35 @@ public class WeeklyInstanceController {
         }
     }
     
+    /**
+     * 获取操作记录（管理员可以查看所有记录，普通用户只能查看自己的记录）
+     */
+    @GetMapping("/operation-records")
+    public ResponseEntity<ApiResponse<List<StudentOperationRecord>>> getOperationRecords(
+            @RequestParam(defaultValue = "false") Boolean showAll,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            
+            List<StudentOperationRecord> records;
+            
+            // 如果是管理员且请求查看所有记录
+            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+                records = studentOperationRecordRepository.findAll();
+            } else {
+                // 普通用户或管理员不查看全部时，只返回自己的记录
+                records = studentOperationRecordRepository.findByCoachId(user.getId());
+            }
+            
+            return ResponseEntity.ok(ApiResponse.success("获取操作记录成功", records));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("获取操作记录失败: " + e.getMessage()));
+        }
+    }
+
     /**
      * 重命名学员 (临时API)
      */
