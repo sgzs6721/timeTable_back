@@ -1932,6 +1932,30 @@ public class WeeklyInstanceService {
         return studentOperationRecordRepository.findByCoachId(coachId);
     }
     
+    public void saveOrUpdateRenameRule(com.timetable.entity.StudentOperationRecord record) {
+        try {
+            // 检查是否已存在相同的重命名规则
+            com.timetable.entity.StudentOperationRecord existing = studentOperationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
+                record.getCoachId(), "RENAME", record.getOldName());
+            
+            if (existing != null) {
+                // 更新现有规则
+                existing.setNewName(record.getNewName());
+                existing.setDetails(record.getDetails());
+                existing.setUpdatedAt(java.time.LocalDateTime.now());
+                studentOperationRecordRepository.update(existing);
+                logger.info("更新重命名规则成功: {} -> {} (教练ID: {})", record.getOldName(), record.getNewName(), record.getCoachId());
+            } else {
+                // 创建新规则
+                Long id = studentOperationRecordRepository.save(record);
+                logger.info("创建重命名规则成功: {} -> {} (ID: {}, 教练ID: {})", record.getOldName(), record.getNewName(), id, record.getCoachId());
+            }
+        } catch (Exception e) {
+            logger.error("保存重命名规则失败: {}", e.getMessage(), e);
+            throw new RuntimeException("保存重命名规则失败: " + e.getMessage());
+        }
+    }
+    
     public List<StudentSummaryDTO> getStudentSummariesByCoach(Long coachId) {
         logger.info("开始获取教练 {} 的学员列表", coachId);
         Map<String, Integer> studentToCount = new HashMap<>();
@@ -2273,11 +2297,6 @@ public class WeeklyInstanceService {
                     
                     logger.info("教练 {} 最终重命名规则: {}", coach.getId(), renameRules);
                     
-                    // 强制为教练6添加测试重命名规则
-                    if (coach.getId() != null && coach.getId().equals(6L)) {
-                        renameRules.put("跃跃", "跃跃1");
-                        System.out.println("*** 强制添加测试重命名规则 *** 教练6: 跃跃 -> 跃跃1");
-                    }
                     
                     coachRenameRules.put(coach.getId(), renameRules);
                     coachHiddenStudents.put(coach.getId(), hiddenStudents);

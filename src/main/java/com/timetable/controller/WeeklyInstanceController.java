@@ -874,6 +874,45 @@ public class WeeklyInstanceController {
     }
     
     /**
+     * 重命名学员 (临时API)
+     */
+    @PostMapping("/rename-student")
+    public ResponseEntity<ApiResponse<String>> renameStudent(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            
+            String oldName = (String) request.get("oldName");
+            String newName = (String) request.get("newName");
+            
+            if (oldName == null || newName == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("学员名称不能为空"));
+            }
+            
+            // 直接调用数据库保存
+            com.timetable.entity.StudentOperationRecord record = new com.timetable.entity.StudentOperationRecord();
+            record.setCoachId(user.getId());
+            record.setOperationType("RENAME");
+            record.setOldName(oldName.trim());
+            record.setNewName(newName.trim());
+            record.setDetails("{\"operationType\":\"RENAME_RULE\",\"description\":\"重命名规则\"}");
+            record.setCreatedAt(java.time.LocalDateTime.now());
+            record.setUpdatedAt(java.time.LocalDateTime.now());
+            
+            weeklyInstanceService.saveOrUpdateRenameRule(record);
+            
+            return ResponseEntity.ok(ApiResponse.success("重命名规则创建成功", "OK"));
+        } catch (Exception e) {
+            logger.error("创建重命名规则失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("创建重命名规则失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * 检查数据库中的重命名规则
      */
     @GetMapping("/check-rename-rules/{coachId}")
