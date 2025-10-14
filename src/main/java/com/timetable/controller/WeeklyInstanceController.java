@@ -874,6 +874,40 @@ public class WeeklyInstanceController {
     }
     
     /**
+     * 检查数据库中的重命名规则
+     */
+    @GetMapping("/check-rename-rules/{coachId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkRenameRules(
+            @PathVariable Long coachId) {
+        try {
+            List<com.timetable.entity.StudentOperationRecord> records = 
+                weeklyInstanceService.getOperationRecordsByCoachId(coachId);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("coachId", coachId);
+            result.put("totalRecords", records.size());
+            
+            List<Map<String, Object>> renameRules = new ArrayList<>();
+            for (com.timetable.entity.StudentOperationRecord record : records) {
+                if ("RENAME".equals(record.getOperationType())) {
+                    Map<String, Object> rule = new HashMap<>();
+                    rule.put("id", record.getId());
+                    rule.put("oldName", record.getOldName());
+                    rule.put("newName", record.getNewName());
+                    rule.put("createdAt", record.getCreatedAt());
+                    renameRules.add(rule);
+                }
+            }
+            result.put("renameRules", renameRules);
+            
+            return ResponseEntity.ok(ApiResponse.success("获取重命名规则成功", result));
+        } catch (Exception e) {
+            logger.error("检查重命名规则失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("检查重命名规则失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * 测试重命名规则
      */
     @GetMapping("/test-rename-rules/{coachId}")

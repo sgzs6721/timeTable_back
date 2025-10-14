@@ -1928,6 +1928,10 @@ public class WeeklyInstanceService {
     /**
      * 统计某个教练下每个学员的已上课程数（不含请假），并按课程数倒序返回
      */
+    public List<com.timetable.entity.StudentOperationRecord> getOperationRecordsByCoachId(Long coachId) {
+        return studentOperationRecordRepository.findByCoachId(coachId);
+    }
+    
     public List<StudentSummaryDTO> getStudentSummariesByCoach(Long coachId) {
         logger.info("开始获取教练 {} 的学员列表", coachId);
         Map<String, Integer> studentToCount = new HashMap<>();
@@ -2271,6 +2275,9 @@ public class WeeklyInstanceService {
                     
                     coachRenameRules.put(coach.getId(), renameRules);
                     coachHiddenStudents.put(coach.getId(), hiddenStudents);
+                    
+                    // 调试信息：打印加载的重命名规则
+                    System.out.println("*** 教练 " + coach.getId() + " (" + coach.getUsername() + ") 的重命名规则: " + renameRules);
                 }
             }
             // 实例课表
@@ -2320,13 +2327,16 @@ public class WeeklyInstanceService {
                 logger.info("getStudentGroupByCoachSummaryAll - 学员名称处理: 原始={}, 显示={}, 教练ID={}", studentName, displayName, coachId);
                 if (!studentName.equals(displayName)) {
                     logger.info("getStudentGroupByCoachSummaryAll - 学员名称被重命名: {} -> {} (教练ID: {})", studentName, displayName, coachId);
+                    System.out.println("*** 重命名生效 *** " + studentName + " -> " + displayName + " (教练ID: " + coachId + ")");
+                } else if ("跃跃".equals(studentName) && coachId != null && coachId == 6L) {
+                    System.out.println("*** 重命名未生效 *** " + studentName + " (教练ID: " + coachId + ") 规则: " + coachRenameRules.get(coachId));
                 }
                 List<String> relatedStudents = getRelatedStudents(studentName, coachId, coachMerges, coachAliases);
                 
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                 com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                 if (found == null) {
-                    found = new com.timetable.dto.StudentSummaryDTO(displayName, 1);
+                    found = new com.timetable.dto.StudentSummaryDTO(null, displayName, 1);
                     list.add(found);
                 } else {
                     found.setAttendedCount(found.getAttendedCount() + 1);
@@ -2372,7 +2382,7 @@ public class WeeklyInstanceService {
                     List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                     com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                     if (found == null) {
-                        found = new com.timetable.dto.StudentSummaryDTO(displayName, 1);
+                        found = new com.timetable.dto.StudentSummaryDTO(null, displayName, 1);
                         list.add(found);
                     } else {
                         found.setAttendedCount(found.getAttendedCount() + 1);
