@@ -931,6 +931,7 @@ public class WeeklyInstanceController {
                 if ("RENAME".equals(record.getOperationType())) {
                     Map<String, Object> rule = new HashMap<>();
                     rule.put("id", record.getId());
+                    rule.put("coachId", record.getCoachId());  // 添加教练ID
                     rule.put("oldName", record.getOldName());
                     rule.put("newName", record.getNewName());
                     rule.put("createdAt", record.getCreatedAt());
