@@ -935,6 +935,55 @@ public class WeeklyInstanceController {
     /**
      * 重命名学员 (临时API)
      */
+    /**
+     * 隐藏学员 (临时API)
+     */
+    @PostMapping("/hide-student")
+    public ResponseEntity<ApiResponse<String>> hideStudent(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            String studentName = (String) request.get("studentName");
+            if (studentName == null || studentName.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("学员名称不能为空"));
+            }
+
+            studentName = studentName.trim();
+            
+            // 查找学员所属的教练ID
+            Long coachId = weeklyInstanceService.findCoachIdByStudentName(studentName);
+            if (coachId == null) {
+                coachId = user.getId(); // 如果找不到，使用当前用户ID
+            }
+
+            // 创建隐藏操作记录
+            StudentOperationRecord record = new StudentOperationRecord();
+            record.setCoachId(coachId);
+            record.setOperationType("HIDE");
+            record.setOldName(studentName);
+            record.setNewName(null); // 隐藏操作没有新名称
+            record.setDetails("{\"operationType\":\"HIDE_STUDENT\",\"description\":\"隐藏学员\"}");
+            record.setCreatedAt(java.time.LocalDateTime.now());
+            record.setUpdatedAt(java.time.LocalDateTime.now());
+
+            // 保存操作记录
+            weeklyInstanceService.saveOrUpdateHideRule(record);
+
+            logger.info("隐藏学员操作: studentName={}, coachId={}, userId={}", 
+                       studentName, coachId, user.getId());
+
+            return ResponseEntity.ok(ApiResponse.success("学员隐藏成功", ""));
+        } catch (Exception e) {
+            logger.error("隐藏学员失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("隐藏学员失败: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/rename-student")
     public ResponseEntity<ApiResponse<String>> renameStudent(
             @RequestBody Map<String, Object> request,
