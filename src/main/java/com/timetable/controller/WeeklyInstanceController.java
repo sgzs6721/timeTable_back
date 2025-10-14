@@ -884,6 +884,7 @@ public class WeeklyInstanceController {
     @GetMapping("/operation-records")
     public ResponseEntity<ApiResponse<List<StudentOperationRecord>>> getOperationRecords(
             @RequestParam(defaultValue = "false") Boolean showAll,
+            @RequestParam(required = false) String studentName,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -899,6 +900,15 @@ public class WeeklyInstanceController {
             } else {
                 // 普通用户或管理员不查看全部时，只返回自己的记录
                 records = studentOperationRecordRepository.findByCoachId(user.getId());
+            }
+            
+            // 如果指定了学员名称，过滤出与该学员相关的记录
+            if (studentName != null && !studentName.trim().isEmpty()) {
+                final String trimmedStudentName = studentName.trim();
+                records = records.stream()
+                    .filter(record -> trimmedStudentName.equals(record.getOldName()) || 
+                                    trimmedStudentName.equals(record.getNewName()))
+                    .collect(java.util.stream.Collectors.toList());
             }
             
             return ResponseEntity.ok(ApiResponse.success("获取操作记录成功", records));
