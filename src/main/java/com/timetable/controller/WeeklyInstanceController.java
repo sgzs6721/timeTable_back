@@ -1124,32 +1124,28 @@ public class WeeklyInstanceController {
                 hoursPerStudent = 1;
             }
 
-            // 为每个学员创建一条分配课时规则记录
-            int successCount = 0;
-            for (String studentName : studentNames) {
-                try {
-                    StudentOperationRecord record = new StudentOperationRecord();
-                    record.setCoachId(user.getId());
-                    record.setOperationType("ASSIGN_HOURS");
-                    record.setOldName(studentName); // 学员名称
-                    record.setNewName(className); // 大课名称
-                    record.setDetails(String.format("{\"date\":\"%s\",\"timeRange\":\"%s\",\"hoursPerStudent\":%d}", 
-                        date != null ? date : "", timeRange, hoursPerStudent));
-                    record.setCreatedAt(java.time.LocalDateTime.now());
-                    record.setUpdatedAt(java.time.LocalDateTime.now());
-                    
-                    studentOperationRecordRepository.save(record);
-                    successCount++;
-                } catch (Exception e) {
-                    logger.error("为学员 {} 创建分配课时记录失败: {}", studentName, e.getMessage());
-                }
+            // 创建一条分配课时规则记录，包含所有学员
+            try {
+                StudentOperationRecord record = new StudentOperationRecord();
+                record.setCoachId(user.getId());
+                record.setOperationType("ASSIGN_HOURS");
+                record.setOldName(String.join(",", studentNames)); // 所有学员名称，用逗号分隔
+                record.setNewName(className); // 大课名称
+                record.setDetails(String.format("{\"date\":\"%s\",\"timeRange\":\"%s\",\"hoursPerStudent\":%d,\"studentCount\":%d}", 
+                    date != null ? date : "", timeRange, hoursPerStudent, studentNames.size()));
+                record.setCreatedAt(java.time.LocalDateTime.now());
+                record.setUpdatedAt(java.time.LocalDateTime.now());
+                
+                studentOperationRecordRepository.save(record);
+                logger.info("分配课时操作: className={}, studentCount={}, hoursPerStudent={}, userId={}", 
+                           className, studentNames.size(), hoursPerStudent, user.getId());
+            } catch (Exception e) {
+                logger.error("创建分配课时记录失败: {}", e.getMessage());
+                return ResponseEntity.badRequest().body(ApiResponse.error("创建分配课时记录失败"));
             }
 
-            logger.info("分配课时操作: className={}, studentCount={}, successCount={}, userId={}", 
-                       className, studentNames.size(), successCount, user.getId());
-
             return ResponseEntity.ok(ApiResponse.success(
-                String.format("成功为 %d/%d 个学员分配课时", successCount, studentNames.size()), ""));
+                String.format("成功为 %d 个学员分配课时", studentNames.size()), ""));
         } catch (Exception e) {
             logger.error("分配课时失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("分配课时失败: " + e.getMessage()));
