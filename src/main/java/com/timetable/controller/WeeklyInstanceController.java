@@ -1126,8 +1126,15 @@ public class WeeklyInstanceController {
 
             // 创建一条分配课时规则记录，包含所有学员
             try {
+                // 查找源学员（大课）所属的教练ID
+                Long sourceCoachId = findStudentCoachIdFromDatabase(className);
+                if (sourceCoachId == null) {
+                    // 如果找不到源学员的教练ID，使用当前用户ID
+                    sourceCoachId = user.getId();
+                }
+                
                 StudentOperationRecord record = new StudentOperationRecord();
-                record.setCoachId(user.getId());
+                record.setCoachId(sourceCoachId);
                 record.setOperationType("ASSIGN_HOURS");
                 record.setOldName(String.join(",", studentNames)); // 所有学员名称，用逗号分隔
                 record.setNewName(className); // 大课名称
@@ -1580,5 +1587,18 @@ public class WeeklyInstanceController {
         }
         
         return new java.util.ArrayList<>(mergedStudents.values());
+    }
+    
+    /**
+     * 从数据库中查找学员所属的教练ID
+     */
+    private Long findStudentCoachIdFromDatabase(String studentName) {
+        try {
+            // 通过 weeklyInstanceService 查找学员的教练ID
+            return weeklyInstanceService.findCoachIdByStudentName(studentName);
+        } catch (Exception e) {
+            logger.error("查找学员 {} 的教练ID失败: {}", studentName, e.getMessage());
+            return null;
+        }
     }
 }
