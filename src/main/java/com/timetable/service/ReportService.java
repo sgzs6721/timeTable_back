@@ -129,10 +129,11 @@ public class ReportService {
                     studentName = newSchedule.getStudentName(); // 更新当前名称
                 }
                 
-                // 3. 最后应用分配课时规则
-                if (assignHoursRules.containsKey(studentName)) {
-                    newSchedule.setStudentName(assignHoursRules.get(studentName));
-                }
+                // 3. 分配课时规则不应该改变学员名称显示，只影响课时计算
+                // 这里暂时注释掉，因为分配课时规则应该只影响课时统计，不应该改变学员名称
+                // if (assignHoursRules.containsKey(studentName)) {
+                //     newSchedule.setStudentName(assignHoursRules.get(studentName));
+                // }
                 
                 return newSchedule;
             })
