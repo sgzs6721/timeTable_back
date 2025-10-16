@@ -856,6 +856,7 @@ public class WeeklyInstanceController {
     @GetMapping("/students")
     public ResponseEntity<ApiResponse<?>> getAllStudents(
             @RequestParam(defaultValue = "false") Boolean showAll,
+            @RequestParam(required = false) Long coachId,
             Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
@@ -878,9 +879,12 @@ public class WeeklyInstanceController {
                 grouped = filterHiddenStudentsFromGrouped(grouped, hiddenStudents);
                 return ResponseEntity.ok(ApiResponse.success("获取学员列表成功", grouped));
             } else {
+                // 确定要获取哪个教练的学员列表
+                Long targetCoachId = coachId != null ? coachId : user.getId();
+                
                 // 保持原有教练/普通模式单纯列表
                 List<com.timetable.dto.StudentSummaryDTO> students =
-                        weeklyInstanceService.getStudentSummariesByCoach(user.getId());
+                        weeklyInstanceService.getStudentSummariesByCoach(targetCoachId);
                 // 应用合并规则
                 students = applyMergeRulesToList(students, mergeRules);
                 // 应用分配课时规则
