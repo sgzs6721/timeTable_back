@@ -71,14 +71,18 @@ public class StudentOperationRecordController {
                 return ResponseEntity.notFound().build();
             }
             
-            // 检查是否是当前用户的记录
-            if (!record.getCoachId().equals(user.getId())) {
+            // 检查是否是当前用户的记录或者是管理员
+            if (!record.getCoachId().equals(user.getId()) && !"ADMIN".equalsIgnoreCase(user.getRole())) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限修改此记录"));
             }
             
+            String oldName = request.get("oldName");
             String newName = request.get("newName");
             String details = request.get("details");
             
+            if (oldName != null) {
+                record.setOldName(oldName);
+            }
             if (newName != null) {
                 record.setNewName(newName);
             }
