@@ -29,6 +29,7 @@ public class ReportController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) Long coachId,
+            @RequestParam(defaultValue = "desc") String sortOrder,
             @RequestParam int page,
             @RequestParam int size,
             org.springframework.security.core.Authentication authentication) {
@@ -53,7 +54,7 @@ public class ReportController {
         LocalDate start = startDate != null && !startDate.isEmpty() ? LocalDate.parse(startDate) : null;
         LocalDate end = endDate != null && !endDate.isEmpty() ? LocalDate.parse(endDate) : null;
 
-        Map<String, Object> data = reportService.queryHoursPaged(targetUserId, start, end, page, size);
+        Map<String, Object> data = reportService.queryHoursPaged(targetUserId, start, end, page, size, sortOrder);
         return ResponseEntity.ok(ApiResponse.success("获取课时记录成功", data));
     }
 }

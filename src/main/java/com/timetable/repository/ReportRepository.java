@@ -27,7 +27,7 @@ public class ReportRepository {
      * 分页查询指定用户（教练）所有课表下的课程记录
      * 包括有具体日期的课程和固定课表模板（需要根据day_of_week推算日期）
      */
-    public List<ScheduleWithCoachDTO> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
+    public List<ScheduleWithCoachDTO> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
         // 1) 固定课表（schedules）中有具体日期的记录
         LocalDate today = LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
@@ -106,9 +106,23 @@ public class ReportRepository {
 
         int offset = (page - 1) * size;
 
+        // 根据sortOrder参数决定排序方向
+        org.jooq.SortField<?> dateSortField;
+        org.jooq.SortField<?> timeSortField;
+        
+        if ("asc".equalsIgnoreCase(sortOrder)) {
+            // 正序：日期从早到晚，时间从早到晚
+            dateSortField = field(name("schedule_date")).asc().nullsFirst();
+            timeSortField = field(name("start_time")).asc();
+        } else {
+            // 倒序：日期从晚到早，时间从晚到早（默认）
+            dateSortField = field(name("schedule_date")).desc().nullsLast();
+            timeSortField = field(name("start_time")).desc();
+        }
+        
         Result<Record> unionResult = dsl
                 .selectFrom(selectTemplate.unionAll((org.jooq.Select)selectInstance).asTable("all_schedules"))
-                .orderBy(field(name("schedule_date")).desc().nullsLast(), field(name("start_time")).desc())
+                .orderBy(dateSortField, timeSortField)
                 .limit(size)
                 .offset(offset)
                 .fetch();

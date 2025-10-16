@@ -21,8 +21,8 @@ public class ReportService {
     @Autowired
     private StudentOperationRecordRepository studentOperationRecordRepository;
 
-    public Map<String, Object> queryHoursPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
-        List<ScheduleWithCoachDTO> list = reportRepository.querySchedulesByUserPaged(userId, start, end, page, size);
+    public Map<String, Object> queryHoursPaged(Long userId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
+        List<ScheduleWithCoachDTO> list = reportRepository.querySchedulesByUserPaged(userId, start, end, page, size, sortOrder);
         long total = reportRepository.countSchedulesByUser(userId, start, end);
         
         // 应用学员操作规则
@@ -40,7 +40,7 @@ public class ReportService {
         }
         
         // 计算所有记录的课时总数（用于总计显示）
-        List<ScheduleWithCoachDTO> allSchedules = reportRepository.querySchedulesByUserPaged(userId, start, end, 1, Integer.MAX_VALUE);
+        List<ScheduleWithCoachDTO> allSchedules = reportRepository.querySchedulesByUserPaged(userId, start, end, 1, Integer.MAX_VALUE, sortOrder);
         // 对所有记录也应用规则
         allSchedules = applyStudentOperationRules(allSchedules, userId);
         
