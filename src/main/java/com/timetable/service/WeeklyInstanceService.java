@@ -1892,20 +1892,33 @@ public class WeeklyInstanceService {
                     for (int i = 0; i < sourceCourseSchedules.size(); i++) {
                         // 每hoursPerStudent个课时，生成1条分配记录
                         if ((i + 1) % hoursPerStudent == 0) {
-                            Map<String, Object> sourceRecord = sourceCourseSchedules.get(i);
+                            // 获取这一组课时的起始和结束索引
+                            int startIndex = i - hoursPerStudent + 1;
+                            int endIndex = i;
+                            
+                            // 获取起始和结束记录
+                            Map<String, Object> startRecord = sourceCourseSchedules.get(startIndex);
+                            Map<String, Object> endRecord = sourceCourseSchedules.get(endIndex);
+                            
+                            // 合并时间范围：从第一个课时的开始时间到最后一个课时的结束时间
+                            String startTimeRange = (String) startRecord.get("timeRange");
+                            String endTimeRange = (String) endRecord.get("timeRange");
+                            String startTime = startTimeRange.split("-")[0];
+                            String endTime = endTimeRange.split("-")[1];
+                            String mergedTimeRange = startTime + "-" + endTime;
                             
                             Map<String, Object> assignedSchedule = new HashMap<>();
                             assignedSchedule.put("id", -1L); // 使用负数ID标识这是分配的课时
-                            assignedSchedule.put("scheduleDate", sourceRecord.get("scheduleDate"));
-                            assignedSchedule.put("timeRange", sourceRecord.get("timeRange"));
-                            assignedSchedule.put("timetableType", "分配课时");
+                            assignedSchedule.put("scheduleDate", startRecord.get("scheduleDate"));
+                            assignedSchedule.put("timeRange", mergedTimeRange);
+                            assignedSchedule.put("timetableType", "大课分配课时");
                             assignedSchedule.put("timetableName", sourceCourse + " -> " + studentName);
                             assignedSchedule.put("status", "正常");
-                            assignedSchedule.put("coachName", sourceRecord.get("coachName"));
+                            assignedSchedule.put("coachName", startRecord.get("coachName"));
                             
                             schedules.add(assignedSchedule);
-                            logger.info("生成分配课时记录: 日期={}, 时间={}, 源课程={}", 
-                                sourceRecord.get("scheduleDate"), sourceRecord.get("timeRange"), sourceCourse);
+                            logger.info("生成大课分配课时记录: 日期={}, 时间={}, 源课程={}, 合并了{}个课时", 
+                                startRecord.get("scheduleDate"), mergedTimeRange, sourceCourse, hoursPerStudent);
                         }
                     }
                 }
@@ -1952,7 +1965,10 @@ public class WeeklyInstanceService {
                 }
             });
             
-            // 5. 请假记录也按日期和时间倒序排列
+            // 5. 合并连续的课时记录（同一天、同一课表类型、时间连续的记录）
+            schedules = mergeConsecutiveSchedules(schedules);
+            
+            // 6. 请假记录也按日期和时间倒序排列
             leaves.sort((a, b) -> {
                 try {
                     String dateA = (String) a.get("leaveDate");
@@ -2055,6 +2071,108 @@ public class WeeklyInstanceService {
             displayName, studentNamesToQuery, schedules.size(), leaves.size());
         
         return result;
+    }
+    
+    /**
+     * 合并连续的课时记录
+     * 如果多条记录是同一天、同一课表类型、时间连续，则合并为一条记录
+     */
+    private List<Map<String, Object>> mergeConsecutiveSchedules(List<Map<String, Object>> schedules) {
+        if (schedules == null || schedules.size() <= 1) {
+            return schedules;
+        }
+        
+        // 先按日期和时间正序排序（用于合并）
+        List<Map<String, Object>> sortedSchedules = new ArrayList<>(schedules);
+        sortedSchedules.sort((a, b) -> {
+            try {
+                LocalDate dateA = LocalDate.parse((String) a.get("scheduleDate"));
+                LocalDate dateB = LocalDate.parse((String) b.get("scheduleDate"));
+                int dateCompare = dateA.compareTo(dateB);
+                if (dateCompare != 0) return dateCompare;
+                
+                String timeA = (String) a.get("timeRange");
+                String timeB = (String) b.get("timeRange");
+                String startTimeA = timeA.split("-")[0].trim();
+                String startTimeB = timeB.split("-")[0].trim();
+                return LocalTime.parse(startTimeA).compareTo(LocalTime.parse(startTimeB));
+            } catch (Exception e) {
+                return 0;
+            }
+        });
+        
+        List<Map<String, Object>> mergedSchedules = new ArrayList<>();
+        Map<String, Object> current = null;
+        
+        for (Map<String, Object> schedule : sortedSchedules) {
+            if (current == null) {
+                // 第一条记录，直接作为当前记录
+                current = new HashMap<>(schedule);
+            } else {
+                // 检查是否可以与当前记录合并
+                boolean canMerge = false;
+                try {
+                    // 同一天
+                    if (current.get("scheduleDate").equals(schedule.get("scheduleDate"))) {
+                        // 同一课表类型
+                        if (current.get("timetableType").equals(schedule.get("timetableType"))) {
+                            // 检查时间是否连续
+                            String currentTimeRange = (String) current.get("timeRange");
+                            String scheduleTimeRange = (String) schedule.get("timeRange");
+                            
+                            String currentEndTime = currentTimeRange.split("-")[1].trim();
+                            String scheduleStartTime = scheduleTimeRange.split("-")[0].trim();
+                            
+                            // 如果当前记录的结束时间等于下一条记录的开始时间，则可以合并
+                            if (currentEndTime.equals(scheduleStartTime)) {
+                                canMerge = true;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("检查记录是否可合并时失败: {}", e.getMessage());
+                }
+                
+                if (canMerge) {
+                    // 合并：更新当前记录的结束时间
+                    String currentTimeRange = (String) current.get("timeRange");
+                    String scheduleTimeRange = (String) schedule.get("timeRange");
+                    String startTime = currentTimeRange.split("-")[0].trim();
+                    String endTime = scheduleTimeRange.split("-")[1].trim();
+                    current.put("timeRange", startTime + "-" + endTime);
+                    logger.info("合并课时记录: 日期={}, 时间={}", current.get("scheduleDate"), current.get("timeRange"));
+                } else {
+                    // 不能合并，保存当前记录，开始新的记录
+                    mergedSchedules.add(current);
+                    current = new HashMap<>(schedule);
+                }
+            }
+        }
+        
+        // 添加最后一条记录
+        if (current != null) {
+            mergedSchedules.add(current);
+        }
+        
+        // 最后按日期和时间倒序排列（恢复原来的顺序）
+        mergedSchedules.sort((a, b) -> {
+            try {
+                LocalDate dateA = LocalDate.parse((String) a.get("scheduleDate"));
+                LocalDate dateB = LocalDate.parse((String) b.get("scheduleDate"));
+                int dateCompare = dateB.compareTo(dateA);
+                if (dateCompare != 0) return dateCompare;
+                
+                String timeA = (String) a.get("timeRange");
+                String timeB = (String) b.get("timeRange");
+                String startTimeA = timeA.split("-")[0].trim();
+                String startTimeB = timeB.split("-")[0].trim();
+                return LocalTime.parse(startTimeB).compareTo(LocalTime.parse(startTimeA));
+            } catch (Exception e) {
+                return 0;
+            }
+        });
+        
+        return mergedSchedules;
     }
 
     /**

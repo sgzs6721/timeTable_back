@@ -145,7 +145,8 @@ public class UserRepository {
         return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
                         .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
-                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED")
+                        .or(com.timetable.generated.tables.Users.USERS.ROLE.eq("ADMIN")))
                 .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
                 .fetchInto(Users.class);
     }
