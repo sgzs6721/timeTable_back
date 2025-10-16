@@ -76,6 +76,7 @@ public class ReportService {
         
         // 构建规则映射
         Map<String, String> renameRules = new HashMap<>(); // 原名称 -> 新名称
+        Map<String, String> mergeRules = new HashMap<>(); // 原名称 -> 合并后的名称
         Map<String, String> assignHoursRules = new HashMap<>(); // 学员名称 -> 源课程名称
         List<String> hiddenStudents = new java.util.ArrayList<>(); // 隐藏的学员列表
         
@@ -88,6 +89,12 @@ public class ReportService {
                 case "RENAME":
                     if (oldName != null && newName != null) {
                         renameRules.put(oldName, newName);
+                    }
+                    break;
+                case "MERGE":
+                    if (oldName != null && newName != null) {
+                        // 合并规则：将原学员重命名为新名字
+                        mergeRules.put(oldName, newName);
                     }
                     break;
                 case "HIDE":
@@ -104,28 +111,58 @@ public class ReportService {
             }
         }
         
-        // 应用规则
+        // 应用规则：先处理名称转换，最后过滤隐藏记录
         return schedules.stream()
-            .filter(schedule -> {
-                String studentName = schedule.getStudentName();
-                // 过滤掉被隐藏的学员
-                return !hiddenStudents.contains(studentName);
-            })
             .map(schedule -> {
                 String studentName = schedule.getStudentName();
                 ScheduleWithCoachDTO newSchedule = new ScheduleWithCoachDTO(schedule, schedule.getCoachName());
                 
-                // 应用重命名规则
+                // 1. 先应用重命名规则
                 if (renameRules.containsKey(studentName)) {
                     newSchedule.setStudentName(renameRules.get(studentName));
+                    studentName = newSchedule.getStudentName(); // 更新当前名称
                 }
                 
-                // 应用分配课时规则
+                // 2. 再应用合并规则
+                if (mergeRules.containsKey(studentName)) {
+                    newSchedule.setStudentName(mergeRules.get(studentName));
+                    studentName = newSchedule.getStudentName(); // 更新当前名称
+                }
+                
+                // 3. 最后应用分配课时规则
                 if (assignHoursRules.containsKey(studentName)) {
                     newSchedule.setStudentName(assignHoursRules.get(studentName));
                 }
                 
                 return newSchedule;
+            })
+            .filter(schedule -> {
+                // 4. 最后过滤掉被隐藏的学员（基于最终转换后的名称）
+                String finalStudentName = schedule.getStudentName();
+                
+                // 直接检查最终名称是否在隐藏列表中
+                if (hiddenStudents.contains(finalStudentName)) {
+                    return false;
+                }
+                
+                // 还需要检查原始名称是否在隐藏列表中
+                String originalStudentName = schedule.getStudentName();
+                // 这里需要反向查找原始名称
+                // 由于我们已经应用了所有转换规则，需要检查是否有原始名称被隐藏
+                for (String hiddenName : hiddenStudents) {
+                    // 检查是否通过任何规则转换到了隐藏的学员
+                    if (renameRules.containsKey(hiddenName) && renameRules.get(hiddenName).equals(originalStudentName)) {
+                        return false;
+                    }
+                    if (mergeRules.containsKey(hiddenName) && mergeRules.get(hiddenName).equals(originalStudentName)) {
+                        return false;
+                    }
+                    if (assignHoursRules.containsKey(hiddenName) && assignHoursRules.get(hiddenName).equals(originalStudentName)) {
+                        return false;
+                    }
+                }
+                
+                return true;
             })
             .collect(java.util.stream.Collectors.toList());
     }
