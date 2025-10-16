@@ -3,6 +3,7 @@ package com.timetable.service;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.dto.ScheduleWithCoachDTO;
 import com.timetable.repository.ReportRepository;
+import com.timetable.repository.StudentOperationRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +17,16 @@ public class ReportService {
 
     @Autowired
     private ReportRepository reportRepository;
+    
+    @Autowired
+    private StudentOperationRecordRepository studentOperationRecordRepository;
 
     public Map<String, Object> queryHoursPaged(Long userId, LocalDate start, LocalDate end, int page, int size) {
         List<ScheduleWithCoachDTO> list = reportRepository.querySchedulesByUserPaged(userId, start, end, page, size);
         long total = reportRepository.countSchedulesByUser(userId, start, end);
+        
+        // 应用学员操作规则
+        list = applyStudentOperationRules(list, userId);
         
         // 计算总课时数（包括半小时课程按0.5计算）
         double totalHours = 0.0;
@@ -34,6 +41,9 @@ public class ReportService {
         
         // 计算所有记录的课时总数（用于总计显示）
         List<ScheduleWithCoachDTO> allSchedules = reportRepository.querySchedulesByUserPaged(userId, start, end, 1, Integer.MAX_VALUE);
+        // 对所有记录也应用规则
+        allSchedules = applyStudentOperationRules(allSchedules, userId);
+        
         double grandTotalHours = 0.0;
         for (ScheduleWithCoachDTO schedule : allSchedules) {
             if (schedule.getStartTime() != null && schedule.getEndTime() != null) {
@@ -50,6 +60,74 @@ public class ReportService {
         data.put("totalHours", totalHours); // 当前页课时数
         data.put("grandTotalHours", grandTotalHours); // 总计课时数
         return data;
+    }
+    
+    /**
+     * 应用学员操作规则到课程列表
+     */
+    private List<ScheduleWithCoachDTO> applyStudentOperationRules(List<ScheduleWithCoachDTO> schedules, Long coachId) {
+        if (schedules == null || schedules.isEmpty()) {
+            return schedules;
+        }
+        
+        // 获取该教练的学员操作规则
+        List<com.timetable.entity.StudentOperationRecord> records = 
+            studentOperationRecordRepository.findByCoachId(coachId);
+        
+        // 构建规则映射
+        Map<String, String> renameRules = new HashMap<>(); // 原名称 -> 新名称
+        Map<String, String> assignHoursRules = new HashMap<>(); // 学员名称 -> 源课程名称
+        List<String> hiddenStudents = new java.util.ArrayList<>(); // 隐藏的学员列表
+        
+        for (com.timetable.entity.StudentOperationRecord record : records) {
+            String operationType = record.getOperationType();
+            String oldName = record.getOldName();
+            String newName = record.getNewName();
+            
+            switch (operationType) {
+                case "RENAME":
+                    if (oldName != null && newName != null) {
+                        renameRules.put(oldName, newName);
+                    }
+                    break;
+                case "HIDE":
+                    if (oldName != null) {
+                        hiddenStudents.add(oldName);
+                    }
+                    break;
+                case "ASSIGN_HOURS":
+                    if (oldName != null && newName != null) {
+                        // oldName是被分配的学员，newName是源课程名称
+                        assignHoursRules.put(oldName, newName);
+                    }
+                    break;
+            }
+        }
+        
+        // 应用规则
+        return schedules.stream()
+            .filter(schedule -> {
+                String studentName = schedule.getStudentName();
+                // 过滤掉被隐藏的学员
+                return !hiddenStudents.contains(studentName);
+            })
+            .map(schedule -> {
+                String studentName = schedule.getStudentName();
+                ScheduleWithCoachDTO newSchedule = new ScheduleWithCoachDTO(schedule, schedule.getCoachName());
+                
+                // 应用重命名规则
+                if (renameRules.containsKey(studentName)) {
+                    newSchedule.setStudentName(renameRules.get(studentName));
+                }
+                
+                // 应用分配课时规则
+                if (assignHoursRules.containsKey(studentName)) {
+                    newSchedule.setStudentName(assignHoursRules.get(studentName));
+                }
+                
+                return newSchedule;
+            })
+            .collect(java.util.stream.Collectors.toList());
     }
 }
 
