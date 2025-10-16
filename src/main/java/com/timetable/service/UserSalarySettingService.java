@@ -56,17 +56,37 @@ public class UserSalarySettingService {
     }
 
     public UserSalarySetting saveOrUpdate(UserSalarySetting setting) {
-        UserSalarySetting existing = salarySettingRepository.findByUserId(setting.getUserId());
+        if (setting == null) {
+            throw new IllegalArgumentException("工资设置对象不能为空");
+        }
         
-        if (existing != null) {
-            // 更新现有记录
-            setting.setId(existing.getId());
-            salarySettingRepository.update(setting);
-            return salarySettingRepository.findById(existing.getId());
-        } else {
-            // 创建新记录
-            Long id = salarySettingRepository.save(setting);
-            return salarySettingRepository.findById(id);
+        if (setting.getUserId() == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        
+        try {
+            UserSalarySetting existing = salarySettingRepository.findByUserId(setting.getUserId());
+            
+            if (existing != null) {
+                // 更新现有记录
+                setting.setId(existing.getId());
+                setting.setCreatedAt(existing.getCreatedAt()); // 保持原创建时间
+                setting.setUpdatedAt(java.time.LocalDateTime.now());
+                salarySettingRepository.update(setting);
+                return salarySettingRepository.findById(existing.getId());
+            } else {
+                // 创建新记录
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                setting.setCreatedAt(now);
+                setting.setUpdatedAt(now);
+                Long id = salarySettingRepository.save(setting);
+                if (id == null) {
+                    throw new RuntimeException("保存工资设置失败，未获取到生成的ID");
+                }
+                return salarySettingRepository.findById(id);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("保存工资设置时发生错误: " + e.getMessage(), e);
         }
     }
 
