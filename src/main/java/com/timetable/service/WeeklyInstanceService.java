@@ -1765,7 +1765,155 @@ public class WeeklyInstanceService {
                 }
             } // 结束遍历studentNamesToQuery的循环
             
-            // 3. 统一按日期和时间倒序排列所有记录
+            // 3. 应用分配课时规则：检查是否有源课程分配课时给当前学员
+            try {
+                List<StudentOperationRecord> assignHoursRecords = studentOperationRecordRepository.findAll()
+                    .stream()
+                    .filter(r -> "ASSIGN_HOURS".equals(r.getOperationType()) && studentName.equals(r.getOldName()))
+                    .collect(java.util.stream.Collectors.toList());
+                
+                for (StudentOperationRecord assignRecord : assignHoursRecords) {
+                    String sourceCourse = assignRecord.getNewName(); // 源课程名称
+                    int hoursPerStudent = 1; // 默认每1个课时分配1课时
+                    
+                    // 解析details获取hoursPerStudent
+                    if (assignRecord.getDetails() != null && !assignRecord.getDetails().isEmpty()) {
+                        try {
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            java.util.Map<String, Object> details = mapper.readValue(assignRecord.getDetails(), java.util.Map.class);
+                            if (details.containsKey("hoursPerStudent")) {
+                                hoursPerStudent = ((Number) details.get("hoursPerStudent")).intValue();
+                            }
+                        } catch (Exception e) {
+                            logger.warn("解析分配课时规则details失败: {}", e.getMessage());
+                        }
+                    }
+                    
+                    logger.info("应用分配课时规则: 源课程='{}', 目标学员='{}', 每{}课时分配1课时", sourceCourse, studentName, hoursPerStudent);
+                    
+                    // 获取源课程的所有课时记录（查询源课程学员的上课记录）
+                    List<Map<String, Object>> sourceCourseSchedules = new ArrayList<>();
+                    
+                    // 获取源课程的实例课表记录
+                    List<WeeklyInstanceSchedule> sourceInstanceSchedules = weeklyInstanceScheduleRepository.findByStudentName(sourceCourse);
+                    
+                    for (WeeklyInstanceSchedule schedule : sourceInstanceSchedules) {
+                        // 只处理过去的课程记录
+                        if (schedule.getScheduleDate() != null) {
+                            LocalDate scheduleDate = schedule.getScheduleDate();
+                            if (scheduleDate.isAfter(today)) {
+                                continue;
+                            } else if (scheduleDate.isEqual(today)) {
+                                if (schedule.getEndTime() != null && schedule.getEndTime().isAfter(currentTime)) {
+                                    continue;
+                                }
+                            }
+                        }
+                        
+                        // 跳过请假记录
+                        if (schedule.getIsOnLeave() != null && schedule.getIsOnLeave()) {
+                            continue;
+                        }
+                        
+                        WeeklyInstance instance = weeklyInstanceRepository.findById(schedule.getWeeklyInstanceId());
+                        if (instance == null) continue;
+                        
+                        Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
+                        if (timetable == null) continue;
+                        
+                        Users coach = userService.findById(timetable.getUserId());
+                        String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
+                        
+                        Map<String, Object> sourceRecord = new HashMap<>();
+                        sourceRecord.put("scheduleDate", schedule.getScheduleDate().toString());
+                        sourceRecord.put("timeRange", schedule.getStartTime() + "-" + schedule.getEndTime());
+                        sourceRecord.put("coachName", scheduleCoachName);
+                        sourceCourseSchedules.add(sourceRecord);
+                    }
+                    
+                    // 获取源课程的日期类课表记录
+                    List<Timetables> allTimetables = timetableRepository.findAll();
+                    for (Timetables timetable : allTimetables) {
+                        if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                            continue;
+                        }
+                        
+                        List<Schedules> dateSchedules = scheduleRepository.findByTimetableId(timetable.getId())
+                            .stream()
+                            .filter(s -> sourceCourse.equals(s.getStudentName()))
+                            .collect(java.util.stream.Collectors.toList());
+                        
+                        for (Schedules dateSchedule : dateSchedules) {
+                            if (dateSchedule.getScheduleDate() == null) continue;
+                            
+                            LocalDate scheduleDate = dateSchedule.getScheduleDate();
+                            if (scheduleDate.isAfter(today)) {
+                                continue;
+                            } else if (scheduleDate.isEqual(today)) {
+                                if (dateSchedule.getEndTime() != null && dateSchedule.getEndTime().isAfter(currentTime)) {
+                                    continue;
+                                }
+                            }
+                            
+                            Users coach = userService.findById(timetable.getUserId());
+                            String scheduleCoachName = coach != null ? (coach.getNickname() != null ? coach.getNickname() : coach.getUsername()) : "未知教练";
+                            
+                            Map<String, Object> sourceRecord = new HashMap<>();
+                            sourceRecord.put("scheduleDate", dateSchedule.getScheduleDate().toString());
+                            sourceRecord.put("timeRange", dateSchedule.getStartTime() + "-" + dateSchedule.getEndTime());
+                            sourceRecord.put("coachName", scheduleCoachName);
+                            sourceCourseSchedules.add(sourceRecord);
+                        }
+                    }
+                    
+                    // 按日期和时间排序源课程的记录
+                    sourceCourseSchedules.sort((a, b) -> {
+                        try {
+                            LocalDate dateA = LocalDate.parse((String) a.get("scheduleDate"));
+                            LocalDate dateB = LocalDate.parse((String) b.get("scheduleDate"));
+                            int dateCompare = dateA.compareTo(dateB);
+                            if (dateCompare != 0) return dateCompare;
+                            
+                            String timeA = (String) a.get("timeRange");
+                            String timeB = (String) b.get("timeRange");
+                            if (timeA != null && timeB != null) {
+                                String startTimeA = timeA.split("-")[0].trim();
+                                String startTimeB = timeB.split("-")[0].trim();
+                                return LocalTime.parse(startTimeA).compareTo(LocalTime.parse(startTimeB));
+                            }
+                            return 0;
+                        } catch (Exception e) {
+                            return 0;
+                        }
+                    });
+                    
+                    // 根据规则生成分配的课时记录
+                    logger.info("源课程 '{}' 共有 {} 个课时记录", sourceCourse, sourceCourseSchedules.size());
+                    for (int i = 0; i < sourceCourseSchedules.size(); i++) {
+                        // 每hoursPerStudent个课时，生成1条分配记录
+                        if ((i + 1) % hoursPerStudent == 0) {
+                            Map<String, Object> sourceRecord = sourceCourseSchedules.get(i);
+                            
+                            Map<String, Object> assignedSchedule = new HashMap<>();
+                            assignedSchedule.put("id", -1L); // 使用负数ID标识这是分配的课时
+                            assignedSchedule.put("scheduleDate", sourceRecord.get("scheduleDate"));
+                            assignedSchedule.put("timeRange", sourceRecord.get("timeRange"));
+                            assignedSchedule.put("timetableType", "分配课时");
+                            assignedSchedule.put("timetableName", sourceCourse + " -> " + studentName);
+                            assignedSchedule.put("status", "正常");
+                            assignedSchedule.put("coachName", sourceRecord.get("coachName"));
+                            
+                            schedules.add(assignedSchedule);
+                            logger.info("生成分配课时记录: 日期={}, 时间={}, 源课程={}", 
+                                sourceRecord.get("scheduleDate"), sourceRecord.get("timeRange"), sourceCourse);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("应用分配课时规则失败: {}", e.getMessage());
+            }
+            
+            // 4. 统一按日期和时间倒序排列所有记录
             schedules.sort((a, b) -> {
                 try {
                     String dateA = (String) a.get("scheduleDate");
@@ -1804,7 +1952,7 @@ public class WeeklyInstanceService {
                 }
             });
             
-            // 4. 请假记录也按日期和时间倒序排列
+            // 5. 请假记录也按日期和时间倒序排列
             leaves.sort((a, b) -> {
                 try {
                     String dateA = (String) a.get("leaveDate");
