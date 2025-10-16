@@ -22,28 +22,16 @@ public class ReportService {
     private StudentOperationRecordRepository studentOperationRecordRepository;
 
     public Map<String, Object> queryHoursPaged(Long userId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
-        List<ScheduleWithCoachDTO> list = reportRepository.querySchedulesByUserPaged(userId, start, end, page, size, sortOrder);
-        long total = reportRepository.countSchedulesByUser(userId, start, end);
-        
-        // 应用学员操作规则
-        list = applyStudentOperationRules(list, userId);
-        
-        // 计算总课时数（包括半小时课程按0.5计算）
-        double totalHours = 0.0;
-        for (ScheduleWithCoachDTO schedule : list) {
-            if (schedule.getStartTime() != null && schedule.getEndTime() != null) {
-                long durationMinutes = java.time.Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes();
-                totalHours += durationMinutes / 60.0; // 转换为小时，支持小数
-            } else {
-                totalHours += 1.0; // 如果没有时间信息，默认1课时
-            }
-        }
-        
-        // 计算所有记录的课时总数（用于总计显示）
+        // 先获取所有记录
         List<ScheduleWithCoachDTO> allSchedules = reportRepository.querySchedulesByUserPaged(userId, start, end, 1, Integer.MAX_VALUE, sortOrder);
-        // 对所有记录也应用规则
+        
+        // 应用学员操作规则（过滤隐藏的学员等）
         allSchedules = applyStudentOperationRules(allSchedules, userId);
         
+        // 计算应用规则后的总记录数
+        long filteredTotal = allSchedules.size();
+        
+        // 计算所有记录的课时总数（用于总计显示）
         double grandTotalHours = 0.0;
         for (ScheduleWithCoachDTO schedule : allSchedules) {
             if (schedule.getStartTime() != null && schedule.getEndTime() != null) {
@@ -54,9 +42,32 @@ public class ReportService {
             }
         }
         
+        // 手动分页：计算起始和结束索引
+        int startIndex = (page - 1) * size;
+        int endIndex = Math.min(startIndex + size, allSchedules.size());
+        
+        // 获取当前页的数据
+        List<ScheduleWithCoachDTO> list;
+        if (startIndex >= allSchedules.size()) {
+            list = new java.util.ArrayList<>();
+        } else {
+            list = allSchedules.subList(startIndex, endIndex);
+        }
+        
+        // 计算当前页的课时数
+        double totalHours = 0.0;
+        for (ScheduleWithCoachDTO schedule : list) {
+            if (schedule.getStartTime() != null && schedule.getEndTime() != null) {
+                long durationMinutes = java.time.Duration.between(schedule.getStartTime(), schedule.getEndTime()).toMinutes();
+                totalHours += durationMinutes / 60.0;
+            } else {
+                totalHours += 1.0;
+            }
+        }
+        
         Map<String, Object> data = new HashMap<>();
         data.put("list", list);
-        data.put("total", total);
+        data.put("total", filteredTotal); // 使用过滤后的总数
         data.put("totalHours", totalHours); // 当前页课时数
         data.put("grandTotalHours", grandTotalHours); // 总计课时数
         return data;
