@@ -69,5 +69,29 @@ public class UserSalarySettingController {
             return ResponseEntity.status(500).body(ApiResponse.error("保存工资设置失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 删除用户工资设置（仅管理员）
+     */
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<ApiResponse<String>> deleteSalarySetting(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+                return ResponseEntity.status(403).body(ApiResponse.error("无权限操作"));
+            }
+
+            salarySettingService.deleteByUserId(userId);
+            return ResponseEntity.ok(ApiResponse.success("删除工资设置成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("删除工资设置失败: " + e.getMessage()));
+        }
+    }
 }
 
