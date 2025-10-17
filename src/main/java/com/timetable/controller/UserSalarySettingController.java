@@ -51,7 +51,7 @@ public class UserSalarySettingController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<UserSalarySetting>> saveOrUpdateSalarySetting(
-            @RequestBody UserSalarySetting setting,
+            @RequestBody java.util.Map<String, Object> requestData,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -63,10 +63,37 @@ public class UserSalarySettingController {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限操作"));
             }
 
+            // 手动构建UserSalarySetting对象，确保数据类型转换正确
+            UserSalarySetting setting = new UserSalarySetting();
+            
+            // 处理userId
+            Object userIdObj = requestData.get("userId");
+            if (userIdObj == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户ID不能为空"));
+            }
+            setting.setUserId(Long.valueOf(userIdObj.toString()));
+            
+            // 处理工资字段，确保BigDecimal转换正确
+            setting.setBaseSalary(convertToBigDecimal(requestData.get("baseSalary")));
+            setting.setSocialSecurity(convertToBigDecimal(requestData.get("socialSecurity")));
+            setting.setHourlyRate(convertToBigDecimal(requestData.get("hourlyRate")));
+            setting.setCommissionRate(convertToBigDecimal(requestData.get("commissionRate")));
+
             UserSalarySetting savedSetting = salarySettingService.saveOrUpdate(setting);
             return ResponseEntity.ok(ApiResponse.success("保存工资设置成功", savedSetting));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("保存工资设置失败: " + e.getMessage()));
+        }
+    }
+    
+    private java.math.BigDecimal convertToBigDecimal(Object value) {
+        if (value == null) {
+            return java.math.BigDecimal.ZERO;
+        }
+        try {
+            return new java.math.BigDecimal(value.toString());
+        } catch (NumberFormatException e) {
+            return java.math.BigDecimal.ZERO;
         }
     }
 
