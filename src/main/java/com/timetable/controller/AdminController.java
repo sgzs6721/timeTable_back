@@ -285,6 +285,78 @@ public class AdminController {
             .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", userDTOs));
     }
+
+    /**
+     * 管理员直接创建新用户
+     */
+    @PostMapping("/users/create")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createUser(
+            @Valid @RequestBody Map<String, String> request) {
+        
+        String username = request.get("username");
+        String password = request.get("password");
+        String nickname = request.get("nickname");
+        String role = request.get("role");
+        String position = request.get("position");
+
+        // 校验必填字段
+        if (username == null || username.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户名不能为空"));
+        }
+        if (password == null || password.length() < 6) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("密码至少6个字符"));
+        }
+
+        // 校验用户名长度
+        if (username.trim().length() < 2 || username.trim().length() > 32) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户名长度需在 2-32 个字符之间"));
+        }
+
+        // 校验昵称长度
+        if (nickname != null && nickname.length() > 50) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("昵称长度不能超过50个字符"));
+        }
+
+        // 校验角色
+        if (role == null || (!"USER".equals(role) && !"ADMIN".equals(role))) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("角色必须是USER或ADMIN"));
+        }
+
+        // 校验职位
+        if (position != null && !"COACH".equals(position) && !"SALES".equals(position) 
+                && !"RECEPTIONIST".equals(position) && !"MANAGER".equals(position)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)、RECEPTIONIST(前台)或MANAGER(管理)"));
+        }
+
+        try {
+            // 检查用户名是否已存在
+            if (userService.existsByUsername(username.trim())) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户名已存在"));
+            }
+
+            // 创建用户
+            Users newUser = userService.createUserByAdmin(
+                username.trim(), 
+                password, 
+                nickname != null ? nickname.trim() : null, 
+                role, 
+                position
+            );
+
+            Map<String, Object> userDTO = new HashMap<>();
+            userDTO.put("id", newUser.getId());
+            userDTO.put("username", newUser.getUsername());
+            userDTO.put("nickname", newUser.getNickname());
+            userDTO.put("role", newUser.getRole());
+            userDTO.put("position", newUser.getPosition());
+            userDTO.put("createdAt", newUser.getCreatedAt());
+
+            return ResponseEntity.ok(ApiResponse.success("用户创建成功", userDTO));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("创建用户失败: " + e.getMessage()));
+        }
+    }
     
     /**
      * 管理员编辑用户信息（用户名/昵称/角色/职位）

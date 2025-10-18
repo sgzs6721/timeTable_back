@@ -99,6 +99,25 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
         return userRepository.findByUsername(username);
     }
+
+    /**
+     * 管理员创建新用户（包含昵称和职位）
+     */
+    public Users createUserByAdmin(String username, String password, String nickname, String role, String position) {
+        String encodedPassword = passwordEncoder.encode(password);
+        Users user = new Users();
+        user.setUsername(username);
+        user.setPasswordHash(encodedPassword);
+        user.setNickname(nickname);
+        user.setRole(role);
+        user.setPosition(position);
+        user.setStatus("APPROVED"); // 管理员直接创建的用户自动审批通过
+        // 设置创建和更新时间
+        user.setCreatedAt(java.time.LocalDateTime.now());
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
+        return userRepository.findByUsername(username);
+    }
     
     /**
      * 验证密码
