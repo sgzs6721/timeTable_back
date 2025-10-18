@@ -13,7 +13,7 @@ public class SalaryCalculationDTO {
     private LocalDate salaryPeriodEnd; // 记薪周期结束日期
     private BigDecimal baseSalary; // 底薪
     private BigDecimal hourlyRate; // 课时费单价
-    private Integer totalHours; // 总课时数
+    private Double totalHours; // 总课时数（支持小数）
     private BigDecimal hourlyPay; // 课时费总额
     private BigDecimal socialSecurity; // 社保扣款
     private BigDecimal commissionRate; // 提成比例
@@ -97,11 +97,11 @@ public class SalaryCalculationDTO {
         this.hourlyRate = hourlyRate;
     }
 
-    public Integer getTotalHours() {
+    public Double getTotalHours() {
         return totalHours;
     }
 
-    public void setTotalHours(Integer totalHours) {
+    public void setTotalHours(Double totalHours) {
         this.totalHours = totalHours;
     }
 

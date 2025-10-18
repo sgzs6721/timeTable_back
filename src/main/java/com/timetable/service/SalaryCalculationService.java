@@ -138,11 +138,11 @@ public class SalaryCalculationService {
         dto.setCommissionRate(setting.getCommissionRate() != null ? setting.getCommissionRate() : BigDecimal.ZERO);
 
         // 计算该时间段内的课时数
-        Integer totalHours = calculateTotalHours(user.getId(), periodStart, periodEnd);
+        Double totalHours = calculateTotalHours(user.getId(), periodStart, periodEnd);
         dto.setTotalHours(totalHours);
 
         // 计算课时费
-        BigDecimal hourlyPay = dto.getHourlyRate().multiply(new BigDecimal(totalHours));
+        BigDecimal hourlyPay = dto.getHourlyRate().multiply(BigDecimal.valueOf(totalHours));
         dto.setHourlyPay(hourlyPay);
 
         // 计算提成（这里简化为基于课时费的提成）
@@ -163,10 +163,10 @@ public class SalaryCalculationService {
      * 计算用户在指定时间段内的总课时数
      * 从 weekly_instance_schedules 表查询真实课时数据，排除请假、取消和已删除课表的课程
      */
-    private Integer calculateTotalHours(Long userId, LocalDate startDate, LocalDate endDate) {
+    private Double calculateTotalHours(Long userId, LocalDate startDate, LocalDate endDate) {
         try {
-            // SQL查询：统计指定用户在指定时间段内的课时数，排除请假和取消的课程
-            String sql = "SELECT COUNT(*) as totalHours " +
+            // SQL查询：计算指定用户在指定时间段内的实际课时数（按时长计算），排除请假和取消的课程
+            String sql = "SELECT COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(wis.end_time, wis.start_time)) / 3600.0), 0) as totalHours " +
                         "FROM weekly_instance_schedules wis " +
                         "JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
                         "JOIN timetables t ON wi.template_timetable_id = t.id " +
@@ -177,13 +177,14 @@ public class SalaryCalculationService {
                         "AND (wis.is_cancelled IS NULL OR wis.is_cancelled = FALSE) " + // 排除取消的课程（兼容旧数据）
                         "AND t.is_deleted = FALSE";           // 排除已删除的课表
             
-            Integer totalHours = jdbcTemplate.queryForObject(sql, Integer.class, userId, startDate, endDate);
+            Double totalHours = jdbcTemplate.queryForObject(sql, Double.class, userId, startDate, endDate);
             
-            return totalHours != null ? totalHours : 0;
+            // 保留小数部分，精确到1位小数
+            return totalHours != null ? Math.round(totalHours * 10.0) / 10.0 : 0.0;
         } catch (Exception e) {
             System.err.println("计算课时数时发生错误: " + e.getMessage());
             e.printStackTrace();
-            return 0;
+            return 0.0;
         }
     }
 
