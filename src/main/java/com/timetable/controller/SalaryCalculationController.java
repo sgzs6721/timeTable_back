@@ -79,4 +79,22 @@ public class SalaryCalculationController {
             return ResponseEntity.status(500).body(ApiResponse.error("获取最近工资计算结果失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取有课时记录的月份列表（仅管理员）
+     */
+    @GetMapping("/available-months")
+    public ResponseEntity<ApiResponse<List<String>>> getAvailableMonths(Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
+            }
+
+            List<String> months = salaryCalculationService.getAvailableMonths();
+            return ResponseEntity.ok(ApiResponse.success("获取可用月份列表成功", months));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("获取可用月份列表失败: " + e.getMessage()));
+        }
+    }
 }

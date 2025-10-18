@@ -234,4 +234,62 @@ public class SalaryCalculationService {
         
         return result;
     }
+
+    /**
+     * 获取有课时记录的所有月份列表
+     * 从数据库中查询最早的课时记录，生成从那时到现在的所有月份
+     */
+    public List<String> getAvailableMonths() {
+        List<String> months = new ArrayList<>();
+        
+        try {
+            // 查询最早的课时记录日期
+            String sql = "SELECT MIN(schedule_date) as earliest_date FROM weekly_instance_schedules " +
+                        "WHERE schedule_date IS NOT NULL AND is_on_leave = FALSE " +
+                        "UNION ALL " +
+                        "SELECT MIN(schedule_date) as earliest_date FROM schedules " +
+                        "WHERE schedule_date IS NOT NULL";
+            
+            LocalDate earliestDate = jdbcTemplate.query(sql, rs -> {
+                LocalDate earliest = null;
+                while (rs.next()) {
+                    LocalDate date = rs.getDate("earliest_date") != null ? 
+                                    rs.getDate("earliest_date").toLocalDate() : null;
+                    if (date != null && (earliest == null || date.isBefore(earliest))) {
+                        earliest = date;
+                    }
+                }
+                return earliest;
+            });
+            
+            if (earliestDate == null) {
+                // 如果没有数据，返回当前月份
+                earliestDate = LocalDate.now();
+            }
+            
+            // 从最早日期到当前日期，生成所有月份
+            YearMonth startMonth = YearMonth.from(earliestDate);
+            YearMonth currentMonth = YearMonth.now();
+            
+            YearMonth month = startMonth;
+            while (!month.isAfter(currentMonth)) {
+                months.add(month.toString());
+                month = month.plusMonths(1);
+            }
+            
+            // 倒序排列（最新月份在前）
+            months.sort((a, b) -> b.compareTo(a));
+            
+        } catch (Exception e) {
+            System.err.println("获取可用月份列表失败: " + e.getMessage());
+            e.printStackTrace();
+            // 如果查询失败，返回最近12个月
+            YearMonth currentMonth = YearMonth.now();
+            for (int i = 0; i < 12; i++) {
+                months.add(currentMonth.minusMonths(i).toString());
+            }
+        }
+        
+        return months;
+    }
 }
