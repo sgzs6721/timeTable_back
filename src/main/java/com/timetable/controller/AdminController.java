@@ -313,8 +313,8 @@ public class AdminController {
         
         // 校验并更新职位（可选，但如果传了必须合法）
         if (position != null) {
-            if (!"COACH".equals(position) && !"SALES".equals(position) && !"RECEPTIONIST".equals(position)) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)或RECEPTIONIST(前台)"));
+            if (!"COACH".equals(position) && !"SALES".equals(position) && !"RECEPTIONIST".equals(position) && !"MANAGER".equals(position)) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)、RECEPTIONIST(前台)或MANAGER(管理)"));
             }
             user.setPosition(position);
         }
@@ -460,9 +460,9 @@ public class AdminController {
         String position = request.get("position");
         
         // 校验职位
-        if (position != null && !"COACH".equals(position) && !"SALES".equals(position) && !"RECEPTIONIST".equals(position)) {
+        if (position != null && !"COACH".equals(position) && !"SALES".equals(position) && !"RECEPTIONIST".equals(position) && !"MANAGER".equals(position)) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)或RECEPTIONIST(前台)"));
+                    .body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)、RECEPTIONIST(前台)或MANAGER(管理)"));
         }
         
         boolean success = userService.approveUserRegistration(userId, position);
