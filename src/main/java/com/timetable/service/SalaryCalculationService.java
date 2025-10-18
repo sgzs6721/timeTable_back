@@ -84,6 +84,11 @@ public class SalaryCalculationService {
         if (startDay == null) startDay = 1;
         if (endDay == null) endDay = 31;
         
+        // 如果endDay为0，表示月末（最后一天）
+        if (endDay == 0) {
+            endDay = yearMonth.lengthOfMonth();
+        }
+        
         LocalDate periodStart;
         LocalDate periodEnd;
         
@@ -95,7 +100,12 @@ public class SalaryCalculationService {
             // 如果开始日大于结束日，表示跨月，从上月开始日到本月结束日
             YearMonth previousMonth = yearMonth.minusMonths(1);
             periodStart = previousMonth.atDay(Math.min(startDay, previousMonth.lengthOfMonth()));
-            periodEnd = yearMonth.atDay(Math.min(endDay, yearMonth.lengthOfMonth()));
+            // 处理跨月情况下的月末
+            int actualEndDay = endDay;
+            if (systemSetting.getSalaryEndDay() == 0) {
+                actualEndDay = yearMonth.lengthOfMonth();
+            }
+            periodEnd = yearMonth.atDay(Math.min(actualEndDay, yearMonth.lengthOfMonth()));
         }
         
         return new LocalDate[]{periodStart, periodEnd};

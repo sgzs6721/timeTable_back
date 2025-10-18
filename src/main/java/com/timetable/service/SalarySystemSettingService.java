@@ -53,8 +53,8 @@ public class SalarySystemSettingService {
             throw new IllegalArgumentException("记薪结束日必须在1-31之间");
         }
         
-        if (setting.getSalaryPayDay() == null || setting.getSalaryPayDay() < 1 || setting.getSalaryPayDay() > 31) {
-            throw new IllegalArgumentException("工资发放日必须在1-31之间");
+        if (setting.getSalaryPayDay() == null || setting.getSalaryPayDay() < 0 || setting.getSalaryPayDay() > 31) {
+            throw new IllegalArgumentException("工资发放日必须在0-31之间（0表示月末）");
         }
     }
 }
