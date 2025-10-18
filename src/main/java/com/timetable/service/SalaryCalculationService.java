@@ -243,12 +243,20 @@ public class SalaryCalculationService {
         List<String> months = new ArrayList<>();
         
         try {
-            // 查询最早的课时记录日期
-            String sql = "SELECT MIN(schedule_date) as earliest_date FROM weekly_instance_schedules " +
-                        "WHERE schedule_date IS NOT NULL AND is_on_leave = FALSE " +
+            // 查询最早的课时记录日期（只统计未删除的课表）
+            String sql = "SELECT MIN(wis.schedule_date) as earliest_date " +
+                        "FROM weekly_instance_schedules wis " +
+                        "INNER JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
+                        "INNER JOIN timetables t ON wi.template_timetable_id = t.id " +
+                        "WHERE wis.schedule_date IS NOT NULL " +
+                        "AND wis.is_on_leave = FALSE " +
+                        "AND (t.is_deleted IS NULL OR t.is_deleted = 0) " +
                         "UNION ALL " +
-                        "SELECT MIN(schedule_date) as earliest_date FROM schedules " +
-                        "WHERE schedule_date IS NOT NULL";
+                        "SELECT MIN(s.schedule_date) as earliest_date " +
+                        "FROM schedules s " +
+                        "INNER JOIN timetables t ON s.timetable_id = t.id " +
+                        "WHERE s.schedule_date IS NOT NULL " +
+                        "AND (t.is_deleted IS NULL OR t.is_deleted = 0)";
             
             LocalDate earliestDate = jdbcTemplate.query(sql, rs -> {
                 LocalDate earliest = null;
