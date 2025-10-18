@@ -369,15 +369,18 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * 审批用户注册申请
+     * 审批用户注册申请（同时设置职位）
      */
-    public boolean approveUserRegistration(Long userId) {
+    public boolean approveUserRegistration(Long userId, String position) {
         Users user = userRepository.findById(userId);
         if (user == null || !"PENDING".equals(user.getStatus())) {
             return false;
         }
         
         user.setStatus("APPROVED");
+        if (position != null && !position.trim().isEmpty()) {
+            user.setPosition(position);
+        }
         user.setUpdatedAt(java.time.LocalDateTime.now());
         userRepository.update(user);
         return true;
@@ -450,6 +453,7 @@ public class UserService implements UserDetailsService {
             user.getId(),
             user.getUsername(),
             user.getNickname(),
+            user.getPosition(),
             user.getStatus(),
             user.getCreatedAt()
         );

@@ -6,15 +6,17 @@ public class PendingUserDTO {
     private Long id;
     private String username;
     private String nickname;
+    private String position;
     private String status;
     private LocalDateTime createdAt;
 
     public PendingUserDTO() {}
 
-    public PendingUserDTO(Long id, String username, String nickname, String status, LocalDateTime createdAt) {
+    public PendingUserDTO(Long id, String username, String nickname, String position, String status, LocalDateTime createdAt) {
         this.id = id;
         this.username = username;
         this.nickname = nickname;
+        this.position = position;
         this.status = status;
         this.createdAt = createdAt;
     }
@@ -42,6 +44,14 @@ public class PendingUserDTO {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 
     public String getStatus() {

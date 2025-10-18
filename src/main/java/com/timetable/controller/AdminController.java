@@ -277,6 +277,7 @@ public class AdminController {
                 dto.put("username", user.getUsername());
                 dto.put("nickname", user.getNickname());
                 dto.put("role", user.getRole());
+                dto.put("position", user.getPosition());
                 dto.put("createdAt", user.getCreatedAt());
                 dto.put("updatedAt", user.getUpdatedAt());
                 return dto;
@@ -286,7 +287,7 @@ public class AdminController {
     }
     
     /**
-     * 管理员编辑用户信息（用户名/昵称/角色）
+     * 管理员编辑用户信息（用户名/昵称/角色/职位）
      */
     @PutMapping("/users/{userId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserInfo(
@@ -295,6 +296,7 @@ public class AdminController {
         String role = request.get("role");
         String username = request.get("username");
         String nickname = request.get("nickname");
+        String position = request.get("position");
 
         Users user = userService.findById(userId);
         if (user == null) {
@@ -307,6 +309,14 @@ public class AdminController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("角色必须是USER或ADMIN"));
             }
             user.setRole(role);
+        }
+        
+        // 校验并更新职位（可选，但如果传了必须合法）
+        if (position != null) {
+            if (!"COACH".equals(position) && !"SALES".equals(position) && !"RECEPTIONIST".equals(position)) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)或RECEPTIONIST(前台)"));
+            }
+            user.setPosition(position);
         }
 
         // 更新用户名（可选）
@@ -340,6 +350,7 @@ public class AdminController {
         dto.put("username", user.getUsername());
         dto.put("nickname", user.getNickname());
         dto.put("role", user.getRole());
+        dto.put("position", user.getPosition());
         dto.put("createdAt", user.getCreatedAt());
         dto.put("updatedAt", user.getUpdatedAt());
 
@@ -440,11 +451,21 @@ public class AdminController {
     }
 
     /**
-     * 审批用户注册申请
+     * 审批用户注册申请（同时设置职位）
      */
     @PutMapping("/users/{userId}/approve")
-    public ResponseEntity<ApiResponse<Void>> approveUserRegistration(@PathVariable Long userId) {
-        boolean success = userService.approveUserRegistration(userId);
+    public ResponseEntity<ApiResponse<Void>> approveUserRegistration(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> request) {
+        String position = request.get("position");
+        
+        // 校验职位
+        if (position != null && !"COACH".equals(position) && !"SALES".equals(position) && !"RECEPTIONIST".equals(position)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("职位必须是COACH(教练)、SALES(销售)或RECEPTIONIST(前台)"));
+        }
+        
+        boolean success = userService.approveUserRegistration(userId, position);
         
         if (!success) {
             return ResponseEntity.badRequest()
