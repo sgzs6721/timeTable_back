@@ -82,6 +82,76 @@ public class AdminController {
     }
 
     /**
+     * 管理员为指定用户创建课表
+     */
+    @PostMapping("/timetables/create-for-user")
+    public ResponseEntity<ApiResponse<Timetables>> createTimetableForUser(
+            @Valid @RequestBody Map<String, Object> request) {
+        
+        Long userId = request.get("userId") != null ? Long.valueOf(request.get("userId").toString()) : null;
+        String name = (String) request.get("name");
+        String description = (String) request.get("description");
+        Integer isWeekly = request.get("isWeekly") != null ? (Integer) request.get("isWeekly") : 1;
+        String startDateStr = (String) request.get("startDate");
+        String endDateStr = (String) request.get("endDate");
+        
+        // 校验必填字段
+        if (userId == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户ID不能为空"));
+        }
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("课表名称不能为空"));
+        }
+        if (name.trim().length() < 2 || name.trim().length() > 100) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("课表名称长度必须在2-100字符之间"));
+        }
+        
+        // 检查用户是否存在
+        Users targetUser = userService.findById(userId);
+        if (targetUser == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("目标用户不存在"));
+        }
+        
+        try {
+            // 构造TimetableRequest
+            com.timetable.dto.TimetableRequest timetableRequest = new com.timetable.dto.TimetableRequest();
+            timetableRequest.setName(name.trim());
+            timetableRequest.setDescription(description != null ? description.trim() : "");
+            timetableRequest.setType(isWeekly == 1 ? 
+                com.timetable.dto.TimetableRequest.TimetableType.WEEKLY : 
+                com.timetable.dto.TimetableRequest.TimetableType.DATE_RANGE);
+            
+            // 如果是日期范围课表，设置开始和结束日期
+            if (isWeekly == 0) {
+                if (startDateStr == null || startDateStr.trim().isEmpty()) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("日期范围课表必须指定开始日期"));
+                }
+                if (endDateStr == null || endDateStr.trim().isEmpty()) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("日期范围课表必须指定结束日期"));
+                }
+                
+                java.time.LocalDate startDate = java.time.LocalDate.parse(startDateStr);
+                java.time.LocalDate endDate = java.time.LocalDate.parse(endDateStr);
+                
+                if (startDate.isAfter(endDate)) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("开始日期不能晚于结束日期"));
+                }
+                
+                timetableRequest.setStartDate(startDate);
+                timetableRequest.setEndDate(endDate);
+            }
+            
+            // 为指定用户创建课表
+            Timetables timetable = timetableService.createTimetable(userId, timetableRequest);
+            return ResponseEntity.ok(ApiResponse.success("课表创建成功", timetable));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("创建课表失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 有课表（活动或归档）的教练列表，按注册时间倒序
      */
     @GetMapping("/coaches/with-timetables")
