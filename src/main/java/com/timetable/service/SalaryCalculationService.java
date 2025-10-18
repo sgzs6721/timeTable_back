@@ -1,11 +1,13 @@
 package com.timetable.service;
 
 import com.timetable.dto.SalaryCalculationDTO;
+import com.timetable.entity.SalarySystemSetting;
 import com.timetable.entity.UserSalarySetting;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.UserSalarySettingRepository;
 import com.timetable.repository.ScheduleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,8 +15,10 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SalaryCalculationService {
@@ -27,6 +31,12 @@ public class SalaryCalculationService {
 
     @Autowired
     private ScheduleRepository scheduleRepository;
+    
+    @Autowired
+    private SalarySystemSettingService salarySystemSettingService;
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     /**
      * 计算指定月份的工资
@@ -39,9 +49,13 @@ public class SalaryCalculationService {
         // 解析月份
         YearMonth yearMonth = YearMonth.parse(month);
         
-        // 计算记薪周期（假设从1号到月末）
-        LocalDate periodStart = yearMonth.atDay(1);
-        LocalDate periodEnd = yearMonth.atEndOfMonth();
+        // 获取工资系统设置
+        SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+        
+        // 计算记薪周期
+        LocalDate[] periodRange = calculateSalaryPeriod(yearMonth, systemSetting);
+        LocalDate periodStart = periodRange[0];
+        LocalDate periodEnd = periodRange[1];
         
         // 获取所有用户
         List<Users> users = userService.getAllApprovedUsers();
@@ -58,6 +72,33 @@ public class SalaryCalculationService {
         }
         
         return result;
+    }
+    
+    /**
+     * 根据月份和工资系统设置计算记薪周期
+     */
+    private LocalDate[] calculateSalaryPeriod(YearMonth yearMonth, SalarySystemSetting systemSetting) {
+        Integer startDay = systemSetting.getSalaryStartDay();
+        Integer endDay = systemSetting.getSalaryEndDay();
+        
+        if (startDay == null) startDay = 1;
+        if (endDay == null) endDay = 31;
+        
+        LocalDate periodStart;
+        LocalDate periodEnd;
+        
+        // 如果开始日小于等于结束日，表示在同一个月内
+        if (startDay <= endDay) {
+            periodStart = yearMonth.atDay(Math.min(startDay, yearMonth.lengthOfMonth()));
+            periodEnd = yearMonth.atDay(Math.min(endDay, yearMonth.lengthOfMonth()));
+        } else {
+            // 如果开始日大于结束日，表示跨月，从上月开始日到本月结束日
+            YearMonth previousMonth = yearMonth.minusMonths(1);
+            periodStart = previousMonth.atDay(Math.min(startDay, previousMonth.lengthOfMonth()));
+            periodEnd = yearMonth.atDay(Math.min(endDay, yearMonth.lengthOfMonth()));
+        }
+        
+        return new LocalDate[]{periodStart, periodEnd};
     }
 
     /**
@@ -110,20 +151,25 @@ public class SalaryCalculationService {
 
     /**
      * 计算用户在指定时间段内的总课时数
+     * 从 weekly_instance_schedules 表查询真实课时数据
      */
     private Integer calculateTotalHours(Long userId, LocalDate startDate, LocalDate endDate) {
         try {
-            // TODO: 这里需要根据实际的数据库结构来计算课时
-            // 现在返回模拟数据
-            if (userId == 1L) {
-                return 45;
-            } else if (userId == 2L) {
-                return 38;
-            } else {
-                return 30;
-            }
+            // SQL查询：统计指定用户在指定时间段内的课时数
+            String sql = "SELECT COUNT(*) as totalHours " +
+                        "FROM weekly_instance_schedules wis " +
+                        "JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
+                        "JOIN timetables t ON wi.template_timetable_id = t.id " +
+                        "WHERE t.user_id = ? " +
+                        "AND wis.schedule_date >= ? " +
+                        "AND wis.schedule_date <= ?";
+            
+            Integer totalHours = jdbcTemplate.queryForObject(sql, Integer.class, userId, startDate, endDate);
+            
+            return totalHours != null ? totalHours : 0;
         } catch (Exception e) {
-            // 发生错误时返回0
+            System.err.println("计算课时数时发生错误: " + e.getMessage());
+            e.printStackTrace();
             return 0;
         }
     }

@@ -31,42 +31,14 @@ public class SalaryCalculationController {
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
             }
 
-            List<SalaryCalculationDTO> calculations = salaryCalculationService.calculateSalary(month);
-            return ResponseEntity.ok(ApiResponse.success("获取工资计算结果成功", calculations));
+            List<SalaryCalculationDTO> result = salaryCalculationService.calculateSalary(month);
+            return ResponseEntity.ok(ApiResponse.success("获取工资计算结果成功", result));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("获取工资计算结果失败: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 获取最近几个月的工资计算结果（仅管理员）
-     */
-    @GetMapping("/recent/{months}")
-    public ResponseEntity<ApiResponse<List<SalaryCalculationDTO>>> getRecentSalaryCalculations(
-            @PathVariable int months,
-            Authentication authentication) {
-        try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
-            }
-
-            List<SalaryCalculationDTO> calculations = salaryCalculationService.getRecentSalaryCalculations(months);
-            return ResponseEntity.ok(ApiResponse.success("获取最近工资计算结果成功", calculations));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(ApiResponse.error("获取最近工资计算结果失败: " + e.getMessage()));
         }
     }
 
@@ -74,23 +46,37 @@ public class SalaryCalculationController {
      * 获取所有工资计算结果（仅管理员）
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SalaryCalculationDTO>>> getAllSalaryCalculations(
-            Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<SalaryCalculationDTO>>> getAllSalaryCalculations(Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
             }
 
-            // 获取最近3个月的数据
-            List<SalaryCalculationDTO> calculations = salaryCalculationService.getRecentSalaryCalculations(3);
-            return ResponseEntity.ok(ApiResponse.success("获取所有工资计算结果成功", calculations));
+            List<SalaryCalculationDTO> result = salaryCalculationService.getRecentSalaryCalculations(6); // 最近6个月
+            return ResponseEntity.ok(ApiResponse.success("获取所有工资计算结果成功", result));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("获取所有工资计算结果失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取最近N个月的工资计算结果（仅管理员）
+     */
+    @GetMapping("/recent/{months}")
+    public ResponseEntity<ApiResponse<List<SalaryCalculationDTO>>> getRecentSalaryCalculations(
+            @PathVariable int months,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
+            }
+
+            List<SalaryCalculationDTO> result = salaryCalculationService.getRecentSalaryCalculations(months);
+            return ResponseEntity.ok(ApiResponse.success("获取最近工资计算结果成功", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("获取最近工资计算结果失败: " + e.getMessage()));
         }
     }
 }
