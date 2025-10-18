@@ -17,8 +17,10 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class SalaryCalculationService {
@@ -48,6 +50,7 @@ public class SalaryCalculationService {
      */
     public List<SalaryCalculationDTO> calculateSalary(String month) {
         List<SalaryCalculationDTO> result = new ArrayList<>();
+        Set<Long> processedUserIds = new HashSet<>();
         
         // 解析月份
         YearMonth yearMonth = YearMonth.parse(month);
@@ -67,6 +70,12 @@ public class SalaryCalculationService {
             if (!"USER".equals(user.getRole())) {
                 continue; // 只计算普通用户（教练）的工资
             }
+            
+            // 防止重复处理同一个用户
+            if (processedUserIds.contains(user.getId())) {
+                continue;
+            }
+            processedUserIds.add(user.getId());
             
             SalaryCalculationDTO dto = calculateUserSalary(user, month, periodStart, periodEnd);
             if (dto != null) {
