@@ -161,18 +161,21 @@ public class SalaryCalculationService {
 
     /**
      * 计算用户在指定时间段内的总课时数
-     * 从 weekly_instance_schedules 表查询真实课时数据
+     * 从 weekly_instance_schedules 表查询真实课时数据，排除请假、取消和已删除课表的课程
      */
     private Integer calculateTotalHours(Long userId, LocalDate startDate, LocalDate endDate) {
         try {
-            // SQL查询：统计指定用户在指定时间段内的课时数
+            // SQL查询：统计指定用户在指定时间段内的课时数，排除请假和取消的课程
             String sql = "SELECT COUNT(*) as totalHours " +
                         "FROM weekly_instance_schedules wis " +
                         "JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
                         "JOIN timetables t ON wi.template_timetable_id = t.id " +
                         "WHERE t.user_id = ? " +
                         "AND wis.schedule_date >= ? " +
-                        "AND wis.schedule_date <= ?";
+                        "AND wis.schedule_date <= ? " +
+                        "AND wis.is_on_leave = FALSE " +      // 排除请假的课程
+                        "AND (wis.is_cancelled IS NULL OR wis.is_cancelled = FALSE) " + // 排除取消的课程（兼容旧数据）
+                        "AND t.is_deleted = FALSE";           // 排除已删除的课表
             
             Integer totalHours = jdbcTemplate.queryForObject(sql, Integer.class, userId, startDate, endDate);
             
