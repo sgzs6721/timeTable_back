@@ -142,6 +142,12 @@ public class SalaryCalculationService {
 
         // 计算该时间段内的课时数
         Double totalHours = calculateTotalHours(user.getId(), periodStart, periodEnd);
+        
+        // 如果课时数为0且没有底薪，则不生成工资记录
+        if (totalHours == 0.0 && dto.getBaseSalary().compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        
         dto.setTotalHours(totalHours);
 
         // 计算课时费
@@ -194,8 +200,16 @@ public class SalaryCalculationService {
         List<SalaryCalculationDTO> result = new ArrayList<>();
         
         LocalDate now = LocalDate.now();
+        YearMonth currentMonth = YearMonth.from(now);
+        
         for (int i = 0; i < months; i++) {
-            YearMonth targetMonth = YearMonth.from(now.minusMonths(i));
+            YearMonth targetMonth = currentMonth.minusMonths(i);
+            
+            // 只计算当前月份及之前的月份，不计算未来月份
+            if (targetMonth.isAfter(currentMonth)) {
+                continue;
+            }
+            
             List<SalaryCalculationDTO> monthlyResult = calculateSalary(targetMonth.toString());
             result.addAll(monthlyResult);
         }
