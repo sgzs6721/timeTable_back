@@ -139,8 +139,8 @@ public class SalaryCalculationService {
         BigDecimal commission = hourlyPay.multiply(dto.getCommissionRate()).divide(new BigDecimal(100), 2, RoundingMode.HALF_UP);
         dto.setCommission(commission);
 
-        // 计算总工资：底薪 + 课时费 + 提成 - 社保
-        BigDecimal totalSalary = dto.getBaseSalary().add(hourlyPay).add(commission).subtract(dto.getSocialSecurity());
+        // 计算总工资：底薪 + 课时费 + 提成 + 社保
+        BigDecimal totalSalary = dto.getBaseSalary().add(hourlyPay).add(commission).add(dto.getSocialSecurity());
         dto.setTotalSalary(totalSalary);
 
         // 设置默认发放状态
