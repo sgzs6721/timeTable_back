@@ -207,6 +207,7 @@ public class SalaryCalculationService {
      */
     public List<SalaryCalculationDTO> getRecentSalaryCalculations(int months) {
         List<SalaryCalculationDTO> result = new ArrayList<>();
+        Set<String> processedKeys = new HashSet<>();
         
         LocalDate now = LocalDate.now();
         YearMonth currentMonth = YearMonth.from(now);
@@ -220,7 +221,15 @@ public class SalaryCalculationService {
             }
             
             List<SalaryCalculationDTO> monthlyResult = calculateSalary(targetMonth.toString());
-            result.addAll(monthlyResult);
+            
+            // 添加去重逻辑：确保同一个用户在同一个月份只有一条记录
+            for (SalaryCalculationDTO dto : monthlyResult) {
+                String key = dto.getUserId() + "-" + dto.getMonth();
+                if (!processedKeys.contains(key)) {
+                    processedKeys.add(key);
+                    result.add(dto);
+                }
+            }
         }
         
         return result;
