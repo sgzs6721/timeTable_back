@@ -6,6 +6,7 @@ import com.timetable.dto.TextInputRequest;
 import com.timetable.dto.ConflictCheckResult;
 import com.timetable.dto.ai.ScheduleInfo;
 import com.timetable.dto.UpdateScheduleRequest;
+import com.timetable.dto.SwapSchedulesRequest;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.ScheduleService;
@@ -647,6 +648,45 @@ public class ScheduleController {
                 : String.format("清空课表成功(模板:%d)", deleted);
 
         return ResponseEntity.ok(ApiResponse.success(messageText, String.valueOf(deleted + instanceDeleted)));
+    }
+
+    /**
+     * 调换两个课程
+     */
+    @PostMapping("/swap")
+    public ResponseEntity<ApiResponse<String>> swapSchedules(
+            @PathVariable Long timetableId,
+            @RequestBody SwapSchedulesRequest request,
+            Authentication authentication) {
+
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!timetableService.isUserTimetable(timetableId, user.getId())) {
+                return ResponseEntity.notFound().build();
+            }
+        }
+
+        try {
+            boolean success = scheduleService.swapSchedules(timetableId, request.getScheduleId1(), request.getScheduleId2());
+            
+            if (success) {
+                // 同步到周实例
+                syncToWeeklyInstances(timetableId);
+                return ResponseEntity.ok(ApiResponse.success("课程调换成功"));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("课程调换失败"));
+            }
+        } catch (Exception e) {
+            logger.error("调换课程失败", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("课程调换失败: " + e.getMessage()));
+        }
     }
 
     /**

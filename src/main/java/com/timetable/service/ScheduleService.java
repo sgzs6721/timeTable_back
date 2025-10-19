@@ -871,6 +871,46 @@ public class ScheduleService {
     }
 
     /**
+     * 调换两个课程
+     */
+    public boolean swapSchedules(Long timetableId, Long scheduleId1, Long scheduleId2) {
+        try {
+            // 获取两个课程
+            Schedules schedule1 = scheduleRepository.findByIdAndTimetableId(scheduleId1, timetableId);
+            Schedules schedule2 = scheduleRepository.findByIdAndTimetableId(scheduleId2, timetableId);
+            
+            if (schedule1 == null || schedule2 == null) {
+                logger.warn("调换课程失败：课程不存在，scheduleId1={}, scheduleId2={}, timetableId={}", 
+                    scheduleId1, scheduleId2, timetableId);
+                return false;
+            }
+            
+            // 交换学生姓名
+            String tempStudentName = schedule1.getStudentName();
+            schedule1.setStudentName(schedule2.getStudentName());
+            schedule2.setStudentName(tempStudentName);
+            
+            // 更新备注
+            schedule1.setNote("调换课程");
+            schedule2.setNote("调换课程");
+            schedule1.setUpdatedAt(LocalDateTime.now());
+            schedule2.setUpdatedAt(LocalDateTime.now());
+            
+            // 保存更新
+            scheduleRepository.update(schedule1);
+            scheduleRepository.update(schedule2);
+            
+            logger.info("课程调换成功：{} <-> {}, timetableId={}", 
+                schedule1.getStudentName(), schedule2.getStudentName(), timetableId);
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("调换课程失败", e);
+            return false;
+        }
+    }
+
+    /**
      * 批量按条件删除排课
      */
     public int deleteSchedulesBatch(Long timetableId, List<ScheduleRequest> requests) {
