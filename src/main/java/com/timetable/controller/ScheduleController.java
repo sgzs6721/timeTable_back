@@ -656,11 +656,15 @@ public class ScheduleController {
     @PostMapping("/swap")
     public ResponseEntity<ApiResponse<String>> swapSchedules(
             @PathVariable Long timetableId,
-            @RequestBody SwapSchedulesRequest request,
+            @Valid @RequestBody SwapSchedulesRequest request,
             Authentication authentication) {
+
+        logger.info("调换课程请求 - timetableId: {}, scheduleId1: {}, scheduleId2: {}", 
+                    timetableId, request.getScheduleId1(), request.getScheduleId2());
 
         Users user = userService.findByUsername(authentication.getName());
         if (user == null) {
+            logger.error("用户不存在: {}", authentication.getName());
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("用户不存在"));
         }
