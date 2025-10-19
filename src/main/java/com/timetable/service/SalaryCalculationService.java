@@ -300,4 +300,120 @@ public class SalaryCalculationService {
         
         return months;
     }
+
+    /**
+     * 获取指定用户最近N个月的工资计算结果
+     */
+    public List<SalaryCalculationDTO> getUserSalaryCalculations(Long userId, int months) {
+        List<SalaryCalculationDTO> result = new ArrayList<>();
+        Set<String> processedKeys = new HashSet<>();
+        
+        // 获取用户信息
+        Users user = userService.findById(userId);
+        if (user == null) {
+            return result;
+        }
+        
+        // 获取工资系统设置
+        SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+        
+        LocalDate now = LocalDate.now();
+        YearMonth currentMonth = YearMonth.from(now);
+        
+        for (int i = 0; i < months; i++) {
+            YearMonth targetMonth = currentMonth.minusMonths(i);
+            
+            // 只计算当前月份及之前的月份，不计算未来月份
+            if (targetMonth.isAfter(currentMonth)) {
+                continue;
+            }
+            
+            // 计算记薪周期
+            LocalDate[] periodRange = calculateSalaryPeriod(targetMonth, systemSetting);
+            LocalDate periodStart = periodRange[0];
+            LocalDate periodEnd = periodRange[1];
+            
+            // 计算该用户在该月的工资
+            SalaryCalculationDTO dto = calculateUserSalary(user, targetMonth.toString(), periodStart, periodEnd);
+            
+            if (dto != null) {
+                String key = dto.getUserId() + "-" + dto.getMonth();
+                if (!processedKeys.contains(key)) {
+                    processedKeys.add(key);
+                    result.add(dto);
+                }
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * 获取指定用户有课时记录的所有月份列表
+     */
+    public List<String> getUserAvailableMonths(Long userId) {
+        List<String> months = new ArrayList<>();
+        
+        try {
+            // 查询该用户最早的课时记录日期（只统计未删除的课表）
+            String sql = "SELECT MIN(wis.schedule_date) as earliest_date " +
+                        "FROM weekly_instance_schedules wis " +
+                        "INNER JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
+                        "INNER JOIN timetables t ON wi.template_timetable_id = t.id " +
+                        "WHERE wis.schedule_date IS NOT NULL " +
+                        "AND wis.is_on_leave = FALSE " +
+                        "AND wis.student_name != '【占用】' " +
+                        "AND t.user_id = ? " +
+                        "AND (t.is_deleted IS NULL OR t.is_deleted = 0) " +
+                        "UNION ALL " +
+                        "SELECT MIN(s.schedule_date) as earliest_date " +
+                        "FROM schedules s " +
+                        "INNER JOIN timetables t ON s.timetable_id = t.id " +
+                        "WHERE s.schedule_date IS NOT NULL " +
+                        "AND s.student_name != '【占用】' " +
+                        "AND t.user_id = ? " +
+                        "AND (t.is_deleted IS NULL OR t.is_deleted = 0)";
+            
+            LocalDate earliestDate = jdbcTemplate.query(sql, rs -> {
+                LocalDate earliest = null;
+                while (rs.next()) {
+                    LocalDate date = rs.getDate("earliest_date") != null ? 
+                                    rs.getDate("earliest_date").toLocalDate() : null;
+                    if (date != null && (earliest == null || date.isBefore(earliest))) {
+                        earliest = date;
+                    }
+                }
+                return earliest;
+            }, userId, userId);
+            
+            if (earliestDate == null) {
+                // 如果该用户没有课时数据，返回当前月份
+                earliestDate = LocalDate.now();
+            }
+            
+            // 从最早日期到当前日期，生成所有月份
+            YearMonth startMonth = YearMonth.from(earliestDate);
+            YearMonth currentMonth = YearMonth.now();
+            
+            YearMonth month = startMonth;
+            while (!month.isAfter(currentMonth)) {
+                months.add(month.toString());
+                month = month.plusMonths(1);
+            }
+            
+            // 倒序排列（最新月份在前）
+            months.sort((a, b) -> b.compareTo(a));
+            
+        } catch (Exception e) {
+            System.err.println("获取用户可用月份列表失败: " + e.getMessage());
+            e.printStackTrace();
+            // 如果查询失败，返回最近12个月
+            YearMonth currentMonth = YearMonth.now();
+            for (int i = 0; i < 12; i++) {
+                months.add(currentMonth.minusMonths(i).toString());
+            }
+        }
+        
+        return months;
+    }
 }
