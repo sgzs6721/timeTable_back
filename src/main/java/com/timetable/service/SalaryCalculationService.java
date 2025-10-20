@@ -212,12 +212,22 @@ public class SalaryCalculationService {
         
         LocalDate now = LocalDate.now();
         YearMonth currentMonth = YearMonth.from(now);
+        SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
         
         for (int i = 0; i < months; i++) {
             YearMonth targetMonth = currentMonth.minusMonths(i);
             
             // 只计算当前月份及之前的月份，不计算未来月份
             if (targetMonth.isAfter(currentMonth)) {
+                continue;
+            }
+            
+            // 计算该月份的记薪周期
+            LocalDate[] periodRange = calculateSalaryPeriod(targetMonth, systemSetting);
+            LocalDate periodEnd = periodRange[1];
+            
+            // 如果当前日期小于记薪周期的结束日期，则不显示该月份工资
+            if (now.isBefore(periodEnd)) {
                 continue;
             }
             
@@ -333,6 +343,11 @@ public class SalaryCalculationService {
             LocalDate[] periodRange = calculateSalaryPeriod(targetMonth, systemSetting);
             LocalDate periodStart = periodRange[0];
             LocalDate periodEnd = periodRange[1];
+            
+            // 如果当前日期小于记薪周期的结束日期，则不显示该月份工资
+            if (now.isBefore(periodEnd)) {
+                continue;
+            }
             
             // 计算该用户在该月的工资
             SalaryCalculationDTO dto = calculateUserSalary(user, targetMonth.toString(), periodStart, periodEnd);
