@@ -736,6 +736,38 @@ public class WeeklyInstanceController {
     }
 
     /**
+     * 调换两个周实例课程
+     */
+    @PostMapping("/schedules/swap")
+    public ResponseEntity<ApiResponse<String>> swapInstanceSchedules(
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            Long scheduleId1 = Long.valueOf(request.get("scheduleId1").toString());
+            Long scheduleId2 = Long.valueOf(request.get("scheduleId2").toString());
+            
+            logger.info("调换周实例课程请求 - scheduleId1: {}, scheduleId2: {}", scheduleId1, scheduleId2);
+            
+            boolean success = weeklyInstanceService.swapInstanceSchedules(scheduleId1, scheduleId2);
+            
+            if (success) {
+                return ResponseEntity.ok(ApiResponse.success("周实例课程调换成功"));
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.error("周实例课程调换失败"));
+            }
+        } catch (Exception e) {
+            logger.error("调换周实例课程失败", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("调换周实例课程失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 获取所有请假记录
      */
     @GetMapping("/leave-records")

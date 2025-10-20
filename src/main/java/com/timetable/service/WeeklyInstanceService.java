@@ -1077,6 +1077,51 @@ public class WeeklyInstanceService {
     }
 
     /**
+     * 调换两个周实例课程
+     */
+    @Transactional
+    public boolean swapInstanceSchedules(Long scheduleId1, Long scheduleId2) {
+        try {
+            // 获取两个周实例课程
+            WeeklyInstanceSchedule schedule1 = weeklyInstanceScheduleRepository.findById(scheduleId1);
+            WeeklyInstanceSchedule schedule2 = weeklyInstanceScheduleRepository.findById(scheduleId2);
+            
+            if (schedule1 == null || schedule2 == null) {
+                logger.warn("调换周实例课程失败：课程不存在，scheduleId1={}, scheduleId2={}", 
+                    scheduleId1, scheduleId2);
+                return false;
+            }
+            
+            // 交换学生姓名
+            String tempStudentName = schedule1.getStudentName();
+            schedule1.setStudentName(schedule2.getStudentName());
+            schedule2.setStudentName(tempStudentName);
+            
+            // 标记为已修改
+            schedule1.setIsModified(true);
+            schedule2.setIsModified(true);
+            
+            // 更新备注
+            schedule1.setNote("调换课程");
+            schedule2.setNote("调换课程");
+            schedule1.setUpdatedAt(LocalDateTime.now());
+            schedule2.setUpdatedAt(LocalDateTime.now());
+            
+            // 保存更新
+            weeklyInstanceScheduleRepository.save(schedule1);
+            weeklyInstanceScheduleRepository.save(schedule2);
+            
+            logger.info("周实例课程调换成功：{} <-> {}, scheduleId1={}, scheduleId2={}", 
+                schedule1.getStudentName(), schedule2.getStudentName(), scheduleId1, scheduleId2);
+            
+            return true;
+        } catch (Exception e) {
+            logger.error("调换周实例课程失败", e);
+            return false;
+        }
+    }
+
+    /**
      * 删除实例课程
      */
     @Transactional
