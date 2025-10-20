@@ -1097,13 +1097,10 @@ public class WeeklyInstanceService {
             schedule1.setStudentName(schedule2.getStudentName());
             schedule2.setStudentName(tempStudentName);
             
-            // 标记为已修改
-            schedule1.setIsModified(true);
-            schedule2.setIsModified(true);
+            // 检查调换后是否与模板一致，并设置修改标记
+            checkAndSetModifiedFlag(schedule1);
+            checkAndSetModifiedFlag(schedule2);
             
-            // 更新备注
-            schedule1.setNote("调换课程");
-            schedule2.setNote("调换课程");
             schedule1.setUpdatedAt(LocalDateTime.now());
             schedule2.setUpdatedAt(LocalDateTime.now());
             
@@ -1118,6 +1115,50 @@ public class WeeklyInstanceService {
         } catch (Exception e) {
             logger.error("调换周实例课程失败", e);
             return false;
+        }
+    }
+    
+    /**
+     * 检查周实例课程是否与模板一致，并设置修改标记和备注
+     */
+    private void checkAndSetModifiedFlag(WeeklyInstanceSchedule schedule) {
+        boolean isDifferentFromTemplate = false;
+        
+        // 如果有模板ID，则与模板比较
+        if (schedule.getTemplateScheduleId() != null) {
+            Schedules templateSchedule = scheduleRepository.findById(schedule.getTemplateScheduleId());
+            if (templateSchedule != null) {
+                // 比较各个字段是否与模板不同
+                if (!Objects.equals(schedule.getStudentName(), templateSchedule.getStudentName())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(schedule.getSubject(), templateSchedule.getSubject())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(schedule.getDayOfWeek(), templateSchedule.getDayOfWeek())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(schedule.getStartTime(), templateSchedule.getStartTime())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(schedule.getEndTime(), templateSchedule.getEndTime())) {
+                    isDifferentFromTemplate = true;
+                }
+            }
+        } else {
+            // 如果没有模板ID，说明是手动添加的课程，标记为已修改
+            isDifferentFromTemplate = true;
+        }
+        
+        // 根据是否与模板不同来设置修改标记和备注
+        schedule.setIsModified(isDifferentFromTemplate);
+        if (isDifferentFromTemplate) {
+            schedule.setNote("调换课程");
+        } else {
+            // 如果与模板一致，清除备注（或保留原备注）
+            if ("调换课程".equals(schedule.getNote())) {
+                schedule.setNote(null);
+            }
         }
     }
 
