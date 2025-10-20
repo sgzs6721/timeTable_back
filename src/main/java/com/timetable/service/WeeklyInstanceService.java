@@ -500,7 +500,7 @@ public class WeeklyInstanceService {
         LocalDate weekStart = instance.getWeekStartDate();
         LocalDate weekEnd = instance.getWeekEndDate();
         
-        return allSchedules.stream()
+        List<WeeklyInstanceSchedule> filteredSchedules = allSchedules.stream()
             .filter(schedule -> {
                 if (schedule.getScheduleDate() == null) {
                     return false; // 没有日期的课程不显示
@@ -510,6 +510,20 @@ public class WeeklyInstanceService {
             })
             .filter(schedule -> schedule.getIsOnLeave() == null || !schedule.getIsOnLeave()) // 过滤掉请假的课程
             .collect(Collectors.toList());
+        
+        // 重新检查每个课程是否与模板一致，更新 isModified 标记
+        for (WeeklyInstanceSchedule schedule : filteredSchedules) {
+            boolean originalModified = schedule.getIsModified() != null && schedule.getIsModified();
+            checkAndSetModifiedFlag(schedule);
+            boolean newModified = schedule.getIsModified() != null && schedule.getIsModified();
+            
+            // 如果状态发生变化，保存到数据库
+            if (originalModified != newModified) {
+                weeklyInstanceScheduleRepository.save(schedule);
+            }
+        }
+        
+        return filteredSchedules;
     }
 
     /**
@@ -527,7 +541,7 @@ public class WeeklyInstanceService {
         LocalDate weekStart = instance.getWeekStartDate();
         LocalDate weekEnd = instance.getWeekEndDate();
 
-        return allSchedules.stream()
+        List<WeeklyInstanceSchedule> filteredSchedules = allSchedules.stream()
             .filter(schedule -> {
                 if (schedule.getScheduleDate() == null) {
                     return false;
@@ -536,6 +550,20 @@ public class WeeklyInstanceService {
                 return !scheduleDate.isBefore(weekStart) && !scheduleDate.isAfter(weekEnd);
             })
             .collect(Collectors.toList());
+        
+        // 重新检查每个课程是否与模板一致，更新 isModified 标记
+        for (WeeklyInstanceSchedule schedule : filteredSchedules) {
+            boolean originalModified = schedule.getIsModified() != null && schedule.getIsModified();
+            checkAndSetModifiedFlag(schedule);
+            boolean newModified = schedule.getIsModified() != null && schedule.getIsModified();
+            
+            // 如果状态发生变化，保存到数据库
+            if (originalModified != newModified) {
+                weeklyInstanceScheduleRepository.save(schedule);
+            }
+        }
+        
+        return filteredSchedules;
     }
 
     /**
