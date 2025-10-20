@@ -109,15 +109,16 @@ public class SalaryCalculationService {
             periodStart = yearMonth.atDay(Math.min(startDay, yearMonth.lengthOfMonth()));
             periodEnd = yearMonth.atDay(Math.min(endDay, yearMonth.lengthOfMonth()));
         } else {
-            // 如果开始日大于结束日，表示跨月，从上月开始日到本月结束日
-            YearMonth previousMonth = yearMonth.minusMonths(1);
-            periodStart = previousMonth.atDay(Math.min(startDay, previousMonth.lengthOfMonth()));
+            // 如果开始日大于结束日，表示跨月，从本月开始日到次月结束日
+            // 例如：2025-07 工资 = 2025-07-16 ~ 2025-08-15
+            YearMonth nextMonth = yearMonth.plusMonths(1);
+            periodStart = yearMonth.atDay(Math.min(startDay, yearMonth.lengthOfMonth()));
             // 处理跨月情况下的月末
             int actualEndDay = endDay;
             if (systemSetting.getSalaryEndDay() == 0) {
-                actualEndDay = yearMonth.lengthOfMonth();
+                actualEndDay = nextMonth.lengthOfMonth();
             }
-            periodEnd = yearMonth.atDay(Math.min(actualEndDay, yearMonth.lengthOfMonth()));
+            periodEnd = nextMonth.atDay(Math.min(actualEndDay, nextMonth.lengthOfMonth()));
         }
         
         return new LocalDate[]{periodStart, periodEnd};
