@@ -510,6 +510,7 @@ public class AuthController {
         userDTO.put("username", user.getUsername());
         userDTO.put("nickname", user.getNickname());
         userDTO.put("role", user.getRole());
+        userDTO.put("position", user.getPosition());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
         return userDTO;
