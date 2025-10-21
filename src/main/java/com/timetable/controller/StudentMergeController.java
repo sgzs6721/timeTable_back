@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/student-merge")
+@RequestMapping("/student-merge")
 public class StudentMergeController {
     
     private static final Logger logger = LoggerFactory.getLogger(StudentMergeController.class);
