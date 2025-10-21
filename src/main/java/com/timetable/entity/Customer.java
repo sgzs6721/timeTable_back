@@ -5,9 +5,12 @@ import java.time.LocalDateTime;
 public class Customer {
     private Long id;
     private String childName;
+    private String childGender; // MALE, FEMALE
+    private Integer childAge;
     private String grade;
     private String parentPhone;
-    private String parentRelation; // MOTHER, FATHER
+    private String wechat;
+    private String parentRelation; // MOTHER, FATHER, OTHER
     private String availableTime;
     private String source;
     private String status; // NEW, CONTACTED, SCHEDULED, PENDING_CONFIRM, VISITED, SOLD, RE_EXPERIENCE, CLOSED
@@ -38,6 +41,22 @@ public class Customer {
         this.childName = childName;
     }
 
+    public String getChildGender() {
+        return childGender;
+    }
+
+    public void setChildGender(String childGender) {
+        this.childGender = childGender;
+    }
+
+    public Integer getChildAge() {
+        return childAge;
+    }
+
+    public void setChildAge(Integer childAge) {
+        this.childAge = childAge;
+    }
+
     public String getGrade() {
         return grade;
     }
@@ -52,6 +71,14 @@ public class Customer {
 
     public void setParentPhone(String parentPhone) {
         this.parentPhone = parentPhone;
+    }
+
+    public String getWechat() {
+        return wechat;
+    }
+
+    public void setWechat(String wechat) {
+        this.wechat = wechat;
     }
 
     public String getParentRelation() {

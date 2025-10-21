@@ -27,8 +27,11 @@ public class CustomerService {
     public CustomerDTO createCustomer(CustomerRequest request, Long currentUserId) {
         Customer customer = new Customer();
         customer.setChildName(request.getChildName());
+        customer.setChildGender(request.getChildGender());
+        customer.setChildAge(request.getChildAge());
         customer.setGrade(request.getGrade());
         customer.setParentPhone(request.getParentPhone());
+        customer.setWechat(request.getWechat());
         customer.setParentRelation(request.getParentRelation());
         customer.setAvailableTime(request.getAvailableTime());
         customer.setSource(request.getSource());
@@ -57,8 +60,11 @@ public class CustomerService {
         }
 
         customer.setChildName(request.getChildName());
+        customer.setChildGender(request.getChildGender());
+        customer.setChildAge(request.getChildAge());
         customer.setGrade(request.getGrade());
         customer.setParentPhone(request.getParentPhone());
+        customer.setWechat(request.getWechat());
         customer.setParentRelation(request.getParentRelation());
         customer.setAvailableTime(request.getAvailableTime());
         customer.setSource(request.getSource());
@@ -136,8 +142,11 @@ public class CustomerService {
         CustomerDTO dto = new CustomerDTO();
         dto.setId(customer.getId());
         dto.setChildName(customer.getChildName());
+        dto.setChildGender(customer.getChildGender());
+        dto.setChildAge(customer.getChildAge());
         dto.setGrade(customer.getGrade());
         dto.setParentPhone(customer.getParentPhone());
+        dto.setWechat(customer.getWechat());
         dto.setParentRelation(customer.getParentRelation());
         dto.setAvailableTime(customer.getAvailableTime());
         dto.setSource(customer.getSource());
