@@ -1,22 +1,28 @@
 package com.timetable.dto;
 
-import java.time.LocalDateTime;
+import javax.validation.constraints.NotBlank;
 
 public class CustomerRequest {
+    @NotBlank(message = "孩子姓名不能为空")
     private String childName;
+    
     private String childGender;
     private Integer childAge;
     private String grade;
+    
+    @NotBlank(message = "家长电话不能为空")
     private String parentPhone;
+    
     private String wechat;
     private String parentRelation;
     private String availableTime;
     private String source;
+    
+    @NotBlank(message = "状态不能为空")
     private String status;
+    
+    @NotBlank(message = "详情不能为空")
     private String notes;
-    private LocalDateTime nextContactTime;
-    private LocalDateTime visitTime;
-    private Long assignedSalesId;
 
     public CustomerRequest() {
     }
@@ -107,29 +113,5 @@ public class CustomerRequest {
 
     public void setNotes(String notes) {
         this.notes = notes;
-    }
-
-    public LocalDateTime getNextContactTime() {
-        return nextContactTime;
-    }
-
-    public void setNextContactTime(LocalDateTime nextContactTime) {
-        this.nextContactTime = nextContactTime;
-    }
-
-    public LocalDateTime getVisitTime() {
-        return visitTime;
-    }
-
-    public void setVisitTime(LocalDateTime visitTime) {
-        this.visitTime = visitTime;
-    }
-
-    public Long getAssignedSalesId() {
-        return assignedSalesId;
-    }
-
-    public void setAssignedSalesId(Long assignedSalesId) {
-        this.assignedSalesId = assignedSalesId;
     }
 }

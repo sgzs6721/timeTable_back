@@ -27,19 +27,11 @@ public class CustomerService {
     public CustomerDTO createCustomer(CustomerRequest request, Long currentUserId) {
         Customer customer = new Customer();
         customer.setChildName(request.getChildName());
-        customer.setChildGender(request.getChildGender());
-        customer.setChildAge(request.getChildAge());
-        customer.setGrade(request.getGrade());
         customer.setParentPhone(request.getParentPhone());
-        customer.setWechat(request.getWechat());
-        customer.setParentRelation(request.getParentRelation());
-        customer.setAvailableTime(request.getAvailableTime());
-        customer.setSource(request.getSource());
         customer.setStatus(request.getStatus() != null ? request.getStatus() : "NEW");
         customer.setNotes(request.getNotes());
-        customer.setNextContactTime(request.getNextContactTime());
-        customer.setVisitTime(request.getVisitTime());
-        customer.setAssignedSalesId(request.getAssignedSalesId() != null ? request.getAssignedSalesId() : currentUserId);
+        customer.setSource(request.getSource());
+        customer.setAssignedSalesId(currentUserId);
         customer.setCreatedBy(currentUserId);
 
         Customer savedCustomer = customerRepository.save(customer);
@@ -60,21 +52,10 @@ public class CustomerService {
         }
 
         customer.setChildName(request.getChildName());
-        customer.setChildGender(request.getChildGender());
-        customer.setChildAge(request.getChildAge());
-        customer.setGrade(request.getGrade());
         customer.setParentPhone(request.getParentPhone());
-        customer.setWechat(request.getWechat());
-        customer.setParentRelation(request.getParentRelation());
-        customer.setAvailableTime(request.getAvailableTime());
-        customer.setSource(request.getSource());
         customer.setStatus(request.getStatus());
         customer.setNotes(request.getNotes());
-        customer.setNextContactTime(request.getNextContactTime());
-        customer.setVisitTime(request.getVisitTime());
-        if (request.getAssignedSalesId() != null) {
-            customer.setAssignedSalesId(request.getAssignedSalesId());
-        }
+        customer.setSource(request.getSource());
 
         Customer updatedCustomer = customerRepository.update(customer);
         return convertToDTO(updatedCustomer);
