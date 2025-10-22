@@ -3,10 +3,12 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.TodoDTO;
 import com.timetable.dto.TodoRequest;
+import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.TodoService;
-import com.timetable.util.JwtUtil;
+import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,106 +23,107 @@ public class TodoController {
     private TodoService todoService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private UserService userService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TodoDTO>> createTodo(
             @RequestBody TodoRequest request,
-            @RequestHeader("Authorization") String token) {
+            Authentication authentication) {
         try {
-            String jwt = token.substring(7);
-            String username = jwtUtil.extractUsername(jwt);
-            Long userId = jwtUtil.extractUserId(jwt);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
 
-            TodoDTO todo = todoService.createTodo(request, userId);
-            return ResponseEntity.ok(ApiResponse.success(todo));
+            TodoDTO todo = todoService.createTodo(request, user.getId());
+            return ResponseEntity.ok(ApiResponse.success("创建成功", todo));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("创建待办失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("创建待办失败: " + e.getMessage()));
         }
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TodoDTO>>> getTodos(
             @RequestParam(required = false) String status,
-            @RequestHeader("Authorization") String token) {
+            Authentication authentication) {
         try {
-            String jwt = token.substring(7);
-            Long userId = jwtUtil.extractUserId(jwt);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
 
             List<TodoDTO> todos;
             if (status != null && !status.isEmpty()) {
-                todos = todoService.getTodosByUserAndStatus(userId, status);
+                todos = todoService.getTodosByUserAndStatus(user.getId(), status);
             } else {
-                todos = todoService.getTodosByUser(userId);
+                todos = todoService.getTodosByUser(user.getId());
             }
 
-            return ResponseEntity.ok(ApiResponse.success(todos));
+            return ResponseEntity.ok(ApiResponse.success("获取成功", todos));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("获取待办列表失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取待办列表失败: " + e.getMessage()));
         }
     }
 
     @GetMapping("/unread/count")
     public ResponseEntity<ApiResponse<Integer>> getUnreadCount(
-            @RequestHeader("Authorization") String token) {
+            Authentication authentication) {
         try {
-            String jwt = token.substring(7);
-            Long userId = jwtUtil.extractUserId(jwt);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
 
-            int count = todoService.getUnreadCount(userId);
-            return ResponseEntity.ok(ApiResponse.success(count));
+            int count = todoService.getUnreadCount(user.getId());
+            return ResponseEntity.ok(ApiResponse.success("获取成功", count));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("获取未读数量失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取未读数量失败: " + e.getMessage()));
         }
     }
 
     @PutMapping("/{todoId}/read")
     public ResponseEntity<ApiResponse<Boolean>> markAsRead(
-            @PathVariable Long todoId,
-            @RequestHeader("Authorization") String token) {
+            @PathVariable Long todoId) {
         try {
             boolean success = todoService.markAsRead(todoId);
-            return ResponseEntity.ok(ApiResponse.success(success));
+            return ResponseEntity.ok(ApiResponse.success("标记成功", success));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("标记已读失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("标记已读失败: " + e.getMessage()));
         }
     }
 
     @PutMapping("/{todoId}/complete")
     public ResponseEntity<ApiResponse<Boolean>> markAsCompleted(
-            @PathVariable Long todoId,
-            @RequestHeader("Authorization") String token) {
+            @PathVariable Long todoId) {
         try {
             boolean success = todoService.markAsCompleted(todoId);
-            return ResponseEntity.ok(ApiResponse.success(success));
+            return ResponseEntity.ok(ApiResponse.success("标记成功", success));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("标记完成失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("标记完成失败: " + e.getMessage()));
         }
     }
 
     @PutMapping("/{todoId}/status")
     public ResponseEntity<ApiResponse<Boolean>> updateStatus(
             @PathVariable Long todoId,
-            @RequestBody Map<String, String> request,
-            @RequestHeader("Authorization") String token) {
+            @RequestBody Map<String, String> request) {
         try {
             String status = request.get("status");
             boolean success = todoService.updateStatus(todoId, status);
-            return ResponseEntity.ok(ApiResponse.success(success));
+            return ResponseEntity.ok(ApiResponse.success("更新成功", success));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("更新状态失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("更新状态失败: " + e.getMessage()));
         }
     }
 
     @DeleteMapping("/{todoId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteTodo(
-            @PathVariable Long todoId,
-            @RequestHeader("Authorization") String token) {
+            @PathVariable Long todoId) {
         try {
             boolean success = todoService.deleteTodo(todoId);
-            return ResponseEntity.ok(ApiResponse.success(success));
+            return ResponseEntity.ok(ApiResponse.success("删除成功", success));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("删除待办失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("删除待办失败: " + e.getMessage()));
         }
     }
 }

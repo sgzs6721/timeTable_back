@@ -25,11 +25,11 @@ public class TodoRepository extends BaseRepository {
                 .set(TODOS.REMINDER_TIME, todo.getReminderTime())
                 .set(TODOS.TYPE, todo.getType())
                 .set(TODOS.STATUS, todo.getStatus())
-                .set(TODOS.IS_READ, false)
+                .set(TODOS.IS_READ, (byte) 0)
                 .set(TODOS.CREATED_BY, todo.getCreatedBy())
                 .set(TODOS.CREATED_AT, LocalDateTime.now())
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
-                .set(TODOS.DELETED, false)
+                .set(TODOS.DELETED, (byte) 0)
                 .returning(TODOS.ID)
                 .fetchOne()
                 .getId();
@@ -41,14 +41,14 @@ public class TodoRepository extends BaseRepository {
     public Todo findById(Long id) {
         return dsl.selectFrom(TODOS)
                 .where(TODOS.ID.eq(id))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .fetchOneInto(Todo.class);
     }
 
     public List<Todo> findByCreatedBy(Long userId) {
         return dsl.selectFrom(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
@@ -57,7 +57,7 @@ public class TodoRepository extends BaseRepository {
         return dsl.selectFrom(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
                 .and(TODOS.STATUS.eq(status))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
@@ -66,18 +66,18 @@ public class TodoRepository extends BaseRepository {
         return dsl.selectCount()
                 .from(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
-                .and(TODOS.IS_READ.eq(false))
+                .and(TODOS.IS_READ.eq((byte) 0))
                 .and(TODOS.STATUS.ne("COMPLETED"))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .fetchOne(0, int.class);
     }
 
     public int markAsRead(Long id) {
         return dsl.update(TODOS)
-                .set(TODOS.IS_READ, true)
+                .set(TODOS.IS_READ, (byte) 1)
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .where(TODOS.ID.eq(id))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .execute();
     }
 
@@ -87,7 +87,7 @@ public class TodoRepository extends BaseRepository {
                 .set(TODOS.COMPLETED_AT, LocalDateTime.now())
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .where(TODOS.ID.eq(id))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .execute();
     }
 
@@ -96,13 +96,13 @@ public class TodoRepository extends BaseRepository {
                 .set(TODOS.STATUS, status)
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .where(TODOS.ID.eq(id))
-                .and(TODOS.DELETED.eq(false))
+                .and(TODOS.DELETED.eq((byte) 0))
                 .execute();
     }
 
     public int delete(Long id) {
         return dsl.update(TODOS)
-                .set(TODOS.DELETED, true)
+                .set(TODOS.DELETED, (byte) 1)
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .where(TODOS.ID.eq(id))
                 .execute();
