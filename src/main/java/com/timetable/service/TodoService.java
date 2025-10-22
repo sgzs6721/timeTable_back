@@ -71,6 +71,10 @@ public class TodoService {
         return todoRepository.delete(todoId) > 0;
     }
 
+    public boolean customerHasTodo(Long customerId) {
+        return todoRepository.existsByCustomerId(customerId);
+    }
+
     private TodoDTO convertToDTO(Todo todo) {
         TodoDTO dto = new TodoDTO();
         dto.setId(todo.getId());

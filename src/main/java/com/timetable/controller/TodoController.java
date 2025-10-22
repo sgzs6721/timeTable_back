@@ -126,5 +126,16 @@ public class TodoController {
             return ResponseEntity.badRequest().body(ApiResponse.error("删除待办失败: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/customer/{customerId}/exists")
+    public ResponseEntity<ApiResponse<Boolean>> checkCustomerHasTodo(
+            @PathVariable Long customerId) {
+        try {
+            boolean hasTodo = todoService.customerHasTodo(customerId);
+            return ResponseEntity.ok(ApiResponse.success("查询成功", hasTodo));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("查询失败: " + e.getMessage()));
+        }
+    }
 }
 
