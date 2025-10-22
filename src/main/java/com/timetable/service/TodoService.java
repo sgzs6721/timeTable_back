@@ -2,7 +2,9 @@ package com.timetable.service;
 
 import com.timetable.dto.TodoDTO;
 import com.timetable.dto.TodoRequest;
+import com.timetable.entity.Customer;
 import com.timetable.entity.Todo;
+import com.timetable.repository.CustomerRepository;
 import com.timetable.repository.TodoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,9 @@ public class TodoService {
 
     @Autowired
     private TodoRepository todoRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @Transactional
     public TodoDTO createTodo(TodoRequest request, Long userId) {
@@ -80,6 +85,15 @@ public class TodoService {
         dto.setId(todo.getId());
         dto.setCustomerId(todo.getCustomerId());
         dto.setCustomerName(todo.getCustomerName());
+        
+        // 查询客户电话
+        if (todo.getCustomerId() != null) {
+            Customer customer = customerRepository.findById(todo.getCustomerId());
+            if (customer != null) {
+                dto.setCustomerPhone(customer.getParentPhone());
+            }
+        }
+        
         dto.setContent(todo.getContent());
         dto.setReminderDate(todo.getReminderDate());
         dto.setReminderTime(todo.getReminderTime());
