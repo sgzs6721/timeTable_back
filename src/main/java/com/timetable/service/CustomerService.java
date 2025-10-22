@@ -3,8 +3,10 @@ package com.timetable.service;
 import com.timetable.dto.CustomerDTO;
 import com.timetable.dto.CustomerRequest;
 import com.timetable.entity.Customer;
+import com.timetable.entity.CustomerStatusHistory;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.CustomerRepository;
+import com.timetable.repository.CustomerStatusHistoryRepository;
 import com.timetable.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,9 @@ public class CustomerService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CustomerStatusHistoryRepository statusHistoryRepository;
 
     @Transactional
     public CustomerDTO createCustomer(CustomerRequest request, Long currentUserId) {
@@ -158,6 +163,14 @@ public class CustomerService {
         Users creator = userRepository.findById(customer.getCreatedBy());
         if (creator != null) {
             dto.setCreatedByName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());
+        }
+
+        // 获取最后一次状态流转记录
+        List<CustomerStatusHistory> histories = statusHistoryRepository.findByCustomerId(customer.getId());
+        if (histories != null && !histories.isEmpty()) {
+            CustomerStatusHistory lastHistory = histories.get(0); // 已按时间倒序排列
+            dto.setLastStatusChangeNote(lastHistory.getNotes());
+            dto.setLastStatusChangeTime(lastHistory.getCreatedAt());
         }
 
         return dto;

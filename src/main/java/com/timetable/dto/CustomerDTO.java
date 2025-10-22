@@ -24,6 +24,8 @@ public class CustomerDTO {
     private String createdByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String lastStatusChangeNote; // 最后一次状态流转备注
+    private LocalDateTime lastStatusChangeTime; // 最后一次状态流转时间
 
     public CustomerDTO() {
     }
@@ -194,5 +196,21 @@ public class CustomerDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getLastStatusChangeNote() {
+        return lastStatusChangeNote;
+    }
+
+    public void setLastStatusChangeNote(String lastStatusChangeNote) {
+        this.lastStatusChangeNote = lastStatusChangeNote;
+    }
+
+    public LocalDateTime getLastStatusChangeTime() {
+        return lastStatusChangeTime;
+    }
+
+    public void setLastStatusChangeTime(LocalDateTime lastStatusChangeTime) {
+        this.lastStatusChangeTime = lastStatusChangeTime;
     }
 }
