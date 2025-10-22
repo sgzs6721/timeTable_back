@@ -3,6 +3,7 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.CustomerDTO;
 import com.timetable.dto.CustomerRequest;
+import com.timetable.dto.PageResponse;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.CustomerService;
 import com.timetable.service.UserService;
@@ -52,6 +53,49 @@ public class CustomerController {
 
             boolean isAdmin = "ADMIN".equals(user.getRole());
             List<CustomerDTO> customers = customerService.getCustomersForUser(user.getId(), isAdmin);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<CustomerDTO>>> getCustomersPage(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long salesId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            boolean isAdmin = "ADMIN".equals(user.getRole());
+            PageResponse<CustomerDTO> pageResponse = customerService.getCustomersPage(
+                    page, pageSize, status, salesId, user.getId(), isAdmin);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", pageResponse));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/byDate")
+    public ResponseEntity<ApiResponse<List<CustomerDTO>>> getCustomersByDate(
+            @RequestParam String date,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long salesId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            boolean isAdmin = "ADMIN".equals(user.getRole());
+            List<CustomerDTO> customers = customerService.getCustomersByDate(
+                    date, status, salesId, user.getId(), isAdmin);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));
