@@ -50,7 +50,15 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setToStatus(record.get(field("to_status", String.class)));
                     history.setNotes(record.get(field("notes", String.class)));
                     history.setCreatedBy(record.get(field("created_by", Long.class)));
-                    history.setCreatedAt(record.get(field("created_at", LocalDateTime.class)));
+                    
+                    // 处理Timestamp到LocalDateTime的转换
+                    Object createdAtObj = record.get(field("created_at"));
+                    if (createdAtObj instanceof java.sql.Timestamp) {
+                        history.setCreatedAt(((java.sql.Timestamp) createdAtObj).toLocalDateTime());
+                    } else if (createdAtObj instanceof LocalDateTime) {
+                        history.setCreatedAt((LocalDateTime) createdAtObj);
+                    }
+                    
                     return history;
                 });
     }
@@ -68,7 +76,15 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setToStatus(record.get(field("to_status", String.class)));
                     history.setNotes(record.get(field("notes", String.class)));
                     history.setCreatedBy(record.get(field("created_by", Long.class)));
-                    history.setCreatedAt(record.get(field("created_at", LocalDateTime.class)));
+                    
+                    // 处理Timestamp到LocalDateTime的转换
+                    Object createdAtObj = record.get(field("created_at"));
+                    if (createdAtObj instanceof java.sql.Timestamp) {
+                        history.setCreatedAt(((java.sql.Timestamp) createdAtObj).toLocalDateTime());
+                    } else if (createdAtObj instanceof LocalDateTime) {
+                        history.setCreatedAt((LocalDateTime) createdAtObj);
+                    }
+                    
                     return history;
                 });
     }
