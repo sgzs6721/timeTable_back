@@ -17,18 +17,25 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
     private DSLContext dsl;
 
     public CustomerStatusHistory save(CustomerStatusHistory history) {
-        Long id = dsl.insertInto(table("customer_status_history"))
-                .set(field("customer_id"), history.getCustomerId())
-                .set(field("from_status"), history.getFromStatus())
-                .set(field("to_status"), history.getToStatus())
-                .set(field("notes"), history.getNotes())
-                .set(field("created_by"), history.getCreatedBy())
-                .set(field("created_at"), LocalDateTime.now())
-                .returning(field("id", Long.class))
-                .fetchOne()
-                .getValue(field("id", Long.class));
+        try {
+            dsl.insertInto(table("customer_status_history"))
+                    .set(field("customer_id"), history.getCustomerId())
+                    .set(field("from_status"), history.getFromStatus())
+                    .set(field("to_status"), history.getToStatus())
+                    .set(field("notes"), history.getNotes())
+                    .set(field("created_by"), history.getCreatedBy())
+                    .set(field("created_at"), LocalDateTime.now())
+                    .execute();
 
-        return findById(id);
+            // 获取最后插入的ID
+            Long id = dsl.select(field("LAST_INSERT_ID()", Long.class))
+                    .fetchOne()
+                    .value1();
+
+            return findById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("保存状态历史记录失败: " + e.getMessage(), e);
+        }
     }
 
     public CustomerStatusHistory findById(Long id) {
