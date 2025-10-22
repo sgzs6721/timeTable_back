@@ -45,6 +45,11 @@ public class CustomerService {
             throw new RuntimeException("客户不存在");
         }
 
+        // 如果assignedSalesId为null，设置为当前用户
+        if (customer.getAssignedSalesId() == null) {
+            customer.setAssignedSalesId(currentUserId);
+        }
+
         // 检查权限：只有管理员或分配的销售可以修改
         if (!currentUserId.equals(customer.getAssignedSalesId()) && 
             !isAdmin(currentUserId)) {

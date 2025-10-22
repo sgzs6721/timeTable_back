@@ -34,6 +34,11 @@ public class CustomerStatusHistoryService {
             throw new RuntimeException("客户不存在");
         }
 
+        // 如果assignedSalesId为null，设置为当前用户
+        if (customer.getAssignedSalesId() == null) {
+            customer.setAssignedSalesId(currentUserId);
+        }
+
         // 检查权限
         Users user = userRepository.findById(currentUserId);
         boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
@@ -74,7 +79,8 @@ public class CustomerStatusHistoryService {
         // 检查权限
         Users user = userRepository.findById(currentUserId);
         boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
-        if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId())) {
+        // 如果assignedSalesId为null，允许当前用户查看（历史遗留数据）
+        if (!isAdmin && customer.getAssignedSalesId() != null && !currentUserId.equals(customer.getAssignedSalesId())) {
             throw new RuntimeException("无权限查看此客户记录");
         }
 
