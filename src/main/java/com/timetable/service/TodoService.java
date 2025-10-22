@@ -24,6 +24,7 @@ public class TodoService {
         todo.setCustomerName(request.getCustomerName());
         todo.setContent(request.getContent());
         todo.setReminderDate(request.getReminderDate());
+        todo.setReminderTime(request.getReminderTime());
         todo.setType(request.getType() != null ? request.getType() : "CUSTOMER_FOLLOW_UP");
         todo.setStatus(request.getStatus() != null ? request.getStatus() : "PENDING");
         todo.setCreatedBy(userId);
@@ -77,6 +78,7 @@ public class TodoService {
         dto.setCustomerName(todo.getCustomerName());
         dto.setContent(todo.getContent());
         dto.setReminderDate(todo.getReminderDate());
+        dto.setReminderTime(todo.getReminderTime());
         dto.setType(todo.getType());
         dto.setStatus(todo.getStatus());
         dto.setIsRead(todo.getIsRead());

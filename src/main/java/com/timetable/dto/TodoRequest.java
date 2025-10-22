@@ -1,12 +1,14 @@
 package com.timetable.dto;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class TodoRequest {
     private Long customerId;
     private String customerName;
     private String content;
     private LocalDate reminderDate;
+    private LocalTime reminderTime;
     private String type;
     private String status;
 
@@ -40,6 +42,14 @@ public class TodoRequest {
 
     public void setReminderDate(LocalDate reminderDate) {
         this.reminderDate = reminderDate;
+    }
+
+    public LocalTime getReminderTime() {
+        return reminderTime;
+    }
+
+    public void setReminderTime(LocalTime reminderTime) {
+        this.reminderTime = reminderTime;
     }
 
     public String getType() {

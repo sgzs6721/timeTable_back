@@ -22,6 +22,7 @@ public class TodoRepository extends BaseRepository {
                 .set(TODOS.CUSTOMER_NAME, todo.getCustomerName())
                 .set(TODOS.CONTENT, todo.getContent())
                 .set(TODOS.REMINDER_DATE, todo.getReminderDate())
+                .set(TODOS.REMINDER_TIME, todo.getReminderTime())
                 .set(TODOS.TYPE, todo.getType())
                 .set(TODOS.STATUS, todo.getStatus())
                 .set(TODOS.IS_READ, false)

@@ -2,6 +2,7 @@ package com.timetable.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class Todo {
     private Long id;
@@ -9,6 +10,7 @@ public class Todo {
     private String customerName;
     private String content;
     private LocalDate reminderDate;
+    private LocalTime reminderTime;
     private String type;
     private String status;
     private Boolean isRead;
@@ -56,6 +58,14 @@ public class Todo {
 
     public void setReminderDate(LocalDate reminderDate) {
         this.reminderDate = reminderDate;
+    }
+
+    public LocalTime getReminderTime() {
+        return reminderTime;
+    }
+
+    public void setReminderTime(LocalTime reminderTime) {
+        this.reminderTime = reminderTime;
     }
 
     public String getType() {
