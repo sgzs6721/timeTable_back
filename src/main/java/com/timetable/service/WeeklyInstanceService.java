@@ -1431,6 +1431,7 @@ public class WeeklyInstanceService {
                 item.put("ownerName", u != null ? (u.getNickname() != null ? u.getNickname() : u.getUsername()) : "");
                 item.put("ownerNickname", u != null ? u.getNickname() : null);
                 item.put("ownerUsername", u != null ? u.getUsername() : "");
+                item.put("ownerRole", u != null ? u.getRole() : null);
                 item.put("timetableId", timetable.getId());
                 item.put("timetableName", timetable.getName());
                 item.put("isWeekly", timetable.getIsWeekly());
