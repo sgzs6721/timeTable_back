@@ -101,5 +101,15 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
             throw new RuntimeException("更新状态历史记录失败: " + e.getMessage(), e);
         }
     }
+
+    public void delete(Long id) {
+        try {
+            dsl.deleteFrom(table("customer_status_history"))
+                    .where(field("id").eq(id))
+                    .execute();
+        } catch (Exception e) {
+            throw new RuntimeException("删除状态历史记录失败: " + e.getMessage(), e);
+        }
+    }
 }
 

@@ -110,6 +110,23 @@ public class CustomerStatusHistoryService {
         return convertToDTO(updatedHistory);
     }
 
+    @Transactional
+    public void deleteHistory(Long historyId, Long currentUserId) {
+        CustomerStatusHistory history = historyRepository.findById(historyId);
+        if (history == null) {
+            throw new RuntimeException("历史记录不存在");
+        }
+
+        // 检查权限 - 只能删除自己创建的记录或管理员可以删除
+        Users user = userRepository.findById(currentUserId);
+        boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
+        if (!isAdmin && !currentUserId.equals(history.getCreatedBy())) {
+            throw new RuntimeException("无权限删除此历史记录");
+        }
+
+        historyRepository.delete(historyId);
+    }
+
     private CustomerStatusHistoryDTO convertToDTO(CustomerStatusHistory history) {
         CustomerStatusHistoryDTO dto = new CustomerStatusHistoryDTO();
         dto.setId(history.getId());

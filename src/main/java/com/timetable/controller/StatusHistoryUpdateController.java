@@ -41,5 +41,22 @@ public class StatusHistoryUpdateController {
             return ResponseEntity.badRequest().body(ApiResponse.error("更新失败: " + e.getMessage()));
         }
     }
+
+    @DeleteMapping("/{historyId}")
+    public ResponseEntity<ApiResponse<Void>> deleteHistory(
+            @PathVariable Long historyId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            historyService.deleteHistory(historyId, user.getId());
+            return ResponseEntity.ok(ApiResponse.success("删除成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
 }
 
