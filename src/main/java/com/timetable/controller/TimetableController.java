@@ -144,6 +144,7 @@ public class TimetableController {
             ownerInfo.put("id", timetableOwner.getId());
             ownerInfo.put("username", timetableOwner.getUsername());
             ownerInfo.put("nickname", timetableOwner.getNickname());
+            ownerInfo.put("role", timetableOwner.getRole());
             response.put("owner", ownerInfo);
         }
 

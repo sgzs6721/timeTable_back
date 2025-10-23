@@ -815,6 +815,7 @@ public class TimetableService {
                     timetableInfo.put("timetableId", timetable.getId());
                     timetableInfo.put("timetableName", timetable.getName());
                     timetableInfo.put("ownerName", user.getNickname() != null ? user.getNickname() : user.getUsername());
+                    timetableInfo.put("ownerRole", user.getRole());
                     // 标记是否为周固定课表
                     timetableInfo.put("isWeekly", timetable.getIsWeekly());
                     timetableInfo.put("schedules", schedules);
