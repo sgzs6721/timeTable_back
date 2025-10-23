@@ -1,8 +1,12 @@
 package com.timetable.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+
 /**
  * 微信用户信息DTO
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class WechatUserInfo {
     
     private String openid;
