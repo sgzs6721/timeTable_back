@@ -120,5 +120,32 @@ public class TodoRepository extends BaseRepository {
                 .fetchOne(0, Integer.class);
         return count != null && count > 0;
     }
+
+    public Todo findLatestTodoByCustomerId(Long customerId) {
+        return dsl.selectFrom(TODOS)
+                .where(TODOS.CUSTOMER_ID.eq(customerId))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .and(TODOS.STATUS.ne("COMPLETED"))
+                .orderBy(TODOS.CREATED_AT.desc())
+                .limit(1)
+                .fetchOneInto(Todo.class);
+    }
+
+    public Todo update(Todo todo) {
+        dsl.update(TODOS)
+                .set(TODOS.CUSTOMER_ID, todo.getCustomerId())
+                .set(TODOS.CUSTOMER_NAME, todo.getCustomerName())
+                .set(TODOS.CONTENT, todo.getContent())
+                .set(TODOS.REMINDER_DATE, todo.getReminderDate())
+                .set(TODOS.REMINDER_TIME, todo.getReminderTime())
+                .set(TODOS.TYPE, todo.getType())
+                .set(TODOS.STATUS, todo.getStatus())
+                .set(TODOS.UPDATED_AT, LocalDateTime.now())
+                .where(TODOS.ID.eq(todo.getId()))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .execute();
+
+        return findById(todo.getId());
+    }
 }
 

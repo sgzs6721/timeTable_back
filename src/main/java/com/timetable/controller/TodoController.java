@@ -137,5 +137,34 @@ public class TodoController {
             return ResponseEntity.badRequest().body(ApiResponse.error("查询失败: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/customer/{customerId}/latest")
+    public ResponseEntity<ApiResponse<TodoDTO>> getLatestTodoForCustomer(
+            @PathVariable Long customerId) {
+        try {
+            TodoDTO todo = todoService.getLatestTodoForCustomer(customerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", todo));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{todoId}")
+    public ResponseEntity<ApiResponse<TodoDTO>> updateTodo(
+            @PathVariable Long todoId,
+            @RequestBody TodoRequest request,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            TodoDTO todo = todoService.updateTodo(todoId, request, user.getId());
+            return ResponseEntity.ok(ApiResponse.success("更新成功", todo));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("更新待办失败: " + e.getMessage()));
+        }
+    }
 }
 

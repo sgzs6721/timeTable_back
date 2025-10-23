@@ -83,6 +83,45 @@ public class TodoService {
         return todoRepository.existsByCustomerId(customerId);
     }
 
+    public TodoDTO getLatestTodoForCustomer(Long customerId) {
+        Todo todo = todoRepository.findLatestTodoByCustomerId(customerId);
+        return todo != null ? convertToDTO(todo) : null;
+    }
+
+    @Transactional
+    public TodoDTO updateTodo(Long todoId, TodoRequest request, Long userId) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null) {
+            throw new RuntimeException("待办不存在");
+        }
+
+        // 更新待办信息
+        if (request.getCustomerId() != null) {
+            todo.setCustomerId(request.getCustomerId());
+        }
+        if (request.getCustomerName() != null) {
+            todo.setCustomerName(request.getCustomerName());
+        }
+        if (request.getContent() != null) {
+            todo.setContent(request.getContent());
+        }
+        if (request.getReminderDate() != null) {
+            todo.setReminderDate(request.getReminderDate());
+        }
+        if (request.getReminderTime() != null) {
+            todo.setReminderTime(request.getReminderTime());
+        }
+        if (request.getType() != null) {
+            todo.setType(request.getType());
+        }
+        if (request.getStatus() != null) {
+            todo.setStatus(request.getStatus());
+        }
+
+        Todo updated = todoRepository.update(todo);
+        return convertToDTO(updated);
+    }
+
     private TodoDTO convertToDTO(Todo todo) {
         TodoDTO dto = new TodoDTO();
         dto.setId(todo.getId());
