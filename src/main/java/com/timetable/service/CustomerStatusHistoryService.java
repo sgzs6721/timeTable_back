@@ -124,6 +124,20 @@ public class CustomerStatusHistoryService {
             throw new RuntimeException("无权限删除此历史记录");
         }
 
+        // 获取客户信息
+        Customer customer = customerRepository.findById(history.getCustomerId());
+        if (customer == null) {
+            throw new RuntimeException("客户不存在");
+        }
+
+        // 如果删除的是当前状态的流转记录，需要将客户状态回退到前一个状态
+        if (customer.getStatus() != null && customer.getStatus().equals(history.getToStatus())) {
+            // 回退到 fromStatus
+            customer.setStatus(history.getFromStatus());
+            customerRepository.update(customer);
+        }
+
+        // 删除历史记录
         historyRepository.delete(historyId);
     }
 
