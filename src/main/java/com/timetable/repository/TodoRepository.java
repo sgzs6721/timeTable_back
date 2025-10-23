@@ -64,14 +64,11 @@ public class TodoRepository extends BaseRepository {
     }
 
     public int countUnreadByCreatedBy(Long userId) {
-        LocalDate today = LocalDate.now();
         return dsl.selectCount()
                 .from(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
-                .and(TODOS.IS_READ.eq((byte) 0))
                 .and(TODOS.STATUS.ne("COMPLETED"))
                 .and(TODOS.DELETED.eq((byte) 0))
-                .and(TODOS.REMINDER_DATE.eq(today))
                 .fetchOne(0, int.class);
     }
 
