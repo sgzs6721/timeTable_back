@@ -22,6 +22,9 @@ public class TodoService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private CustomerStatusHistoryService historyService;
+
     @Transactional
     public TodoDTO createTodo(TodoRequest request, Long userId) {
         Todo todo = new Todo();
@@ -104,6 +107,17 @@ public class TodoService {
         dto.setCreatedBy(todo.getCreatedBy());
         dto.setCreatedAt(todo.getCreatedAt());
         dto.setUpdatedAt(todo.getUpdatedAt());
+        
+        // 查询流转记录
+        if (todo.getCustomerId() != null && todo.getCreatedBy() != null) {
+            try {
+                dto.setStatusHistory(historyService.getHistoryByCustomerId(todo.getCustomerId(), todo.getCreatedBy()));
+            } catch (Exception e) {
+                // 如果查询失败（如权限不足），不影响待办显示
+                dto.setStatusHistory(new java.util.ArrayList<>());
+            }
+        }
+        
         return dto;
     }
 }

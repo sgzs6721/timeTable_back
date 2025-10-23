@@ -3,6 +3,7 @@ package com.timetable.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 public class TodoDTO {
     private Long id;
@@ -19,6 +20,7 @@ public class TodoDTO {
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<CustomerStatusHistoryDTO> statusHistory;
 
     public Long getId() {
         return id;
@@ -130,6 +132,14 @@ public class TodoDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<CustomerStatusHistoryDTO> getStatusHistory() {
+        return statusHistory;
+    }
+
+    public void setStatusHistory(List<CustomerStatusHistoryDTO> statusHistory) {
+        this.statusHistory = statusHistory;
     }
 }
 
