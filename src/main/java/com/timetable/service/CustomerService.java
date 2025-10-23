@@ -180,9 +180,9 @@ public class CustomerService {
         switch (status) {
             case "NEW": return "新建";
             case "CONTACTED": return "已联系";
-            case "SCHEDULED": return "已安排上门";
+            case "SCHEDULED": return "待体验";
             case "PENDING_CONFIRM": return "待确认";
-            case "VISITED": return "已上门";
+            case "VISITED": return "已体验";
             case "SOLD": return "已成交";
             case "RE_EXPERIENCE": return "待再体验";
             case "CLOSED": return "已结束";

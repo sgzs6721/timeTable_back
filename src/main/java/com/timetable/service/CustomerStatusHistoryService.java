@@ -90,6 +90,26 @@ public class CustomerStatusHistoryService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public CustomerStatusHistoryDTO updateHistory(Long historyId, String notes, Long currentUserId) {
+        CustomerStatusHistory history = historyRepository.findById(historyId);
+        if (history == null) {
+            throw new RuntimeException("历史记录不存在");
+        }
+
+        // 检查权限 - 只能修改自己创建的记录或管理员可以修改
+        Users user = userRepository.findById(currentUserId);
+        boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
+        if (!isAdmin && !currentUserId.equals(history.getCreatedBy())) {
+            throw new RuntimeException("无权限修改此历史记录");
+        }
+
+        // 更新备注
+        history.setNotes(notes);
+        CustomerStatusHistory updatedHistory = historyRepository.update(history);
+        return convertToDTO(updatedHistory);
+    }
+
     private CustomerStatusHistoryDTO convertToDTO(CustomerStatusHistory history) {
         CustomerStatusHistoryDTO dto = new CustomerStatusHistoryDTO();
         dto.setId(history.getId());
@@ -118,9 +138,9 @@ public class CustomerStatusHistoryService {
         switch (status) {
             case "NEW": return "新建";
             case "CONTACTED": return "已联系";
-            case "SCHEDULED": return "已安排上门";
+            case "SCHEDULED": return "待体验";
             case "PENDING_CONFIRM": return "待确认";
-            case "VISITED": return "已上门";
+            case "VISITED": return "已体验";
             case "SOLD": return "已成交";
             case "RE_EXPERIENCE": return "待再体验";
             case "CLOSED": return "已结束";

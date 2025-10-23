@@ -88,5 +88,18 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     return history;
                 });
     }
+
+    public CustomerStatusHistory update(CustomerStatusHistory history) {
+        try {
+            dsl.update(table("customer_status_history"))
+                    .set(field("notes"), history.getNotes())
+                    .where(field("id").eq(history.getId()))
+                    .execute();
+            
+            return findById(history.getId());
+        } catch (Exception e) {
+            throw new RuntimeException("更新状态历史记录失败: " + e.getMessage(), e);
+        }
+    }
 }
 

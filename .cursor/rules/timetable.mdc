@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+生成commit message要用英文，要简洁一些，不要太长
+always response in 中文
+不要以脚本和命令行的方向去修改代码
+生成commit message要用英文，要简洁一些，不要太长
+修改文件时没用的代码可以直接删除，而不是注释
+不需要给生成git 指令提交
+前后端项目生成的代码都要有组件化的结构
+修改后要保证没有语法错误, 只需要进行mvn compiile就可以， 不需要别的
