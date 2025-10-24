@@ -213,10 +213,11 @@ public class ScheduleRepository {
      * 查询周实例在指定日期和时间段的课程
      */
     public List<Schedules> findByInstanceAndDateTime(Long instanceId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        // 查询weekly_instance_schedules表
+        // 查询weekly_instance_schedules表，排除已取消/请假的课程
         List<com.timetable.generated.tables.pojos.WeeklyInstanceSchedules> instanceSchedules = dsl.selectFrom(WEEKLY_INSTANCE_SCHEDULES)
                 .where(WEEKLY_INSTANCE_SCHEDULES.WEEKLY_INSTANCE_ID.eq(instanceId))
                 .and(WEEKLY_INSTANCE_SCHEDULES.SCHEDULE_DATE.eq(date))
+                .and(WEEKLY_INSTANCE_SCHEDULES.IS_CANCELLED.isFalse())
                 .and(
                     // 时间段有重叠
                     WEEKLY_INSTANCE_SCHEDULES.START_TIME.lessThan(endTime)
