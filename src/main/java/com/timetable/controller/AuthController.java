@@ -446,7 +446,7 @@ public class AuthController {
                 boolean needBindPhone = (Boolean) loginResult.getOrDefault("needBindPhone", false);
                 
                 // 前端页面URL
-                String frontendUrl = "https://timetable.devtesting.top";
+                String frontendUrl = "https://timetable.devtesting.top/dashboard?tab=timetables";
                 
                 if (needBindPhone) {
                     // 需要绑定手机号，显示绑定手机号页面
@@ -604,7 +604,6 @@ public class AuthController {
                             "</div>" +
                             "<script>" +
                                 "localStorage.setItem('token', '%s');" +
-                                "localStorage.setItem('user', JSON.stringify(%s));" +
                                 "setTimeout(() => {" +
                                     "window.location.href = '%s';" +
                                 "}, 1500);" +
@@ -619,14 +618,10 @@ public class AuthController {
                             user.get("wechatAvatar"));
                     }
                     
-                    // 将user对象转换为JSON字符串
-                    String userJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(user);
-                    
                     String html = String.format(htmlTemplate,
                         avatarHtml,
                         user.get("nickname"),
                         token,
-                        userJson.replace("\"", "\\\""),
                         frontendUrl
                     );
                     
