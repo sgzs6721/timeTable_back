@@ -14,7 +14,7 @@ echo "编译Java文件..."
 mkdir -p target/classes
 
 # 编译主要的类
-javac -cp "$CLASSPATH" -d target/classes \
+javac -encoding UTF-8 -cp "$CLASSPATH" -d target/classes \
     src/main/java/com/timetable/dto/WechatLoginRequest.java \
     src/main/java/com/timetable/dto/WechatUserInfo.java \
     src/main/java/com/timetable/dto/WechatAccessToken.java
@@ -27,7 +27,7 @@ else
 fi
 
 # 编译服务类
-javac -cp "$CLASSPATH:target/classes" -d target/classes \
+javac -encoding UTF-8 -cp "$CLASSPATH:target/classes" -d target/classes \
     src/main/java/com/timetable/service/WechatLoginService.java
 
 if [ $? -eq 0 ]; then
