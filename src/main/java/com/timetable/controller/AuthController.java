@@ -533,8 +533,12 @@ public class AuthController {
                                         "if (data.status === 'success') {" +
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
+                                            "console.log('手机号绑定成功，Token已保存:', token);" +
+                                            "console.log('用户信息已保存:', data.data.user);" +
+                                            "console.log('即将跳转到:', frontendUrl);" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
                                             "setTimeout(() => {" +
+                                                "console.log('开始跳转...');" +
                                                 "window.location.href = frontendUrl;" +
                                             "}, 1000);" +
                                         "} else {" +
@@ -543,6 +547,7 @@ public class AuthController {
                                             "btn.textContent = '确定';" +
                                         "}" +
                                     "} catch (error) {" +
+                                        "console.error('绑定手机号失败:', error);" +
                                         "showError('网络错误，请重试');" +
                                         "btn.disabled = false;" +
                                         "btn.textContent = '确定';" +
@@ -564,11 +569,13 @@ public class AuthController {
                             user.get("wechatAvatar"));
                     }
                     
+                    logger.info("绑定页面 - Token: {}, FrontendUrl: {}", token, frontendUrl);
+                    
                     String html = String.format(htmlTemplate,
-                        avatarHtml,
-                        user.get("nickname"),
-                        token,
-                        frontendUrl
+                        avatarHtml,           // %s - avatar
+                        user.get("nickname"), // %s - nickname  
+                        token,                // %s - token (JavaScript)
+                        frontendUrl          // %s - frontendUrl (JavaScript)
                     );
                     
                     return ResponseEntity.ok(html);
@@ -603,9 +610,16 @@ public class AuthController {
                                 "<div class=\"loading\">正在跳转...</div>" +
                             "</div>" +
                             "<script>" +
-                                "localStorage.setItem('token', '%s');" +
+                                "// 保存token到localStorage" +
+                                "const token = '%s';" +
+                                "const frontendUrl = '%s';" +
+                                "localStorage.setItem('token', token);" +
+                                "console.log('Token已保存:', token);" +
+                                "console.log('即将跳转到:', frontendUrl);" +
+                                "// 延迟跳转" +
                                 "setTimeout(() => {" +
-                                    "window.location.href = '%s';" +
+                                    "console.log('开始跳转...');" +
+                                    "window.location.href = frontendUrl;" +
                                 "}, 1500);" +
                             "</script>" +
                         "</body>" +
@@ -618,11 +632,13 @@ public class AuthController {
                             user.get("wechatAvatar"));
                     }
                     
+                    logger.info("已绑定用户跳转页面 - Token: {}, FrontendUrl: {}", token, frontendUrl);
+                    
                     String html = String.format(htmlTemplate,
-                        avatarHtml,
-                        user.get("nickname"),
-                        token,
-                        frontendUrl
+                        avatarHtml,           // %s - avatar
+                        user.get("nickname"), // %s - nickname
+                        token,                // %s - token (JavaScript)
+                        frontendUrl          // %s - frontendUrl (JavaScript)
                     );
                     
                     return ResponseEntity.ok(html);
