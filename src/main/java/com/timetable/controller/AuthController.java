@@ -533,13 +533,16 @@ public class AuthController {
                                         "if (data.status === 'success') {" +
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
-                                            "console.log('手机号绑定成功，Token已保存:', token);" +
+                                            "console.log('手机号绑定成功');" +
+                                            "console.log('Token已保存:', token);" +
                                             "console.log('用户信息已保存:', data.data.user);" +
-                                            "console.log('即将跳转到:', frontendUrl);" +
+                                            "console.log('frontendUrl变量值:', frontendUrl);" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
+                                            "const targetUrl = frontendUrl;" +
+                                            "console.log('目标URL:', targetUrl);" +
                                             "setTimeout(() => {" +
-                                                "console.log('开始跳转...');" +
-                                                "window.location.href = frontendUrl;" +
+                                                "console.log('执行跳转到:', targetUrl);" +
+                                                "window.location.replace(targetUrl);" +
                                             "}, 1000);" +
                                         "} else {" +
                                             "showError(data.message || '绑定失败，请重试');" +
@@ -615,11 +618,13 @@ public class AuthController {
                                 "const frontendUrl = '%s';" +
                                 "localStorage.setItem('token', token);" +
                                 "console.log('Token已保存:', token);" +
-                                "console.log('即将跳转到:', frontendUrl);" +
+                                "console.log('frontendUrl变量值:', frontendUrl);" +
                                 "// 延迟跳转" +
+                                "const targetUrl = frontendUrl;" +
+                                "console.log('目标URL:', targetUrl);" +
                                 "setTimeout(() => {" +
-                                    "console.log('开始跳转...');" +
-                                    "window.location.href = frontendUrl;" +
+                                    "console.log('执行跳转到:', targetUrl);" +
+                                    "window.location.replace(targetUrl);" +
                                 "}, 1500);" +
                             "</script>" +
                         "</body>" +
