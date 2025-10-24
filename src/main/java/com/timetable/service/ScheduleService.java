@@ -1618,8 +1618,74 @@ public class ScheduleService {
     }
 
     public Map<String, Object> findTrialScheduleByStudentName(String studentName) {
-        // 暂时返回 null，体验时间信息会通过状态流转记录的备注显示
-        // TODO: 需要重新生成JOOQ代码以支持is_trial字段
-        return null;
+        try {
+            // 先查询普通课表中的体验课
+            List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
+            
+            // 再查询周实例中的体验课
+            List<Map<String, Object>> instanceTrialSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
+            
+            // 合并两个列表
+            List<Map<String, Object>> allTrials = new ArrayList<>();
+            allTrials.addAll(trialSchedules);
+            allTrials.addAll(instanceTrialSchedules);
+            
+            if (allTrials.isEmpty()) {
+                return null;
+            }
+            
+            // 按日期倒序排序，获取最新的体验课
+            allTrials.sort((a, b) -> {
+                Object dateA = a.get("schedule_date");
+                Object dateB = b.get("schedule_date");
+                if (dateA == null && dateB == null) return 0;
+                if (dateA == null) return 1;
+                if (dateB == null) return -1;
+                
+                int dateCompare = dateB.toString().compareTo(dateA.toString());
+                if (dateCompare != 0) return dateCompare;
+                
+                // 如果日期相同，按开始时间排序
+                Object timeA = a.get("start_time");
+                Object timeB = b.get("start_time");
+                if (timeA == null && timeB == null) return 0;
+                if (timeA == null) return 1;
+                if (timeB == null) return -1;
+                return timeB.toString().compareTo(timeA.toString());
+            });
+            
+            Map<String, Object> latestTrial = allTrials.get(0);
+            Map<String, Object> result = new HashMap<>();
+            result.put("scheduleDate", latestTrial.get("schedule_date"));
+            result.put("startTime", latestTrial.get("start_time"));
+            result.put("endTime", latestTrial.get("end_time"));
+            result.put("note", latestTrial.get("note"));
+            
+            // 获取教练信息
+            Object coachIdObj = latestTrial.get("coach_id");
+            if (coachIdObj != null) {
+                Long coachId = null;
+                if (coachIdObj instanceof Long) {
+                    coachId = (Long) coachIdObj;
+                } else if (coachIdObj instanceof Integer) {
+                    coachId = ((Integer) coachIdObj).longValue();
+                } else if (coachIdObj instanceof java.math.BigInteger) {
+                    coachId = ((java.math.BigInteger) coachIdObj).longValue();
+                }
+                
+                if (coachId != null) {
+                    List<Timetables> timetables = timetableRepository.findByUserId(coachId);
+                    if (timetables != null && !timetables.isEmpty()) {
+                        result.put("coachId", coachId);
+                        result.put("coachName", "教练" + coachId); // 临时显示ID，后面可以优化
+                    }
+                }
+            }
+            
+            return result;
+        } catch (Exception e) {
+            logger.error("查询体验课程失败: studentName={}", studentName, e);
+            return null;
+        }
     }
 }

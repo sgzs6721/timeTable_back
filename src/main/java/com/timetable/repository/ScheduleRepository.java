@@ -294,5 +294,32 @@ public class ScheduleRepository {
         dsl.execute("UPDATE schedules SET is_trial = 1 WHERE id = LAST_INSERT_ID()");
     }
 
+    /**
+     * 查询学生的体验课程
+     */
+    public List<java.util.Map<String, Object>> findTrialSchedulesByStudentName(String studentName) {
+        String sql = "SELECT s.*, t.user_id as coach_id " +
+                    "FROM schedules s " +
+                    "LEFT JOIN timetables t ON s.timetable_id = t.id " +
+                    "WHERE s.student_name = ? AND s.is_trial = 1 AND s.schedule_date IS NOT NULL " +
+                    "ORDER BY s.schedule_date DESC, s.start_time DESC " +
+                    "LIMIT 10";
+        return dsl.fetch(sql, studentName).intoMaps();
+    }
+
+    /**
+     * 查询周实例中学生的体验课程
+     */
+    public List<java.util.Map<String, Object>> findTrialSchedulesInInstancesByStudentName(String studentName) {
+        String sql = "SELECT wis.*, wi.timetable_id, t.user_id as coach_id " +
+                    "FROM weekly_instance_schedules wis " +
+                    "LEFT JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
+                    "LEFT JOIN timetables t ON wi.timetable_id = t.id " +
+                    "WHERE wis.student_name = ? AND wis.is_trial = 1 AND wis.schedule_date IS NOT NULL " +
+                    "ORDER BY wis.schedule_date DESC, wis.start_time DESC " +
+                    "LIMIT 10";
+        return dsl.fetch(sql, studentName).intoMaps();
+    }
+
     // 可根据业务扩展更多jOOQ查询
 }
