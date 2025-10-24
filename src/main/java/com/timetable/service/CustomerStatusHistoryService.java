@@ -49,12 +49,7 @@ public class CustomerStatusHistoryService {
         String fromStatus = customer.getStatus();
         String toStatus = request.getToStatus();
 
-        // 如果状态没有变化，不需要记录
-        if (fromStatus != null && fromStatus.equals(toStatus)) {
-            throw new RuntimeException("新状态与当前状态相同");
-        }
-
-        // 更新客户状态
+        // 更新客户状态（即使状态相同也允许记录，可能是添加备注或体验课信息）
         customer.setStatus(toStatus);
         customerRepository.update(customer);
 
@@ -184,8 +179,9 @@ public class CustomerStatusHistoryService {
             case "SCHEDULED": return "待体验";
             case "PENDING_CONFIRM": return "待确认";
             case "VISITED": return "已体验";
-            case "SOLD": return "已成交";
             case "RE_EXPERIENCE": return "待再体验";
+            case "PENDING_SOLD": return "待成交";
+            case "SOLD": return "已成交";
             case "CLOSED": return "已结束";
             default: return status;
         }
