@@ -62,6 +62,8 @@ logging:
     com.timetable: INFO
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
+  charset:
+    file: UTF-8
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -84,6 +86,8 @@ spring:
 logging:
   level:
     com.timetable: DEBUG
+  charset:
+    file: UTF-8
 
 ---
 # 测试环境配置
@@ -119,3 +123,5 @@ logging:
   level:
     com.timetable: INFO
     root: WARN
+  charset:
+    file: UTF-8
