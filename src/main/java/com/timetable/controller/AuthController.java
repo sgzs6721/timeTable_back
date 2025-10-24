@@ -534,9 +534,16 @@ public class AuthController {
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
-                                            "const urlWithToken = frontendUrl + '?token=' + encodeURIComponent(token);" +
+                                            "const user = data.data.user;" +
+                                            "let redirectUrl = frontendUrl + '?token=' + encodeURIComponent(token);" +
+                                            "if (user.wechatAvatar) {" +
+                                                "redirectUrl += '&avatar=' + encodeURIComponent(user.wechatAvatar);" +
+                                            "}" +
+                                            "if (user.nickname) {" +
+                                                "redirectUrl += '&nickname=' + encodeURIComponent(user.nickname);" +
+                                            "}" +
                                             "setTimeout(() => {" +
-                                                "window.location.href = urlWithToken;" +
+                                                "window.location.href = redirectUrl;" +
                                             "}, 1000);" +
                                         "} else {" +
                                             "showError(data.message || '绑定失败，请重试');" +
@@ -608,10 +615,18 @@ public class AuthController {
                             "<script>" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
+                                "const userAvatar = '%s';" +
+                                "const userNickname = '%s';" +
                                 "localStorage.setItem('token', token);" +
-                                "const urlWithToken = frontendUrl + '?token=' + encodeURIComponent(token);" +
+                                "let redirectUrl = frontendUrl + '?token=' + encodeURIComponent(token);" +
+                                "if (userAvatar) {" +
+                                    "redirectUrl += '&avatar=' + encodeURIComponent(userAvatar);" +
+                                "}" +
+                                "if (userNickname) {" +
+                                    "redirectUrl += '&nickname=' + encodeURIComponent(userNickname);" +
+                                "}" +
                                 "setTimeout(() => {" +
-                                    "window.location.href = urlWithToken;" +
+                                    "window.location.href = redirectUrl;" +
                                 "}, 1500);" +
                             "</script>" +
                         "</body>" +
@@ -626,11 +641,16 @@ public class AuthController {
                     
                     logger.info("已绑定用户跳转页面 - Token: {}, FrontendUrl: {}", token, frontendUrl);
                     
+                    String userAvatar = user.get("wechatAvatar") != null ? user.get("wechatAvatar").toString() : "";
+                    String userNickname = user.get("nickname") != null ? user.get("nickname").toString() : "";
+                    
                     String html = String.format(htmlTemplate,
-                        avatarHtml,           // %s - avatar
-                        user.get("nickname"), // %s - nickname
+                        avatarHtml,           // %s - avatar (HTML)
+                        userNickname,         // %s - nickname (页面显示)
                         token,                // %s - token (JavaScript)
-                        frontendUrl          // %s - frontendUrl (JavaScript)
+                        frontendUrl,          // %s - frontendUrl (JavaScript)
+                        userAvatar,           // %s - userAvatar (JavaScript)
+                        userNickname          // %s - userNickname (JavaScript)
                     );
                     
                     return ResponseEntity.ok(html);
