@@ -556,23 +556,33 @@ public class AuthController {
                                         "const data = await response.json();" +
                                         "log('API响应数据', data);" +
                                         "if (data.status === 'success') {" +
-                                            "localStorage.setItem('token', token);" +
-                                            "localStorage.setItem('user', JSON.stringify(data.data.user));" +
+                                            "try {" +
+                                                "localStorage.setItem('token', token);" +
+                                                "localStorage.setItem('user', JSON.stringify(data.data.user));" +
+                                                "const savedToken = localStorage.getItem('token');" +
+                                                "if (savedToken === token) {" +
+                                                    "log('✓ Token已成功保存并验证');" +
+                                                "} else {" +
+                                                    "log('✗ Token保存失败或读取不一致');" +
+                                                "}" +
+                                            "} catch (e) {" +
+                                                "log('localStorage操作失败', e.message);" +
+                                            "}" +
                                             "log('=== 绑定成功！===');" +
-                                            "log('Token已保存到localStorage');" +
-                                            "log('用户信息已保存', data.data.user);" +
+                                            "log('用户信息', data.data.user);" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
                                             "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
-                                            "log('目标URL: ' + targetUrl);" +
+                                            "const urlWithToken = targetUrl + '&token=' + encodeURIComponent(token);" +
+                                            "log('带Token的URL: ' + urlWithToken.substring(0, 80) + '...');" +
                                             "log('将在1秒后执行跳转...');" +
                                             "setTimeout(() => {" +
                                                 "log('【开始跳转】');" +
                                                 "try {" +
-                                                    "window.location.href = targetUrl;" +
+                                                    "window.location.href = urlWithToken;" +
                                                     "log('跳转指令已执行');" +
                                                 "} catch (e) {" +
                                                     "log('跳转异常', e.message);" +
-                                                    "alert('跳转失败，请手动访问：' + targetUrl);" +
+                                                    "alert('跳转失败: ' + e.message);" +
                                                 "}" +
                                             "}, 1000);" +
                                         "} else {" +
@@ -665,23 +675,36 @@ public class AuthController {
                                 "log('页面加载完成');" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
+                                "log('Token长度', token.length);" +
                                 "log('Token前20字符', token.substring(0, 20) + '...');" +
                                 "log('frontendUrl变量值', frontendUrl);" +
-                                "localStorage.setItem('token', token);" +
-                                "log('Token已保存到localStorage');" +
+                                "log('当前域名', window.location.hostname);" +
+                                "try {" +
+                                    "localStorage.setItem('token', token);" +
+                                    "const savedToken = localStorage.getItem('token');" +
+                                    "if (savedToken === token) {" +
+                                        "log('✓ Token已成功保存并验证');" +
+                                    "} else {" +
+                                        "log('✗ Token保存失败或读取不一致');" +
+                                    "}" +
+                                "} catch (e) {" +
+                                    "log('localStorage操作失败', e.message);" +
+                                "}" +
                                 "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
                                 "log('目标URL: ' + targetUrl);" +
-                                "log('将在1.5秒后执行跳转...');" +
+                                "const urlWithToken = targetUrl + '&token=' + encodeURIComponent(token);" +
+                                "log('带Token的URL: ' + urlWithToken.substring(0, 80) + '...');" +
+                                "log('将在2秒后执行跳转...');" +
                                 "setTimeout(() => {" +
                                     "log('【开始跳转】');" +
                                     "try {" +
-                                        "window.location.href = targetUrl;" +
+                                        "window.location.href = urlWithToken;" +
                                         "log('跳转指令已执行');" +
                                     "} catch (e) {" +
                                         "log('跳转异常', e.message);" +
-                                        "alert('跳转失败: ' + e.message + '\\n请手动访问: ' + targetUrl);" +
+                                        "alert('跳转失败: ' + e.message);" +
                                     "}" +
-                                "}, 1500);" +
+                                "}, 2000);" +
                             "</script>" +
                         "</body>" +
                         "</html>";
