@@ -445,87 +445,193 @@ public class AuthController {
                 boolean isNewUser = (Boolean) loginResult.getOrDefault("isNewUser", false);
                 boolean needBindPhone = (Boolean) loginResult.getOrDefault("needBindPhone", false);
                 
-                // 根据是否需要绑定手机号决定跳转页面
-                String redirectPage = needBindPhone ? "/bind-phone" : "/";
-                String statusMessage = needBindPhone ? 
-                    "<p style=\"color: #faad14;\">请绑定手机号以继续使用</p>" : 
-                    (isNewUser ? "<p style=\"color: #1890ff;\">欢迎新用户！</p>" : "");
+                // 前端页面URL
+                String frontendUrl = "https://timetable.devtesting.top";
                 
-                String htmlTemplate = "<!DOCTYPE html>" +
-                    "<html>" +
-                    "<head>" +
-                        "<meta charset=\"UTF-8\">" +
-                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-                        "<title>微信登录成功</title>" +
-                        "<style>" +
-                            "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
-                                "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                                "min-height: 100vh; margin: 0; }" +
-                            ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
-                                "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
-                            ".success { color: #52c41a; margin-bottom: 20px; }" +
-                            ".info { margin: 20px 0; color: #666; }" +
-                            ".info p { margin: 10px 0; }" +
-                            ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
-                            ".loading { margin-top: 20px; color: #888; }" +
-                        "</style>" +
-                    "</head>" +
-                    "<body>" +
-                        "<div class=\"container\">" +
-                            "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
-                            "%s" + // avatar
-                            "<div class=\"info\">" +
-                                "<p><strong>昵称：</strong>%s</p>" +
-                                "%s" +
+                if (needBindPhone) {
+                    // 需要绑定手机号，显示绑定手机号页面
+                    String htmlTemplate = "<!DOCTYPE html>" +
+                        "<html>" +
+                        "<head>" +
+                            "<meta charset=\"UTF-8\">" +
+                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                            "<title>微信登录成功</title>" +
+                            "<style>" +
+                                "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
+                                    "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
+                                    "min-height: 100vh; margin: 0; }" +
+                                ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
+                                    "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
+                                ".success { color: #52c41a; margin-bottom: 20px; }" +
+                                ".info { margin: 20px 0; color: #666; }" +
+                                ".info p { margin: 10px 0; }" +
+                                ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
+                                ".form-group { margin: 20px 0; text-align: left; }" +
+                                ".form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }" +
+                                ".form-group input { width: 100%%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 4px; " +
+                                    "font-size: 14px; box-sizing: border-box; }" +
+                                ".form-group input:focus { outline: none; border-color: #667eea; }" +
+                                ".btn { width: 100%%; padding: 12px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
+                                    "color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }" +
+                                ".btn:hover { opacity: 0.9; }" +
+                                ".btn:disabled { opacity: 0.5; cursor: not-allowed; }" +
+                                ".error { color: #ff4d4f; font-size: 14px; margin-top: 10px; display: none; }" +
+                                ".warning { color: #faad14; font-size: 14px; margin-bottom: 20px; }" +
+                            "</style>" +
+                        "</head>" +
+                        "<body>" +
+                            "<div class=\"container\">" +
+                                "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
+                                "%s" + // avatar
+                                "<div class=\"info\">" +
+                                    "<p><strong>昵称：</strong>%s</p>" +
+                                "</div>" +
+                                "<p class=\"warning\">请绑定手机号以继续使用</p>" +
+                                "<div class=\"form-group\">" +
+                                    "<label for=\"phone\">手机号码</label>" +
+                                    "<input type=\"tel\" id=\"phone\" placeholder=\"请输入手机号\" maxlength=\"11\" />" +
+                                "</div>" +
+                                "<button class=\"btn\" onclick=\"handleBindPhone()\">确定</button>" +
+                                "<div class=\"error\" id=\"error\"></div>" +
                             "</div>" +
-                            "<div class=\"loading\">正在跳转...</div>" +
-                        "</div>" +
-                        "<script>" +
-                            "// 将登录信息传递给父窗口或重定向" +
-                            "const loginData = {" +
-                                "type: 'wechat_login_success'," +
-                                "token: '%s'," +
-                                "user: %s," +
-                                "isNewUser: %s," +
-                                "needBindPhone: %s" +
-                            "};" +
-                            "if (window.opener) {" +
-                                "// 如果是弹窗登录，将数据传给父窗口" +
-                                "window.opener.postMessage(loginData, '*');" +
-                                "window.close();" +
-                            "} else {" +
-                                "// 否则重定向到对应页面" +
+                            "<script>" +
+                                "const token = '%s';" +
+                                "const frontendUrl = '%s';" +
+                                "const apiUrl = window.location.origin + '/timetable/api';" +
+                                "function showError(message) {" +
+                                    "const errorEl = document.getElementById('error');" +
+                                    "errorEl.textContent = message;" +
+                                    "errorEl.style.display = 'block';" +
+                                "}" +
+                                "function hideError() {" +
+                                    "document.getElementById('error').style.display = 'none';" +
+                                "}" +
+                                "async function handleBindPhone() {" +
+                                    "const phone = document.getElementById('phone').value.trim();" +
+                                    "if (!phone) {" +
+                                        "showError('请输入手机号');" +
+                                        "return;" +
+                                    "}" +
+                                    "if (!/^1[3-9]\\d{9}$/.test(phone)) {" +
+                                        "showError('手机号格式不正确');" +
+                                        "return;" +
+                                    "}" +
+                                    "hideError();" +
+                                    "const btn = document.querySelector('.btn');" +
+                                    "btn.disabled = true;" +
+                                    "btn.textContent = '绑定中...';" +
+                                    "try {" +
+                                        "const response = await fetch(apiUrl + '/auth/bind-phone', {" +
+                                            "method: 'POST'," +
+                                            "headers: {" +
+                                                "'Content-Type': 'application/json'," +
+                                                "'Authorization': 'Bearer ' + token" +
+                                            "}," +
+                                            "body: JSON.stringify({ phone: phone })" +
+                                        "});" +
+                                        "const data = await response.json();" +
+                                        "if (data.status === 'success') {" +
+                                            "localStorage.setItem('token', token);" +
+                                            "localStorage.setItem('user', JSON.stringify(data.data.user));" +
+                                            "btn.textContent = '绑定成功，正在跳转...';" +
+                                            "setTimeout(() => {" +
+                                                "window.location.href = frontendUrl;" +
+                                            "}, 1000);" +
+                                        "} else {" +
+                                            "showError(data.message || '绑定失败，请重试');" +
+                                            "btn.disabled = false;" +
+                                            "btn.textContent = '确定';" +
+                                        "}" +
+                                    "} catch (error) {" +
+                                        "showError('网络错误，请重试');" +
+                                        "btn.disabled = false;" +
+                                        "btn.textContent = '确定';" +
+                                    "}" +
+                                "}" +
+                                "document.getElementById('phone').addEventListener('keypress', function(e) {" +
+                                    "if (e.key === 'Enter') {" +
+                                        "handleBindPhone();" +
+                                    "}" +
+                                "});" +
+                            "</script>" +
+                        "</body>" +
+                        "</html>";
+                    
+                    // 构建头像HTML
+                    String avatarHtml = "";
+                    if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
+                        avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
+                            user.get("wechatAvatar"));
+                    }
+                    
+                    String html = String.format(htmlTemplate,
+                        avatarHtml,
+                        user.get("nickname"),
+                        token,
+                        frontendUrl
+                    );
+                    
+                    return ResponseEntity.ok(html);
+                } else {
+                    // 已绑定手机号，直接跳转到前端首页
+                    String htmlTemplate = "<!DOCTYPE html>" +
+                        "<html>" +
+                        "<head>" +
+                            "<meta charset=\"UTF-8\">" +
+                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                            "<title>微信登录成功</title>" +
+                            "<style>" +
+                                "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
+                                    "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
+                                    "min-height: 100vh; margin: 0; }" +
+                                ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
+                                    "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
+                                ".success { color: #52c41a; margin-bottom: 20px; }" +
+                                ".info { margin: 20px 0; color: #666; }" +
+                                ".info p { margin: 10px 0; }" +
+                                ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
+                                ".loading { margin-top: 20px; color: #888; }" +
+                            "</style>" +
+                        "</head>" +
+                        "<body>" +
+                            "<div class=\"container\">" +
+                                "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
+                                "%s" + // avatar
+                                "<div class=\"info\">" +
+                                    "<p><strong>昵称：</strong>%s</p>" +
+                                "</div>" +
+                                "<div class=\"loading\">正在跳转...</div>" +
+                            "</div>" +
+                            "<script>" +
                                 "localStorage.setItem('token', '%s');" +
                                 "localStorage.setItem('user', JSON.stringify(%s));" +
                                 "setTimeout(() => {" +
                                     "window.location.href = '%s';" +
                                 "}, 1500);" +
-                            "}" +
-                        "</script>" +
-                    "</body>" +
-                    "</html>";
-                
-                // 构建头像HTML
-                String avatarHtml = "";
-                if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
-                    avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
-                        user.get("wechatAvatar"));
+                            "</script>" +
+                        "</body>" +
+                        "</html>";
+                    
+                    // 构建头像HTML
+                    String avatarHtml = "";
+                    if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
+                        avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
+                            user.get("wechatAvatar"));
+                    }
+                    
+                    // 将user对象转换为JSON字符串
+                    String userJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(user);
+                    
+                    String html = String.format(htmlTemplate,
+                        avatarHtml,
+                        user.get("nickname"),
+                        token,
+                        userJson.replace("\"", "\\\""),
+                        frontendUrl
+                    );
+                    
+                    return ResponseEntity.ok(html);
                 }
-                
-                String html = String.format(htmlTemplate,
-                    avatarHtml,
-                    user.get("nickname"),
-                    statusMessage,
-                    token,
-                    user.toString().replace("\"", "\\\""),
-                    isNewUser,
-                    needBindPhone,
-                    token,
-                    user.toString().replace("\"", "\\\""),
-                    redirectPage
-                );
-                
-                return ResponseEntity.ok(html);
             } else {
                 return ResponseEntity.badRequest()
                         .body("<html><body><h1>登录失败</h1><p>微信登录处理失败</p></body></html>");

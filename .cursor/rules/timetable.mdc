@@ -2,6 +2,7 @@
 alwaysApply: true
 ---
 生成commit message要用英文，要简洁一些，不要太长
+格式如下[feat][xxx][内容]
 always response in 中文
 不要以脚本和命令行的方向去修改代码
 生成commit message要用英文，要简洁一些，不要太长
