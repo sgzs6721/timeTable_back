@@ -7,8 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 import static com.timetable.generated.Tables.SCHEDULES;
+import static com.timetable.generated.Tables.USERS;
+import static com.timetable.generated.Tables.WEEKLY_INSTANCE_SCHEDULES;
 
 /**
  * 排课Repository - 内存实现（用于测试）
@@ -194,6 +197,101 @@ public class ScheduleRepository {
                 .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
                 .and(SCHEDULES.SCHEDULE_DATE.between(startDate, endDate))
                 .fetchOne(0, Integer.class);
+    }
+
+    /**
+     * 查询所有教练（角色为COACH的用户）
+     */
+    public List<com.timetable.generated.tables.pojos.Users> findAllCoaches() {
+        return dsl.selectFrom(USERS)
+                .where(USERS.ROLE.eq("COACH"))
+                .and(USERS.STATUS.eq("ACTIVE"))
+                .fetchInto(com.timetable.generated.tables.pojos.Users.class);
+    }
+
+    /**
+     * 查询周实例在指定日期和时间段的课程
+     */
+    public List<Schedules> findByInstanceAndDateTime(Long instanceId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        // 查询weekly_instance_schedules表
+        List<com.timetable.generated.tables.pojos.WeeklyInstanceSchedules> instanceSchedules = dsl.selectFrom(WEEKLY_INSTANCE_SCHEDULES)
+                .where(WEEKLY_INSTANCE_SCHEDULES.WEEKLY_INSTANCE_ID.eq(instanceId))
+                .and(WEEKLY_INSTANCE_SCHEDULES.SCHEDULE_DATE.eq(date))
+                .and(
+                    // 时间段有重叠
+                    WEEKLY_INSTANCE_SCHEDULES.START_TIME.lessThan(endTime)
+                    .and(WEEKLY_INSTANCE_SCHEDULES.END_TIME.greaterThan(startTime))
+                )
+                .fetchInto(com.timetable.generated.tables.pojos.WeeklyInstanceSchedules.class);
+        
+        // 转换为Schedules对象返回
+        return instanceSchedules.stream().map(is -> {
+            Schedules s = new Schedules();
+            s.setId(is.getId());
+            s.setStudentName(is.getStudentName());
+            s.setDayOfWeek(is.getDayOfWeek());
+            s.setScheduleDate(is.getScheduleDate());
+            s.setStartTime(is.getStartTime());
+            s.setEndTime(is.getEndTime());
+            return s;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 查询课表在指定日期和时间段的课程
+     */
+    public List<Schedules> findByTimetableAndDateTime(Long timetableId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.SCHEDULE_DATE.eq(date))
+                .and(
+                    // 时间段有重叠
+                    SCHEDULES.START_TIME.lessThan(endTime)
+                    .and(SCHEDULES.END_TIME.greaterThan(startTime))
+                )
+                .fetchInto(Schedules.class);
+    }
+
+    /**
+     * 插入课程到周实例（带is_trial标志）
+     */
+    public void insertInstanceSchedule(com.timetable.generated.tables.pojos.WeeklyInstanceSchedules schedule, boolean isTrial) {
+        dsl.insertInto(WEEKLY_INSTANCE_SCHEDULES)
+                .set(WEEKLY_INSTANCE_SCHEDULES.WEEKLY_INSTANCE_ID, schedule.getWeeklyInstanceId())
+                .set(WEEKLY_INSTANCE_SCHEDULES.STUDENT_NAME, schedule.getStudentName())
+                .set(WEEKLY_INSTANCE_SCHEDULES.DAY_OF_WEEK, schedule.getDayOfWeek())
+                .set(WEEKLY_INSTANCE_SCHEDULES.SCHEDULE_DATE, schedule.getScheduleDate())
+                .set(WEEKLY_INSTANCE_SCHEDULES.START_TIME, schedule.getStartTime())
+                .set(WEEKLY_INSTANCE_SCHEDULES.END_TIME, schedule.getEndTime())
+                .set(WEEKLY_INSTANCE_SCHEDULES.NOTE, schedule.getNote())
+                .set(WEEKLY_INSTANCE_SCHEDULES.CREATED_AT, schedule.getCreatedAt())
+                .set(WEEKLY_INSTANCE_SCHEDULES.UPDATED_AT, schedule.getUpdatedAt())
+                .execute();
+        
+        // 使用原生SQL添加is_trial字段（jooq代码未更新）
+        if (isTrial) {
+            dsl.execute("UPDATE weekly_instance_schedules SET is_trial = 1 WHERE id = LAST_INSERT_ID()");
+        }
+    }
+
+    /**
+     * 插入课程到课表
+     */
+    public void insertSchedule(Schedules schedule) {
+        dsl.insertInto(SCHEDULES)
+                .set(SCHEDULES.TIMETABLE_ID, schedule.getTimetableId())
+                .set(SCHEDULES.STUDENT_NAME, schedule.getStudentName())
+                .set(SCHEDULES.DAY_OF_WEEK, schedule.getDayOfWeek())
+                .set(SCHEDULES.SCHEDULE_DATE, schedule.getScheduleDate())
+                .set(SCHEDULES.START_TIME, schedule.getStartTime())
+                .set(SCHEDULES.END_TIME, schedule.getEndTime())
+                .set(SCHEDULES.NOTE, schedule.getNote())
+                .set(SCHEDULES.CREATED_AT, schedule.getCreatedAt())
+                .set(SCHEDULES.UPDATED_AT, schedule.getUpdatedAt())
+                .execute();
+        
+        // 使用原生SQL添加is_trial字段（jooq代码未更新）
+        dsl.execute("UPDATE schedules SET is_trial = 1 WHERE id = LAST_INSERT_ID()");
     }
 
     // 可根据业务扩展更多jOOQ查询

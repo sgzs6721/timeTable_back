@@ -1418,4 +1418,168 @@ public class ScheduleService {
         schedule.setUpdatedAt(instanceSchedule.getUpdatedAt());
         return schedule;
     }
+
+    /**
+     * 查询指定时间段有空闲的教练列表
+     * @param scheduleDate 日期
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 有空闲的教练列表
+     */
+    public List<Map<String, Object>> findAvailableCoaches(LocalDate scheduleDate, LocalTime startTime, LocalTime endTime) {
+        List<Map<String, Object>> availableCoaches = new ArrayList<>();
+        
+        try {
+            // 1. 获取所有教练（非管理员的用户）
+            List<com.timetable.generated.tables.pojos.Users> allCoaches = 
+                scheduleRepository.findAllCoaches();
+            
+            // 2. 对于每个教练，检查其活动课表在该时间段是否有课
+            for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
+                // 获取教练的活动课表
+                Timetables activeTimetable = timetableRepository.findActiveTimetableByUserId(coach.getId());
+                
+                if (activeTimetable == null) {
+                    // 没有活动课表，认为有空
+                    Map<String, Object> coachInfo = new HashMap<>();
+                    coachInfo.put("id", coach.getId());
+                    coachInfo.put("username", coach.getUsername());
+                    coachInfo.put("nickname", coach.getNickname());
+                    availableCoaches.add(coachInfo);
+                    continue;
+                }
+                
+                // 检查该时间段是否有冲突
+                boolean hasConflict = false;
+                
+                // 判断是周固定课表还是日期范围课表
+                if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
+                    // 周固定课表：需要查询当前周实例
+                    WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(activeTimetable.getId());
+                    
+                    if (currentInstance != null) {
+                        // 查询该实例在指定日期和时间段的课程
+                        List<Schedules> existingSchedules = scheduleRepository.findByInstanceAndDateTime(
+                            currentInstance.getId(), scheduleDate, startTime, endTime);
+                        hasConflict = !existingSchedules.isEmpty();
+                    }
+                } else {
+                    // 日期范围课表：直接查询课表的课程
+                    List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
+                        activeTimetable.getId(), scheduleDate, startTime, endTime);
+                    hasConflict = !existingSchedules.isEmpty();
+                }
+                
+                // 如果没有冲突，说明有空
+                if (!hasConflict) {
+                    Map<String, Object> coachInfo = new HashMap<>();
+                    coachInfo.put("id", coach.getId());
+                    coachInfo.put("username", coach.getUsername());
+                    coachInfo.put("nickname", coach.getNickname());
+                    coachInfo.put("timetableId", activeTimetable.getId());
+                    coachInfo.put("timetableName", activeTimetable.getName());
+                    availableCoaches.add(coachInfo);
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("查询有空教练失败", e);
+            throw new RuntimeException("查询失败: " + e.getMessage());
+        }
+        
+        return availableCoaches;
+    }
+
+    /**
+     * 创建体验课程
+     * @param request 体验课请求
+     * @param createdBy 创建者
+     */
+    public void createTrialSchedule(com.timetable.dto.TrialScheduleRequest request, com.timetable.generated.tables.pojos.Users createdBy) {
+        try {
+            // 1. 获取教练的活动课表
+            Timetables activeTimetable = timetableRepository.findActiveTimetableByUserId(request.getCoachId());
+            
+            if (activeTimetable == null) {
+                throw new RuntimeException("教练没有活动课表，无法安排体验课");
+            }
+            
+            LocalDate scheduleDate = LocalDate.parse(request.getScheduleDate());
+            LocalTime startTime = LocalTime.parse(request.getStartTime());
+            LocalTime endTime = LocalTime.parse(request.getEndTime());
+            
+            // 2. 再次检查时间冲突
+            boolean hasConflict = false;
+            Long targetId = null; // 用于保存课程的目标ID（课表ID或实例ID）
+            
+            if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
+                // 周固定课表：需要保存到当前周实例
+                WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(activeTimetable.getId());
+                
+                if (currentInstance == null) {
+                    // 如果没有当前周实例，创建一个
+                    currentInstance = weeklyInstanceService.generateCurrentWeekInstance(activeTimetable.getId());
+                }
+                
+                if (currentInstance != null) {
+                    targetId = currentInstance.getId();
+                    List<Schedules> existingSchedules = scheduleRepository.findByInstanceAndDateTime(
+                        currentInstance.getId(), scheduleDate, startTime, endTime);
+                    hasConflict = !existingSchedules.isEmpty();
+                }
+            } else {
+                // 日期范围课表：直接保存到课表
+                targetId = activeTimetable.getId();
+                List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
+                    activeTimetable.getId(), scheduleDate, startTime, endTime);
+                hasConflict = !existingSchedules.isEmpty();
+            }
+            
+            if (hasConflict) {
+                throw new RuntimeException("该时间段已有课程，无法添加体验课");
+            }
+            
+            // 3. 计算星期几
+            DayOfWeek dayOfWeek = scheduleDate.getDayOfWeek();
+            String noteText = request.getCustomerPhone() != null ? "联系电话: " + request.getCustomerPhone() : null;
+            boolean isTrial = request.getIsTrial() != null && request.getIsTrial();
+            
+            // 4. 保存课程
+            if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
+                // 保存到周实例 - 使用WeeklyInstanceSchedules对象
+                com.timetable.generated.tables.pojos.WeeklyInstanceSchedules instanceSchedule = 
+                    new com.timetable.generated.tables.pojos.WeeklyInstanceSchedules();
+                instanceSchedule.setWeeklyInstanceId(targetId);
+                instanceSchedule.setStudentName(request.getStudentName());
+                instanceSchedule.setDayOfWeek(dayOfWeek.name());
+                instanceSchedule.setScheduleDate(scheduleDate);
+                instanceSchedule.setStartTime(startTime);
+                instanceSchedule.setEndTime(endTime);
+                instanceSchedule.setNote(noteText);
+                instanceSchedule.setCreatedAt(LocalDateTime.now());
+                instanceSchedule.setUpdatedAt(LocalDateTime.now());
+                scheduleRepository.insertInstanceSchedule(instanceSchedule, isTrial);
+            } else {
+                // 保存到课表 - 使用Schedules对象
+                Schedules schedule = new Schedules();
+                schedule.setTimetableId(targetId);
+                schedule.setStudentName(request.getStudentName());
+                schedule.setDayOfWeek(dayOfWeek.name());
+                schedule.setScheduleDate(scheduleDate);
+                schedule.setStartTime(startTime);
+                schedule.setEndTime(endTime);
+                schedule.setNote(noteText);
+                schedule.setCreatedAt(LocalDateTime.now());
+                schedule.setUpdatedAt(LocalDateTime.now());
+                scheduleRepository.insertSchedule(schedule);
+            }
+            
+            logger.info("体验课创建成功: 教练ID={}, 学员={}, 日期={}, 时间={}-{}",
+                request.getCoachId(), request.getStudentName(), scheduleDate, startTime, endTime);
+                
+        } catch (Exception e) {
+            logger.error("创建体验课失败", e);
+            throw new RuntimeException("创建失败: " + e.getMessage());
+        }
+    }
 }

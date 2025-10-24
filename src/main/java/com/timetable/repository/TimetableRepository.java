@@ -205,4 +205,18 @@ public class TimetableRepository {
                                 .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
                 .fetch(com.timetable.generated.tables.Timetables.TIMETABLES.ID);
     }
+
+    /**
+     * 根据用户ID查找活动课表（is_active = 1）
+     */
+    public Timetables findActiveTimetableByUserId(Long userId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId))
+                .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ACTIVE.eq((byte) 1))
+                .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0)))
+                .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.isNull()
+                        .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq((byte) 0)))
+                .fetchOneInto(Timetables.class);
+    }
 }
