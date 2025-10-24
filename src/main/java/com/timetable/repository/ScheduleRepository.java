@@ -321,5 +321,12 @@ public class ScheduleRepository {
         return dsl.fetch(sql, studentName).intoMaps();
     }
 
+    /**
+     * 执行原生SQL查询并返回Map列表
+     */
+    public List<java.util.Map<String, Object>> queryForMaps(String sql, Object... params) {
+        return dsl.fetch(sql, params).intoMaps();
+    }
+
     // 可根据业务扩展更多jOOQ查询
 }

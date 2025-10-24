@@ -65,6 +65,18 @@ public class CustomerStatusHistoryService {
         history.setToStatus(toStatus);
         history.setNotes(request.getNotes());
         history.setCreatedBy(currentUserId);
+        
+        // 保存体验课程时间（如果有）
+        if (request.getTrialScheduleDate() != null && !request.getTrialScheduleDate().isEmpty()) {
+            history.setTrialScheduleDate(java.time.LocalDate.parse(request.getTrialScheduleDate()));
+        }
+        if (request.getTrialStartTime() != null && !request.getTrialStartTime().isEmpty()) {
+            history.setTrialStartTime(java.time.LocalTime.parse(request.getTrialStartTime()));
+        }
+        if (request.getTrialEndTime() != null && !request.getTrialEndTime().isEmpty()) {
+            history.setTrialEndTime(java.time.LocalTime.parse(request.getTrialEndTime()));
+        }
+        history.setTrialCoachId(request.getTrialCoachId());
 
         CustomerStatusHistory savedHistory = historyRepository.save(history);
         return convertToDTO(savedHistory);

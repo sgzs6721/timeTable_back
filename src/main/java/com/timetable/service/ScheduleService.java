@@ -1619,13 +1619,32 @@ public class ScheduleService {
 
     public Map<String, Object> findTrialScheduleByStudentName(String studentName) {
         try {
-            // 先查询普通课表中的体验课
-            List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
+            // 优先从状态流转记录中查询体验时间
+            // 通过原生SQL查询最新的待体验状态记录
+            String sql = "SELECT csh.trial_schedule_date, csh.trial_start_time, csh.trial_end_time, csh.trial_coach_id, " +
+                        "c.id as customer_id " +
+                        "FROM customer_status_history csh " +
+                        "JOIN customers c ON csh.customer_id = c.id " +
+                        "WHERE c.child_name = ? AND csh.to_status = 'SCHEDULED' " +
+                        "AND csh.trial_schedule_date IS NOT NULL " +
+                        "ORDER BY csh.created_at DESC " +
+                        "LIMIT 1";
             
-            // 再查询周实例中的体验课
+            List<Map<String, Object>> statusRecords = scheduleRepository.queryForMaps(sql, studentName);
+            if (statusRecords != null && !statusRecords.isEmpty()) {
+                Map<String, Object> statusRecord = statusRecords.get(0);
+                Map<String, Object> result = new HashMap<>();
+                result.put("scheduleDate", statusRecord.get("trial_schedule_date"));
+                result.put("startTime", statusRecord.get("trial_start_time"));
+                result.put("endTime", statusRecord.get("trial_end_time"));
+                result.put("coachId", statusRecord.get("trial_coach_id"));
+                return result;
+            }
+            
+            // 如果状态记录中没有，再从课表中查询
+            List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
             List<Map<String, Object>> instanceTrialSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
             
-            // 合并两个列表
             List<Map<String, Object>> allTrials = new ArrayList<>();
             allTrials.addAll(trialSchedules);
             allTrials.addAll(instanceTrialSchedules);
@@ -1634,24 +1653,14 @@ public class ScheduleService {
                 return null;
             }
             
-            // 按日期倒序排序，获取最新的体验课
+            // 按日期倒序排序
             allTrials.sort((a, b) -> {
                 Object dateA = a.get("schedule_date");
                 Object dateB = b.get("schedule_date");
                 if (dateA == null && dateB == null) return 0;
                 if (dateA == null) return 1;
                 if (dateB == null) return -1;
-                
-                int dateCompare = dateB.toString().compareTo(dateA.toString());
-                if (dateCompare != 0) return dateCompare;
-                
-                // 如果日期相同，按开始时间排序
-                Object timeA = a.get("start_time");
-                Object timeB = b.get("start_time");
-                if (timeA == null && timeB == null) return 0;
-                if (timeA == null) return 1;
-                if (timeB == null) return -1;
-                return timeB.toString().compareTo(timeA.toString());
+                return dateB.toString().compareTo(dateA.toString());
             });
             
             Map<String, Object> latestTrial = allTrials.get(0);
@@ -1660,27 +1669,7 @@ public class ScheduleService {
             result.put("startTime", latestTrial.get("start_time"));
             result.put("endTime", latestTrial.get("end_time"));
             result.put("note", latestTrial.get("note"));
-            
-            // 获取教练信息
-            Object coachIdObj = latestTrial.get("coach_id");
-            if (coachIdObj != null) {
-                Long coachId = null;
-                if (coachIdObj instanceof Long) {
-                    coachId = (Long) coachIdObj;
-                } else if (coachIdObj instanceof Integer) {
-                    coachId = ((Integer) coachIdObj).longValue();
-                } else if (coachIdObj instanceof java.math.BigInteger) {
-                    coachId = ((java.math.BigInteger) coachIdObj).longValue();
-                }
-                
-                if (coachId != null) {
-                    List<Timetables> timetables = timetableRepository.findByUserId(coachId);
-                    if (timetables != null && !timetables.isEmpty()) {
-                        result.put("coachId", coachId);
-                        result.put("coachName", "教练" + coachId); // 临时显示ID，后面可以优化
-                    }
-                }
-            }
+            result.put("coachId", latestTrial.get("coach_id"));
             
             return result;
         } catch (Exception e) {

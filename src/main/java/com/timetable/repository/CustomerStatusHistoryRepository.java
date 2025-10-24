@@ -25,6 +25,10 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     .set(field("notes"), history.getNotes())
                     .set(field("created_by"), history.getCreatedBy())
                     .set(field("created_at"), LocalDateTime.now())
+                    .set(field("trial_schedule_date"), history.getTrialScheduleDate())
+                    .set(field("trial_start_time"), history.getTrialStartTime())
+                    .set(field("trial_end_time"), history.getTrialEndTime())
+                    .set(field("trial_coach_id"), history.getTrialCoachId())
                     .execute();
 
             // 获取最后插入的ID
@@ -59,6 +63,15 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                         history.setCreatedAt((LocalDateTime) createdAtObj);
                     }
                     
+                    // 读取体验课程字段
+                    history.setTrialScheduleDate(record.get(field("trial_schedule_date", java.sql.Date.class)) != null ? 
+                        record.get(field("trial_schedule_date", java.sql.Date.class)).toLocalDate() : null);
+                    history.setTrialStartTime(record.get(field("trial_start_time", java.sql.Time.class)) != null ?
+                        record.get(field("trial_start_time", java.sql.Time.class)).toLocalTime() : null);
+                    history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
+                        record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
+                    history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
+                    
                     return history;
                 });
     }
@@ -84,6 +97,15 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     } else if (createdAtObj instanceof LocalDateTime) {
                         history.setCreatedAt((LocalDateTime) createdAtObj);
                     }
+                    
+                    // 读取体验课程字段
+                    history.setTrialScheduleDate(record.get(field("trial_schedule_date", java.sql.Date.class)) != null ? 
+                        record.get(field("trial_schedule_date", java.sql.Date.class)).toLocalDate() : null);
+                    history.setTrialStartTime(record.get(field("trial_start_time", java.sql.Time.class)) != null ?
+                        record.get(field("trial_start_time", java.sql.Time.class)).toLocalTime() : null);
+                    history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
+                        record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
+                    history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
                     
                     return history;
                 });
