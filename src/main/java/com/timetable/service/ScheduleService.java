@@ -1465,21 +1465,22 @@ public class ScheduleService {
                 
                 // 判断是周固定课表还是日期范围课表
                 if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
-                    // 周固定课表：需要查询指定日期所在周的实例
+                    // 周固定课表：只检查该日期所在周的实例
                     WeeklyInstance targetInstance = weeklyInstanceService.findInstanceByDate(activeTimetable.getId(), scheduleDate);
                     
                     if (targetInstance != null) {
                         logger.info("找到周实例: ID={}, 周开始={}", targetInstance.getId(), targetInstance.getWeekStartDate());
                         // 查询该实例在指定日期和时间段的课程
-                        List<Schedules> existingSchedules = scheduleRepository.findByInstanceAndDateTime(
+                        List<Schedules> instanceSchedules = scheduleRepository.findByInstanceAndDateTime(
                             targetInstance.getId(), scheduleDate, startTime, endTime);
-                        hasConflict = !existingSchedules.isEmpty();
-                        logger.info("该时间段课程数: {}, 有冲突: {}", existingSchedules.size(), hasConflict);
+                        hasConflict = !instanceSchedules.isEmpty();
+                        logger.info("周实例中该日期该时间段课程数: {}, 有冲突: {}", instanceSchedules.size(), hasConflict);
                     } else {
                         // 没有该周的实例，说明该周没有排课，有空
-                        logger.info("没有找到该周的实例，说明有空");
+                        logger.info("没有找到该周的实例，教练有空");
                         hasConflict = false;
                     }
+                    
                 } else {
                     // 日期范围课表：直接查询课表的课程
                     List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
