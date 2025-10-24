@@ -200,11 +200,14 @@ public class ScheduleRepository {
     }
 
     /**
-     * 查询所有教练（职位为教练，状态为已批准且未删除的用户）
+     * 查询所有教练（普通用户且职位为教练，或管理员，状态为已批准且未删除的用户）
      */
     public List<com.timetable.generated.tables.pojos.Users> findAllCoaches() {
         return dsl.selectFrom(USERS)
-                .where(USERS.POSITION.eq("COACH"))
+                .where(
+                    USERS.ROLE.eq("ADMIN")
+                    .or(USERS.ROLE.eq("USER").and(USERS.POSITION.eq("COACH")))
+                )
                 .and(USERS.STATUS.eq("APPROVED"))
                 .and(USERS.IS_DELETED.eq((byte) 0))
                 .fetchInto(com.timetable.generated.tables.pojos.Users.class);

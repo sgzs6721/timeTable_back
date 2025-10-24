@@ -1432,11 +1432,11 @@ public class ScheduleService {
         try {
             logger.info("开始查询有空教练: 日期={}, 时间={}-{}", scheduleDate, startTime, endTime);
             
-            // 1. 获取所有教练（职位为教练，已批准且未删除的用户）
+            // 1. 获取所有教练（普通用户且职位为教练，或管理员，已批准且未删除的用户）
             List<com.timetable.generated.tables.pojos.Users> allCoaches = 
                 scheduleRepository.findAllCoaches();
             
-            logger.info("找到教练总数: {}", allCoaches.size());
+            logger.info("找到符合条件的用户总数: {}", allCoaches.size());
             
             // 2. 只返回有活动课表且该时间段无冲突的教练
             for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
