@@ -99,6 +99,21 @@ export LC_ALL=zh_CN.UTF-8
 java -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -jar target/timetable-backend-*.jar
 ```
 
+## 日志文件位置
+
+日志文件保存在：
+- 主日志：`/root/logs/supervisor/timetable.log`
+- 历史日志：`/root/logs/supervisor/timetable.2025-10-24.0.log` (按日期滚动)
+
+查看日志命令：
+```bash
+# 实时查看日志
+tail -f /root/logs/supervisor/timetable.log
+
+# 查看最近100行
+tail -n 100 /root/logs/supervisor/timetable.log
+```
+
 ## 验证方法
 
 1. 启动应用后，在代码中添加日志输出中文：
