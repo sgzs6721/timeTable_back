@@ -477,6 +477,9 @@ public class AuthController {
                                 ".btn:disabled { opacity: 0.5; cursor: not-allowed; }" +
                                 ".error { color: #ff4d4f; font-size: 14px; margin-top: 10px; display: none; }" +
                                 ".warning { color: #faad14; font-size: 14px; margin-bottom: 20px; }" +
+                                ".debug-log { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; " +
+                                    "max-height: 200px; overflow-y: auto; font-size: 12px; text-align: left; }" +
+                                ".debug-log div { margin: 2px 0; color: #333; }" +
                             "</style>" +
                         "</head>" +
                         "<body>" +
@@ -493,21 +496,40 @@ public class AuthController {
                                 "</div>" +
                                 "<button class=\"btn\" onclick=\"handleBindPhone()\">确定</button>" +
                                 "<div class=\"error\" id=\"error\"></div>" +
+                                "<div class=\"debug-log\" id=\"debugLog\"></div>" +
                             "</div>" +
                             "<script>" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
                                 "const apiUrl = window.location.origin + '/timetable/api';" +
+                                "function log(message, data) {" +
+                                    "const logEl = document.getElementById('debugLog');" +
+                                    "const div = document.createElement('div');" +
+                                    "const timestamp = new Date().toLocaleTimeString();" +
+                                    "if (data !== undefined) {" +
+                                        "div.textContent = timestamp + ' - ' + message + ': ' + JSON.stringify(data);" +
+                                    "} else {" +
+                                        "div.textContent = timestamp + ' - ' + message;" +
+                                    "}" +
+                                    "logEl.appendChild(div);" +
+                                    "logEl.scrollTop = logEl.scrollHeight;" +
+                                    "console.log(message, data || '');" +
+                                "}" +
                                 "function showError(message) {" +
                                     "const errorEl = document.getElementById('error');" +
                                     "errorEl.textContent = message;" +
                                     "errorEl.style.display = 'block';" +
+                                    "log('错误: ' + message);" +
                                 "}" +
                                 "function hideError() {" +
                                     "document.getElementById('error').style.display = 'none';" +
                                 "}" +
+                                "log('页面加载完成');" +
+                                "log('Token', token.substring(0, 20) + '...');" +
+                                "log('API地址', apiUrl);" +
                                 "async function handleBindPhone() {" +
                                     "const phone = document.getElementById('phone').value.trim();" +
+                                    "log('开始绑定手机号', phone);" +
                                     "if (!phone) {" +
                                         "showError('请输入手机号');" +
                                         "return;" +
@@ -520,6 +542,7 @@ public class AuthController {
                                     "const btn = document.querySelector('.btn');" +
                                     "btn.disabled = true;" +
                                     "btn.textContent = '绑定中...';" +
+                                    "log('发送API请求到: ' + apiUrl + '/auth/bind-phone');" +
                                     "try {" +
                                         "const response = await fetch(apiUrl + '/auth/bind-phone', {" +
                                             "method: 'POST'," +
@@ -529,35 +552,37 @@ public class AuthController {
                                             "}," +
                                             "body: JSON.stringify({ phone: phone })" +
                                         "});" +
+                                        "log('收到API响应，状态码: ' + response.status);" +
                                         "const data = await response.json();" +
-                                        "console.log('API响应:', data);" +
+                                        "log('API响应数据', data);" +
                                         "if (data.status === 'success') {" +
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
-                                            "console.log('=== 绑定成功，准备跳转 ===');" +
-                                            "console.log('Token已保存:', token);" +
-                                            "console.log('用户信息:', data.data.user);" +
+                                            "log('=== 绑定成功！===');" +
+                                            "log('Token已保存到localStorage');" +
+                                            "log('用户信息已保存', data.data.user);" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
                                             "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
-                                            "console.log('将在1秒后跳转到:', targetUrl);" +
+                                            "log('目标URL: ' + targetUrl);" +
+                                            "log('将在1秒后执行跳转...');" +
                                             "setTimeout(() => {" +
-                                                "console.log('现在执行跳转...');" +
+                                                "log('【开始跳转】');" +
                                                 "try {" +
                                                     "window.location.href = targetUrl;" +
-                                                    "console.log('跳转指令已执行');" +
+                                                    "log('跳转指令已执行');" +
                                                 "} catch (e) {" +
-                                                    "console.error('跳转失败:', e);" +
+                                                    "log('跳转异常', e.message);" +
                                                     "alert('跳转失败，请手动访问：' + targetUrl);" +
                                                 "}" +
                                             "}, 1000);" +
                                         "} else {" +
-                                            "console.log('绑定失败:', data.message);" +
+                                            "log('绑定失败', data.message);" +
                                             "showError(data.message || '绑定失败，请重试');" +
                                             "btn.disabled = false;" +
                                             "btn.textContent = '确定';" +
                                         "}" +
                                     "} catch (error) {" +
-                                        "console.error('绑定手机号失败:', error);" +
+                                        "log('请求异常', error.message);" +
                                         "showError('网络错误，请重试');" +
                                         "btn.disabled = false;" +
                                         "btn.textContent = '确定';" +
