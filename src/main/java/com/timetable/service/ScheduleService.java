@@ -1430,17 +1430,24 @@ public class ScheduleService {
         List<Map<String, Object>> availableCoaches = new ArrayList<>();
         
         try {
+            logger.info("开始查询有空教练: 日期={}, 时间={}-{}", scheduleDate, startTime, endTime);
+            
             // 1. 获取所有教练（非管理员的用户）
             List<com.timetable.generated.tables.pojos.Users> allCoaches = 
                 scheduleRepository.findAllCoaches();
             
+            logger.info("找到教练总数: {}", allCoaches.size());
+            
             // 2. 对于每个教练，检查其活动课表在该时间段是否有课
             for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
+                logger.info("检查教练: {} (ID={})", coach.getNickname() != null ? coach.getNickname() : coach.getUsername(), coach.getId());
+                
                 // 获取教练的活动课表
                 Timetables activeTimetable = timetableRepository.findActiveTimetableByUserId(coach.getId());
                 
                 if (activeTimetable == null) {
                     // 没有活动课表，认为有空
+                    logger.info("教练 {} 没有活动课表，标记为有空", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
                     Map<String, Object> coachInfo = new HashMap<>();
                     coachInfo.put("id", coach.getId());
                     coachInfo.put("username", coach.getUsername());
@@ -1449,29 +1456,41 @@ public class ScheduleService {
                     continue;
                 }
                 
+                logger.info("教练 {} 的活动课表: {} (ID={}, 是否周固定={})", 
+                    coach.getNickname() != null ? coach.getNickname() : coach.getUsername(),
+                    activeTimetable.getName(), activeTimetable.getId(), activeTimetable.getIsWeekly());
+                
                 // 检查该时间段是否有冲突
                 boolean hasConflict = false;
                 
                 // 判断是周固定课表还是日期范围课表
                 if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
-                    // 周固定课表：需要查询当前周实例
-                    WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(activeTimetable.getId());
+                    // 周固定课表：需要查询指定日期所在周的实例
+                    WeeklyInstance targetInstance = weeklyInstanceService.findInstanceByDate(activeTimetable.getId(), scheduleDate);
                     
-                    if (currentInstance != null) {
+                    if (targetInstance != null) {
+                        logger.info("找到周实例: ID={}, 周开始={}", targetInstance.getId(), targetInstance.getWeekStartDate());
                         // 查询该实例在指定日期和时间段的课程
                         List<Schedules> existingSchedules = scheduleRepository.findByInstanceAndDateTime(
-                            currentInstance.getId(), scheduleDate, startTime, endTime);
+                            targetInstance.getId(), scheduleDate, startTime, endTime);
                         hasConflict = !existingSchedules.isEmpty();
+                        logger.info("该时间段课程数: {}, 有冲突: {}", existingSchedules.size(), hasConflict);
+                    } else {
+                        // 没有该周的实例，说明该周没有排课，有空
+                        logger.info("没有找到该周的实例，说明有空");
+                        hasConflict = false;
                     }
                 } else {
                     // 日期范围课表：直接查询课表的课程
                     List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
                         activeTimetable.getId(), scheduleDate, startTime, endTime);
                     hasConflict = !existingSchedules.isEmpty();
+                    logger.info("日期范围课表，该时间段课程数: {}, 有冲突: {}", existingSchedules.size(), hasConflict);
                 }
                 
                 // 如果没有冲突，说明有空
                 if (!hasConflict) {
+                    logger.info("教练 {} 有空", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
                     Map<String, Object> coachInfo = new HashMap<>();
                     coachInfo.put("id", coach.getId());
                     coachInfo.put("username", coach.getUsername());
@@ -1479,8 +1498,12 @@ public class ScheduleService {
                     coachInfo.put("timetableId", activeTimetable.getId());
                     coachInfo.put("timetableName", activeTimetable.getName());
                     availableCoaches.add(coachInfo);
+                } else {
+                    logger.info("教练 {} 该时间段有课，不可用", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
                 }
             }
+            
+            logger.info("查询完成，有空教练数: {}", availableCoaches.size());
             
         } catch (Exception e) {
             logger.error("查询有空教练失败", e);
