@@ -446,7 +446,7 @@ public class AuthController {
                 boolean needBindPhone = (Boolean) loginResult.getOrDefault("needBindPhone", false);
                 
                 // 前端页面URL
-                String frontendUrl = "https://timetable.devtesting.top/dashboard?tab=timetables";
+                String frontendUrl = "https://timetable.devtesting.top";
                 
                 if (needBindPhone) {
                     // 需要绑定手机号，显示绑定手机号页面
@@ -477,9 +477,6 @@ public class AuthController {
                                 ".btn:disabled { opacity: 0.5; cursor: not-allowed; }" +
                                 ".error { color: #ff4d4f; font-size: 14px; margin-top: 10px; display: none; }" +
                                 ".warning { color: #faad14; font-size: 14px; margin-bottom: 20px; }" +
-                                ".debug-log { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; " +
-                                    "max-height: 200px; overflow-y: auto; font-size: 12px; text-align: left; }" +
-                                ".debug-log div { margin: 2px 0; color: #333; }" +
                             "</style>" +
                         "</head>" +
                         "<body>" +
@@ -496,40 +493,21 @@ public class AuthController {
                                 "</div>" +
                                 "<button class=\"btn\" onclick=\"handleBindPhone()\">确定</button>" +
                                 "<div class=\"error\" id=\"error\"></div>" +
-                                "<div class=\"debug-log\" id=\"debugLog\"></div>" +
                             "</div>" +
                             "<script>" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
                                 "const apiUrl = window.location.origin + '/timetable/api';" +
-                                "function log(message, data) {" +
-                                    "const logEl = document.getElementById('debugLog');" +
-                                    "const div = document.createElement('div');" +
-                                    "const timestamp = new Date().toLocaleTimeString();" +
-                                    "if (data !== undefined) {" +
-                                        "div.textContent = timestamp + ' - ' + message + ': ' + JSON.stringify(data);" +
-                                    "} else {" +
-                                        "div.textContent = timestamp + ' - ' + message;" +
-                                    "}" +
-                                    "logEl.appendChild(div);" +
-                                    "logEl.scrollTop = logEl.scrollHeight;" +
-                                    "console.log(message, data || '');" +
-                                "}" +
                                 "function showError(message) {" +
                                     "const errorEl = document.getElementById('error');" +
                                     "errorEl.textContent = message;" +
                                     "errorEl.style.display = 'block';" +
-                                    "log('错误: ' + message);" +
                                 "}" +
                                 "function hideError() {" +
                                     "document.getElementById('error').style.display = 'none';" +
                                 "}" +
-                                "log('页面加载完成');" +
-                                "log('Token', token.substring(0, 20) + '...');" +
-                                "log('API地址', apiUrl);" +
                                 "async function handleBindPhone() {" +
                                     "const phone = document.getElementById('phone').value.trim();" +
-                                    "log('开始绑定手机号', phone);" +
                                     "if (!phone) {" +
                                         "showError('请输入手机号');" +
                                         "return;" +
@@ -542,7 +520,6 @@ public class AuthController {
                                     "const btn = document.querySelector('.btn');" +
                                     "btn.disabled = true;" +
                                     "btn.textContent = '绑定中...';" +
-                                    "log('发送API请求到: ' + apiUrl + '/auth/bind-phone');" +
                                     "try {" +
                                         "const response = await fetch(apiUrl + '/auth/bind-phone', {" +
                                             "method: 'POST'," +
@@ -552,47 +529,21 @@ public class AuthController {
                                             "}," +
                                             "body: JSON.stringify({ phone: phone })" +
                                         "});" +
-                                        "log('收到API响应，状态码: ' + response.status);" +
                                         "const data = await response.json();" +
-                                        "log('API响应数据', data);" +
                                         "if (data.status === 'success') {" +
-                                            "try {" +
-                                                "localStorage.setItem('token', token);" +
-                                                "localStorage.setItem('user', JSON.stringify(data.data.user));" +
-                                                "const savedToken = localStorage.getItem('token');" +
-                                                "if (savedToken === token) {" +
-                                                    "log('✓ Token已成功保存并验证');" +
-                                                "} else {" +
-                                                    "log('✗ Token保存失败或读取不一致');" +
-                                                "}" +
-                                            "} catch (e) {" +
-                                                "log('localStorage操作失败', e.message);" +
-                                            "}" +
-                                            "log('=== 绑定成功！===');" +
-                                            "log('用户信息', data.data.user);" +
+                                            "localStorage.setItem('token', token);" +
+                                            "localStorage.setItem('user', JSON.stringify(data.data.user));" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
-                                            "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
-                                            "const urlWithToken = targetUrl + '&token=' + encodeURIComponent(token);" +
-                                            "log('带Token的URL: ' + urlWithToken.substring(0, 80) + '...');" +
-                                            "log('将在1秒后执行跳转...');" +
+                                            "const urlWithToken = frontendUrl + '?token=' + encodeURIComponent(token);" +
                                             "setTimeout(() => {" +
-                                                "log('【开始跳转】');" +
-                                                "try {" +
-                                                    "window.location.href = urlWithToken;" +
-                                                    "log('跳转指令已执行');" +
-                                                "} catch (e) {" +
-                                                    "log('跳转异常', e.message);" +
-                                                    "alert('跳转失败: ' + e.message);" +
-                                                "}" +
+                                                "window.location.href = urlWithToken;" +
                                             "}, 1000);" +
                                         "} else {" +
-                                            "log('绑定失败', data.message);" +
                                             "showError(data.message || '绑定失败，请重试');" +
                                             "btn.disabled = false;" +
                                             "btn.textContent = '确定';" +
                                         "}" +
                                     "} catch (error) {" +
-                                        "log('请求异常', error.message);" +
                                         "showError('网络错误，请重试');" +
                                         "btn.disabled = false;" +
                                         "btn.textContent = '确定';" +
@@ -643,9 +594,6 @@ public class AuthController {
                                 ".info p { margin: 10px 0; }" +
                                 ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
                                 ".loading { margin-top: 20px; color: #888; }" +
-                                ".debug-log { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; " +
-                                    "max-height: 200px; overflow-y: auto; font-size: 12px; text-align: left; }" +
-                                ".debug-log div { margin: 2px 0; color: #333; }" +
                             "</style>" +
                         "</head>" +
                         "<body>" +
@@ -656,55 +604,15 @@ public class AuthController {
                                     "<p><strong>昵称：</strong>%s</p>" +
                                 "</div>" +
                                 "<div class=\"loading\">正在跳转...</div>" +
-                                "<div class=\"debug-log\" id=\"debugLog\"></div>" +
                             "</div>" +
                             "<script>" +
-                                "function log(message, data) {" +
-                                    "const logEl = document.getElementById('debugLog');" +
-                                    "const div = document.createElement('div');" +
-                                    "const timestamp = new Date().toLocaleTimeString();" +
-                                    "if (data !== undefined) {" +
-                                        "div.textContent = timestamp + ' - ' + message + ': ' + JSON.stringify(data);" +
-                                    "} else {" +
-                                        "div.textContent = timestamp + ' - ' + message;" +
-                                    "}" +
-                                    "logEl.appendChild(div);" +
-                                    "logEl.scrollTop = logEl.scrollHeight;" +
-                                    "console.log(message, data || '');" +
-                                "}" +
-                                "log('页面加载完成');" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
-                                "log('Token长度', token.length);" +
-                                "log('Token前20字符', token.substring(0, 20) + '...');" +
-                                "log('frontendUrl变量值', frontendUrl);" +
-                                "log('当前域名', window.location.hostname);" +
-                                "try {" +
-                                    "localStorage.setItem('token', token);" +
-                                    "const savedToken = localStorage.getItem('token');" +
-                                    "if (savedToken === token) {" +
-                                        "log('✓ Token已成功保存并验证');" +
-                                    "} else {" +
-                                        "log('✗ Token保存失败或读取不一致');" +
-                                    "}" +
-                                "} catch (e) {" +
-                                    "log('localStorage操作失败', e.message);" +
-                                "}" +
-                                "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
-                                "log('目标URL: ' + targetUrl);" +
-                                "const urlWithToken = targetUrl + '&token=' + encodeURIComponent(token);" +
-                                "log('带Token的URL: ' + urlWithToken.substring(0, 80) + '...');" +
-                                "log('将在2秒后执行跳转...');" +
+                                "localStorage.setItem('token', token);" +
+                                "const urlWithToken = frontendUrl + '?token=' + encodeURIComponent(token);" +
                                 "setTimeout(() => {" +
-                                    "log('【开始跳转】');" +
-                                    "try {" +
-                                        "window.location.href = urlWithToken;" +
-                                        "log('跳转指令已执行');" +
-                                    "} catch (e) {" +
-                                        "log('跳转异常', e.message);" +
-                                        "alert('跳转失败: ' + e.message);" +
-                                    "}" +
-                                "}, 2000);" +
+                                    "window.location.href = urlWithToken;" +
+                                "}, 1500);" +
                             "</script>" +
                         "</body>" +
                         "</html>";
