@@ -1432,13 +1432,13 @@ public class ScheduleService {
         try {
             logger.info("开始查询有空教练: 日期={}, 时间={}-{}", scheduleDate, startTime, endTime);
             
-            // 1. 获取所有教练（非管理员的用户）
+            // 1. 获取所有教练（职位为教练，已批准且未删除的用户）
             List<com.timetable.generated.tables.pojos.Users> allCoaches = 
                 scheduleRepository.findAllCoaches();
             
             logger.info("找到教练总数: {}", allCoaches.size());
             
-            // 2. 对于每个教练，检查其活动课表在该时间段是否有课
+            // 2. 只返回有活动课表且该时间段无冲突的教练
             for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
                 logger.info("检查教练: {} (ID={})", coach.getNickname() != null ? coach.getNickname() : coach.getUsername(), coach.getId());
                 
@@ -1446,13 +1446,8 @@ public class ScheduleService {
                 Timetables activeTimetable = timetableRepository.findActiveTimetableByUserId(coach.getId());
                 
                 if (activeTimetable == null) {
-                    // 没有活动课表，认为有空
-                    logger.info("教练 {} 没有活动课表，标记为有空", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
-                    Map<String, Object> coachInfo = new HashMap<>();
-                    coachInfo.put("id", coach.getId());
-                    coachInfo.put("username", coach.getUsername());
-                    coachInfo.put("nickname", coach.getNickname());
-                    availableCoaches.add(coachInfo);
+                    // 没有活动课表，跳过此教练
+                    logger.info("教练 {} 没有活动课表，跳过", coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
                     continue;
                 }
                 
