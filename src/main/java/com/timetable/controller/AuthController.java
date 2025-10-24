@@ -779,28 +779,38 @@ public class AuthController {
                         .body(ApiResponse.error("当前微信已绑定其他账号"));
             }
             
-            // 将微信信息绑定到目标账号
-            targetUser.setWechatOpenid(wechatUser.getWechatOpenid());
-            targetUser.setWechatUnionid(wechatUser.getWechatUnionid());
-            targetUser.setWechatAvatar(wechatUser.getWechatAvatar());
-            targetUser.setWechatSex(wechatUser.getWechatSex());
-            targetUser.setWechatProvince(wechatUser.getWechatProvince());
-            targetUser.setWechatCity(wechatUser.getWechatCity());
-            targetUser.setWechatCountry(wechatUser.getWechatCountry());
+            // 保存微信信息到变量中
+            String wechatOpenid = wechatUser.getWechatOpenid();
+            String wechatUnionid = wechatUser.getWechatUnionid();
+            String wechatAvatar = wechatUser.getWechatAvatar();
+            Byte wechatSex = wechatUser.getWechatSex();
+            String wechatProvince = wechatUser.getWechatProvince();
+            String wechatCity = wechatUser.getWechatCity();
+            String wechatCountry = wechatUser.getWechatCountry();
+            String wechatNickname = wechatUser.getNickname();
             
-            // 如果目标账号没有昵称，使用微信昵称
-            if (targetUser.getNickname() == null || targetUser.getNickname().isEmpty()) {
-                targetUser.setNickname(wechatUser.getNickname());
-            }
-            
-            targetUser.setUpdatedAt(java.time.LocalDateTime.now());
-            userRepository.update(targetUser);
-            
-            // 删除临时微信账号（如果是wx_开头的临时账号）
+            // 先删除临时微信账号（避免 wechat_openid 唯一索引冲突）
             if (currentUsername.startsWith("wx_")) {
                 logger.info("删除临时微信账号: {}", currentUsername);
                 userRepository.deleteById(wechatUser.getId());
             }
+            
+            // 将微信信息绑定到目标账号
+            targetUser.setWechatOpenid(wechatOpenid);
+            targetUser.setWechatUnionid(wechatUnionid);
+            targetUser.setWechatAvatar(wechatAvatar);
+            targetUser.setWechatSex(wechatSex);
+            targetUser.setWechatProvince(wechatProvince);
+            targetUser.setWechatCity(wechatCity);
+            targetUser.setWechatCountry(wechatCountry);
+            
+            // 如果目标账号没有昵称，使用微信昵称
+            if (targetUser.getNickname() == null || targetUser.getNickname().isEmpty()) {
+                targetUser.setNickname(wechatNickname);
+            }
+            
+            targetUser.setUpdatedAt(java.time.LocalDateTime.now());
+            userRepository.update(targetUser);
             
             // 生成新的token（使用目标账号）
             String newToken = jwtUtil.generateToken(targetUser.getUsername());
