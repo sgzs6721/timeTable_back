@@ -530,21 +530,28 @@ public class AuthController {
                                             "body: JSON.stringify({ phone: phone })" +
                                         "});" +
                                         "const data = await response.json();" +
+                                        "console.log('API响应:', data);" +
                                         "if (data.status === 'success') {" +
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
-                                            "console.log('手机号绑定成功');" +
+                                            "console.log('=== 绑定成功，准备跳转 ===');" +
                                             "console.log('Token已保存:', token);" +
-                                            "console.log('用户信息已保存:', data.data.user);" +
-                                            "console.log('frontendUrl变量值:', frontendUrl);" +
+                                            "console.log('用户信息:', data.data.user);" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
-                                            "const targetUrl = frontendUrl;" +
-                                            "console.log('目标URL:', targetUrl);" +
+                                            "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
+                                            "console.log('将在1秒后跳转到:', targetUrl);" +
                                             "setTimeout(() => {" +
-                                                "console.log('执行跳转到:', targetUrl);" +
-                                                "window.location.replace(targetUrl);" +
+                                                "console.log('现在执行跳转...');" +
+                                                "try {" +
+                                                    "window.location.href = targetUrl;" +
+                                                    "console.log('跳转指令已执行');" +
+                                                "} catch (e) {" +
+                                                    "console.error('跳转失败:', e);" +
+                                                    "alert('跳转失败，请手动访问：' + targetUrl);" +
+                                                "}" +
                                             "}, 1000);" +
                                         "} else {" +
+                                            "console.log('绑定失败:', data.message);" +
                                             "showError(data.message || '绑定失败，请重试');" +
                                             "btn.disabled = false;" +
                                             "btn.textContent = '确定';" +
