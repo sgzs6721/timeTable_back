@@ -2,9 +2,11 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AuthRequest;
+import com.timetable.dto.BindPhoneRequest;
 import com.timetable.dto.UserRegistrationRequest;
 import com.timetable.dto.WechatLoginRequest;
 import com.timetable.generated.tables.pojos.Users;
+import com.timetable.repository.UserRepository;
 import com.timetable.service.UserService;
 import com.timetable.service.WechatLoginService;
 import com.timetable.util.JwtUtil;
@@ -46,6 +48,9 @@ public class AuthController {
     
     @Autowired
     private WechatLoginService wechatLoginService;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     /**
      * 用户登录
@@ -438,54 +443,86 @@ public class AuthController {
                 String token = (String) loginResult.get("token");
                 Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
                 boolean isNewUser = (Boolean) loginResult.getOrDefault("isNewUser", false);
+                boolean needBindPhone = (Boolean) loginResult.getOrDefault("needBindPhone", false);
+                
+                // 根据是否需要绑定手机号决定跳转页面
+                String redirectPage = needBindPhone ? "/bind-phone" : "/";
+                String statusMessage = needBindPhone ? 
+                    "<p style=\"color: #faad14;\">请绑定手机号以继续使用</p>" : 
+                    (isNewUser ? "<p style=\"color: #1890ff;\">欢迎新用户！</p>" : "");
                 
                 String htmlTemplate = "<!DOCTYPE html>" +
                     "<html>" +
                     "<head>" +
                         "<meta charset=\"UTF-8\">" +
+                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
                         "<title>微信登录成功</title>" +
                         "<style>" +
-                            "body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }" +
-                            ".success { color: #52c41a; }" +
-                            ".info { margin: 20px 0; }" +
+                            "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
+                                "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
+                                "min-height: 100vh; margin: 0; }" +
+                            ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
+                                "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
+                            ".success { color: #52c41a; margin-bottom: 20px; }" +
+                            ".info { margin: 20px 0; color: #666; }" +
+                            ".info p { margin: 10px 0; }" +
+                            ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
+                            ".loading { margin-top: 20px; color: #888; }" +
                         "</style>" +
                     "</head>" +
                     "<body>" +
-                        "<h1 class=\"success\">微信登录成功！</h1>" +
-                        "<div class=\"info\">" +
-                            "<p>用户：%s</p>" +
-                            "<p>昵称：%s</p>" +
-                            "<p>角色：%s</p>" +
-                            "%s" +
+                        "<div class=\"container\">" +
+                            "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
+                            "%s" + // avatar
+                            "<div class=\"info\">" +
+                                "<p><strong>昵称：</strong>%s</p>" +
+                                "%s" +
+                            "</div>" +
+                            "<div class=\"loading\">正在跳转...</div>" +
                         "</div>" +
                         "<script>" +
-                            "// 将token和用户信息传递给父窗口" +
+                            "// 将登录信息传递给父窗口或重定向" +
+                            "const loginData = {" +
+                                "type: 'wechat_login_success'," +
+                                "token: '%s'," +
+                                "user: %s," +
+                                "isNewUser: %s," +
+                                "needBindPhone: %s" +
+                            "};" +
                             "if (window.opener) {" +
-                                "window.opener.postMessage({" +
-                                    "type: \"wechat_login_success\"," +
-                                    "token: \"%s\"," +
-                                    "user: %s," +
-                                    "isNewUser: %s" +
-                                "}, \"*\");" +
+                                "// 如果是弹窗登录，将数据传给父窗口" +
+                                "window.opener.postMessage(loginData, '*');" +
                                 "window.close();" +
                             "} else {" +
-                                "// 如果没有父窗口，重定向到前端页面" +
-                                "window.location.href = \"http://localhost:3000/login?token=%s&user=%s\";" +
+                                "// 否则重定向到对应页面" +
+                                "localStorage.setItem('token', '%s');" +
+                                "localStorage.setItem('user', JSON.stringify(%s));" +
+                                "setTimeout(() => {" +
+                                    "window.location.href = '%s';" +
+                                "}, 1500);" +
                             "}" +
                         "</script>" +
                     "</body>" +
                     "</html>";
                 
-                String html = String.format(htmlTemplate, 
-                    user.get("username"),
+                // 构建头像HTML
+                String avatarHtml = "";
+                if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
+                    avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
+                        user.get("wechatAvatar"));
+                }
+                
+                String html = String.format(htmlTemplate,
+                    avatarHtml,
                     user.get("nickname"),
-                    user.get("role"),
-                    isNewUser ? "<p style=\"color: #1890ff;\">欢迎新用户！</p>" : "",
+                    statusMessage,
                     token,
                     user.toString().replace("\"", "\\\""),
                     isNewUser,
+                    needBindPhone,
                     token,
-                    user.toString().replace("\"", "\\\"")
+                    user.toString().replace("\"", "\\\""),
+                    redirectPage
                 );
                 
                 return ResponseEntity.ok(html);
@@ -502,6 +539,54 @@ public class AuthController {
     }
     
     /**
+     * 绑定手机号
+     */
+    @PostMapping("/bind-phone")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bindPhone(
+            @Valid @RequestBody BindPhoneRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            // 从token中获取用户名
+            String token = authHeader.substring(7); // 去掉 "Bearer " 前缀
+            String username = jwtUtil.getUsernameFromToken(token);
+            
+            logger.info("用户 {} 尝试绑定手机号: {}", username, request.getPhone());
+            
+            // 查找用户
+            Users user = userRepository.findByUsername(username);
+            if (user == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户不存在"));
+            }
+            
+            // 检查手机号是否已被其他用户使用
+            if (userRepository.existsByPhone(request.getPhone())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("该手机号已被使用"));
+            }
+            
+            // 更新用户手机号
+            userRepository.updatePhone(user.getId(), request.getPhone());
+            
+            // 重新查询用户信息
+            user = userRepository.findById(user.getId());
+            
+            logger.info("用户 {} 成功绑定手机号", username);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("user", convertUserToDTO(user));
+            data.put("message", "手机号绑定成功");
+            
+            return ResponseEntity.ok(ApiResponse.success("手机号绑定成功", data));
+            
+        } catch (Exception e) {
+            logger.error("绑定手机号失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("绑定手机号失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
     private Map<String, Object> convertUserToDTO(Users user) {
@@ -511,6 +596,9 @@ public class AuthController {
         userDTO.put("nickname", user.getNickname());
         userDTO.put("role", user.getRole());
         userDTO.put("position", user.getPosition());
+        userDTO.put("phone", user.getPhone());
+        userDTO.put("hasPhone", user.getPhone() != null && !user.getPhone().isEmpty());
+        userDTO.put("wechatAvatar", user.getWechatAvatar());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
         return userDTO;

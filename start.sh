@@ -25,3 +25,7 @@ echo "使用JVM参数: $JAVA_OPTS"
 # 启动应用
 java $JAVA_OPTS -jar "$JAR_FILE"
 
+
+
+
+

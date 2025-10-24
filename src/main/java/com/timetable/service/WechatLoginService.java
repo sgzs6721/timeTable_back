@@ -124,11 +124,15 @@ public class WechatLoginService {
             // 4. 生成JWT Token
             String token = jwtUtil.generateToken(user.getUsername());
             
-            // 5. 构建响应数据
+            // 5. 判断是否需要绑定手机号
+            boolean needBindPhone = (user.getPhone() == null || user.getPhone().isEmpty());
+            
+            // 6. 构建响应数据
             Map<String, Object> data = new HashMap<>();
             data.put("token", token);
             data.put("user", convertUserToDTO(user));
             data.put("isNewUser", user.getCreatedAt().equals(user.getUpdatedAt()));
+            data.put("needBindPhone", needBindPhone);
             
             return data;
             
@@ -142,23 +146,42 @@ public class WechatLoginService {
      * 查找或创建用户
      */
     private Users findOrCreateUser(WechatUserInfo wechatUserInfo) {
-        // 使用openid作为用户名查找用户
-        Users existingUser = userRepository.findByUsername(wechatUserInfo.getOpenid());
+        // 使用openid查找用户（通过wechat_openid字段）
+        Users existingUser = userRepository.findByWechatOpenid(wechatUserInfo.getOpenid());
         
         if (existingUser != null) {
-            // 更新用户信息
+            // 更新用户微信信息
+            logger.info("更新已存在用户的微信信息，用户ID: {}", existingUser.getId());
             existingUser.setNickname(wechatUserInfo.getNickname());
+            existingUser.setWechatAvatar(wechatUserInfo.getHeadimgurl());
+            existingUser.setWechatSex(wechatUserInfo.getSex() != null ? wechatUserInfo.getSex().byteValue() : null);
+            existingUser.setWechatProvince(wechatUserInfo.getProvince());
+            existingUser.setWechatCity(wechatUserInfo.getCity());
+            existingUser.setWechatCountry(wechatUserInfo.getCountry());
+            existingUser.setWechatUnionid(wechatUserInfo.getUnionid());
             existingUser.setUpdatedAt(java.time.LocalDateTime.now());
             userRepository.update(existingUser);
             return existingUser;
         } else {
             // 创建新用户
+            logger.info("创建新微信用户，OpenID: {}", wechatUserInfo.getOpenid());
             Users newUser = new Users();
-            newUser.setUsername(wechatUserInfo.getOpenid());
+            // 使用 "wx_" + openid 作为用户名，避免与普通用户冲突
+            newUser.setUsername("wx_" + wechatUserInfo.getOpenid());
             newUser.setPasswordHash(""); // 微信登录用户不需要密码
             newUser.setRole("USER");
             newUser.setNickname(wechatUserInfo.getNickname());
             newUser.setStatus("APPROVED"); // 微信登录用户直接批准
+            
+            // 保存微信相关信息
+            newUser.setWechatOpenid(wechatUserInfo.getOpenid());
+            newUser.setWechatUnionid(wechatUserInfo.getUnionid());
+            newUser.setWechatAvatar(wechatUserInfo.getHeadimgurl());
+            newUser.setWechatSex(wechatUserInfo.getSex() != null ? wechatUserInfo.getSex().byteValue() : null);
+            newUser.setWechatProvince(wechatUserInfo.getProvince());
+            newUser.setWechatCity(wechatUserInfo.getCity());
+            newUser.setWechatCountry(wechatUserInfo.getCountry());
+            
             newUser.setIsDeleted((byte) 0);
             newUser.setCreatedAt(java.time.LocalDateTime.now());
             newUser.setUpdatedAt(java.time.LocalDateTime.now());
@@ -178,6 +201,15 @@ public class WechatLoginService {
         userDTO.put("role", user.getRole());
         userDTO.put("nickname", user.getNickname());
         userDTO.put("status", user.getStatus());
+        userDTO.put("phone", user.getPhone());
+        userDTO.put("hasPhone", user.getPhone() != null && !user.getPhone().isEmpty());
+        
+        // 微信相关信息
+        userDTO.put("wechatAvatar", user.getWechatAvatar());
+        userDTO.put("wechatOpenid", user.getWechatOpenid());
+        userDTO.put("wechatProvince", user.getWechatProvince());
+        userDTO.put("wechatCity", user.getWechatCity());
+        
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
         return userDTO;

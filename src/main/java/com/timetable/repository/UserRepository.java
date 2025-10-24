@@ -150,4 +150,49 @@ public class UserRepository {
                 .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
                 .fetchInto(Users.class);
     }
+
+    /**
+     * 根据微信OpenID查找用户
+     */
+    public Users findByWechatOpenid(String wechatOpenid) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.WECHAT_OPENID.eq(wechatOpenid))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchOneInto(Users.class);
+    }
+
+    /**
+     * 根据手机号查找用户
+     */
+    public Users findByPhone(String phone) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.PHONE.eq(phone))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchOneInto(Users.class);
+    }
+
+    /**
+     * 更新用户手机号
+     */
+    public void updatePhone(Long userId, String phone) {
+        dsl.update(com.timetable.generated.tables.Users.USERS)
+                .set(com.timetable.generated.tables.Users.USERS.PHONE, phone)
+                .set(com.timetable.generated.tables.Users.USERS.UPDATED_AT, java.time.LocalDateTime.now())
+                .where(com.timetable.generated.tables.Users.USERS.ID.eq(userId))
+                .execute();
+    }
+
+    /**
+     * 检查手机号是否已被使用
+     */
+    public boolean existsByPhone(String phone) {
+        return dsl.fetchExists(
+            dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.PHONE.eq(phone))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+        );
+    }
 } 
