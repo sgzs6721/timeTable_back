@@ -1616,4 +1616,10 @@ public class ScheduleService {
             throw new RuntimeException("创建失败: " + e.getMessage());
         }
     }
+
+    public Map<String, Object> findTrialScheduleByStudentName(String studentName) {
+        // 暂时返回 null，体验时间信息会通过状态流转记录的备注显示
+        // TODO: 需要重新生成JOOQ代码以支持is_trial字段
+        return null;
+    }
 }

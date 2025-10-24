@@ -89,5 +89,32 @@ public class GeneralScheduleController {
                     .body(ApiResponse.error("创建失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 查询学生的体验课程信息
+     */
+    @GetMapping("/trial/{studentName}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getTrialSchedule(
+            @PathVariable String studentName,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户不存在"));
+        }
+
+        try {
+            Map<String, Object> trialSchedule = scheduleService.findTrialScheduleByStudentName(studentName);
+            if (trialSchedule == null) {
+                return ResponseEntity.ok(ApiResponse.success("暂无体验课程", null));
+            }
+            return ResponseEntity.ok(ApiResponse.success("查询成功", trialSchedule));
+        } catch (Exception e) {
+            logger.error("查询体验课程失败", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("查询失败: " + e.getMessage()));
+        }
+    }
 }
 
