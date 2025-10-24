@@ -726,6 +726,106 @@ public class AuthController {
     }
     
     /**
+     * 绑定微信到已有账号
+     */
+    @PostMapping("/wechat/bind-account")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bindWechatToAccount(
+            @RequestBody Map<String, String> request,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            // 从token中获取当前微信用户信息
+            String token = authHeader.substring(7);
+            String currentUsername = jwtUtil.extractUsername(token);
+            
+            String targetUsername = request.get("username");
+            String targetPassword = request.get("password");
+            
+            logger.info("微信用户 {} 尝试绑定到账号: {}", currentUsername, targetUsername);
+            
+            // 验证目标账号的用户名和密码
+            try {
+                Authentication authentication = authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(targetUsername, targetPassword)
+                );
+            } catch (BadCredentialsException e) {
+                logger.warn("绑定失败，目标账号密码错误: {}", targetUsername);
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户名或密码错误"));
+            }
+            
+            // 获取当前微信用户
+            Users wechatUser = userRepository.findByUsername(currentUsername);
+            if (wechatUser == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("当前用户不存在"));
+            }
+            
+            // 获取目标账号
+            Users targetUser = userRepository.findByUsername(targetUsername);
+            if (targetUser == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("目标账号不存在"));
+            }
+            
+            // 检查目标账号是否已经绑定了微信
+            if (targetUser.getWechatOpenid() != null && !targetUser.getWechatOpenid().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("该账号已绑定其他微信"));
+            }
+            
+            // 检查当前微信是否已经绑定了其他账号（不是临时账号）
+            if (!currentUsername.startsWith("wx_")) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("当前微信已绑定其他账号"));
+            }
+            
+            // 将微信信息绑定到目标账号
+            targetUser.setWechatOpenid(wechatUser.getWechatOpenid());
+            targetUser.setWechatUnionid(wechatUser.getWechatUnionid());
+            targetUser.setWechatAvatar(wechatUser.getWechatAvatar());
+            targetUser.setWechatSex(wechatUser.getWechatSex());
+            targetUser.setWechatProvince(wechatUser.getWechatProvince());
+            targetUser.setWechatCity(wechatUser.getWechatCity());
+            targetUser.setWechatCountry(wechatUser.getWechatCountry());
+            
+            // 如果目标账号没有昵称，使用微信昵称
+            if (targetUser.getNickname() == null || targetUser.getNickname().isEmpty()) {
+                targetUser.setNickname(wechatUser.getNickname());
+            }
+            
+            targetUser.setUpdatedAt(java.time.LocalDateTime.now());
+            userRepository.update(targetUser);
+            
+            // 删除临时微信账号（如果是wx_开头的临时账号）
+            if (currentUsername.startsWith("wx_")) {
+                logger.info("删除临时微信账号: {}", currentUsername);
+                userRepository.deleteById(wechatUser.getId());
+            }
+            
+            // 生成新的token（使用目标账号）
+            String newToken = jwtUtil.generateToken(targetUser.getUsername());
+            
+            logger.info("微信绑定成功，微信用户 {} 已绑定到账号 {}", currentUsername, targetUsername);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", newToken);
+            data.put("user", convertUserToDTO(targetUser));
+            data.put("message", "账号绑定成功");
+            
+            return ResponseEntity.ok(ApiResponse.success("账号绑定成功", data));
+            
+        } catch (BadCredentialsException e) {
+            logger.warn("绑定失败，密码错误");
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户名或密码错误"));
+        } catch (Exception e) {
+            logger.error("绑定微信到账号失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("绑定失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
     private Map<String, Object> convertUserToDTO(Users user) {
