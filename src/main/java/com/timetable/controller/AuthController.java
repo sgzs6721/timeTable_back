@@ -548,7 +548,7 @@ public class AuthController {
         try {
             // 从token中获取用户名
             String token = authHeader.substring(7); // 去掉 "Bearer " 前缀
-            String username = jwtUtil.getUsernameFromToken(token);
+            String username = jwtUtil.extractUsername(token);
             
             logger.info("用户 {} 尝试绑定手机号: {}", username, request.getPhone());
             
