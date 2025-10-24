@@ -1474,7 +1474,17 @@ public class ScheduleService {
                         List<Schedules> instanceSchedules = scheduleRepository.findByInstanceAndDateTime(
                             targetInstance.getId(), scheduleDate, startTime, endTime);
                         hasConflict = !instanceSchedules.isEmpty();
-                        logger.info("周实例中该日期该时间段课程数: {}, 有冲突: {}", instanceSchedules.size(), hasConflict);
+                        logger.info("周实例中该日期该时间段课程数: {}", instanceSchedules.size());
+                        if (!instanceSchedules.isEmpty()) {
+                            for (Schedules schedule : instanceSchedules) {
+                                logger.info("  - 课程: 学员={}, 时间={}-{}, 日期={}", 
+                                    schedule.getStudentName(), 
+                                    schedule.getStartTime(), 
+                                    schedule.getEndTime(),
+                                    schedule.getScheduleDate());
+                            }
+                        }
+                        logger.info("有冲突: {}", hasConflict);
                     } else {
                         // 没有该周的实例，说明该周没有排课，有空
                         logger.info("没有找到该周的实例，教练有空");
