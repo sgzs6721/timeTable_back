@@ -665,10 +665,20 @@ public class AuthController {
                         .body(ApiResponse.error("用户不存在"));
             }
             
+            // 检查当前用户是否已绑定该手机号
+            if (request.getPhone().equals(user.getPhone())) {
+                logger.info("用户 {} 已绑定该手机号，无需重复绑定", username);
+                Map<String, Object> data = new HashMap<>();
+                data.put("user", convertUserToDTO(user));
+                data.put("message", "手机号已绑定");
+                return ResponseEntity.ok(ApiResponse.success("手机号已绑定", data));
+            }
+            
             // 检查手机号是否已被其他用户使用
-            if (userRepository.existsByPhone(request.getPhone())) {
+            Users existingUser = userRepository.findByPhone(request.getPhone());
+            if (existingUser != null && !existingUser.getId().equals(user.getId())) {
                 return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("该手机号已被使用"));
+                        .body(ApiResponse.error("该手机号已被其他用户使用"));
             }
             
             // 更新用户手机号
