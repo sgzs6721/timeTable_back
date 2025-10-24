@@ -205,7 +205,8 @@ public class ScheduleRepository {
     public List<com.timetable.generated.tables.pojos.Users> findAllCoaches() {
         return dsl.selectFrom(USERS)
                 .where(USERS.ROLE.ne("ADMIN"))
-                .and(USERS.STATUS.eq("ACTIVE"))
+                .and(USERS.STATUS.eq("APPROVED"))
+                .and(USERS.IS_DELETED.eq((byte) 0))
                 .fetchInto(com.timetable.generated.tables.pojos.Users.class);
     }
 
