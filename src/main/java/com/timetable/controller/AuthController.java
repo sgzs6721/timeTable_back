@@ -633,6 +633,9 @@ public class AuthController {
                                 ".info p { margin: 10px 0; }" +
                                 ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
                                 ".loading { margin-top: 20px; color: #888; }" +
+                                ".debug-log { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; " +
+                                    "max-height: 200px; overflow-y: auto; font-size: 12px; text-align: left; }" +
+                                ".debug-log div { margin: 2px 0; color: #333; }" +
                             "</style>" +
                         "</head>" +
                         "<body>" +
@@ -643,20 +646,41 @@ public class AuthController {
                                     "<p><strong>昵称：</strong>%s</p>" +
                                 "</div>" +
                                 "<div class=\"loading\">正在跳转...</div>" +
+                                "<div class=\"debug-log\" id=\"debugLog\"></div>" +
                             "</div>" +
                             "<script>" +
-                                "// 保存token到localStorage" +
+                                "function log(message, data) {" +
+                                    "const logEl = document.getElementById('debugLog');" +
+                                    "const div = document.createElement('div');" +
+                                    "const timestamp = new Date().toLocaleTimeString();" +
+                                    "if (data !== undefined) {" +
+                                        "div.textContent = timestamp + ' - ' + message + ': ' + JSON.stringify(data);" +
+                                    "} else {" +
+                                        "div.textContent = timestamp + ' - ' + message;" +
+                                    "}" +
+                                    "logEl.appendChild(div);" +
+                                    "logEl.scrollTop = logEl.scrollHeight;" +
+                                    "console.log(message, data || '');" +
+                                "}" +
+                                "log('页面加载完成');" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
+                                "log('Token前20字符', token.substring(0, 20) + '...');" +
+                                "log('frontendUrl变量值', frontendUrl);" +
                                 "localStorage.setItem('token', token);" +
-                                "console.log('Token已保存:', token);" +
-                                "console.log('frontendUrl变量值:', frontendUrl);" +
-                                "// 延迟跳转" +
-                                "const targetUrl = frontendUrl;" +
-                                "console.log('目标URL:', targetUrl);" +
+                                "log('Token已保存到localStorage');" +
+                                "const targetUrl = 'https://timetable.devtesting.top/dashboard?tab=timetables';" +
+                                "log('目标URL: ' + targetUrl);" +
+                                "log('将在1.5秒后执行跳转...');" +
                                 "setTimeout(() => {" +
-                                    "console.log('执行跳转到:', targetUrl);" +
-                                    "window.location.replace(targetUrl);" +
+                                    "log('【开始跳转】');" +
+                                    "try {" +
+                                        "window.location.href = targetUrl;" +
+                                        "log('跳转指令已执行');" +
+                                    "} catch (e) {" +
+                                        "log('跳转异常', e.message);" +
+                                        "alert('跳转失败: ' + e.message + '\\n请手动访问: ' + targetUrl);" +
+                                    "}" +
                                 "}, 1500);" +
                             "</script>" +
                         "</body>" +
