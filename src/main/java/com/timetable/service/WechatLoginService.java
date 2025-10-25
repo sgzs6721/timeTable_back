@@ -108,6 +108,26 @@ public class WechatLoginService {
         try {
             logger.info("开始处理微信登录，授权码: {}", code);
             
+            // 检查依赖注入是否成功
+            if (jwtUtil == null) {
+                logger.error("jwtUtil 未注入");
+                throw new RuntimeException("系统配置错误: JWT工具未初始化");
+            }
+            if (userRepository == null) {
+                logger.error("userRepository 未注入");
+                throw new RuntimeException("系统配置错误: 用户仓库未初始化");
+            }
+            if (appId == null || appId.isEmpty()) {
+                logger.error("appId 配置为空");
+                throw new RuntimeException("系统配置错误: 微信AppID未配置");
+            }
+            if (appSecret == null || appSecret.isEmpty()) {
+                logger.error("appSecret 配置为空");
+                throw new RuntimeException("系统配置错误: 微信AppSecret未配置");
+            }
+            
+            logger.info("依赖检查通过，AppID: {}", appId);
+            
             // 1. 获取微信访问令牌
             logger.info("步骤1: 获取微信访问令牌");
             WechatAccessToken accessToken = getAccessToken(code);
@@ -176,6 +196,17 @@ public class WechatLoginService {
      * 查找或创建用户
      */
     private Users findOrCreateUser(WechatUserInfo wechatUserInfo) {
+        if (wechatUserInfo == null) {
+            logger.error("findOrCreateUser: wechatUserInfo 为 null");
+            throw new RuntimeException("微信用户信息为空");
+        }
+        if (wechatUserInfo.getOpenid() == null || wechatUserInfo.getOpenid().isEmpty()) {
+            logger.error("findOrCreateUser: openid 为空");
+            throw new RuntimeException("微信OpenID为空");
+        }
+        
+        logger.info("查找或创建用户，OpenID: {}", wechatUserInfo.getOpenid());
+        
         // 使用openid查找用户（通过wechat_openid字段）
         Users existingUser = userRepository.findByWechatOpenid(wechatUserInfo.getOpenid());
         
@@ -225,6 +256,11 @@ public class WechatLoginService {
      * 转换用户实体为DTO
      */
     private Map<String, Object> convertUserToDTO(Users user) {
+        if (user == null) {
+            logger.error("convertUserToDTO: user 为 null");
+            throw new RuntimeException("用户对象为空");
+        }
+        
         Map<String, Object> userDTO = new HashMap<>();
         userDTO.put("id", user.getId());
         userDTO.put("username", user.getUsername());
