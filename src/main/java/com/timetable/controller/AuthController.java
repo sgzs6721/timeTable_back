@@ -1,5 +1,6 @@
 package com.timetable.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.AuthRequest;
 import com.timetable.dto.BindPhoneRequest;
@@ -51,6 +52,9 @@ public class AuthController {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
     
     /**
      * 用户登录
@@ -534,17 +538,9 @@ public class AuthController {
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
-                                            "const user = data.data.user;" +
-                                            "let redirectUrl = frontendUrl + '?token=' + encodeURIComponent(token);" +
-                                            "if (user.wechatAvatar) {" +
-                                                "redirectUrl += '&avatar=' + encodeURIComponent(user.wechatAvatar);" +
-                                            "}" +
-                                            "if (user.nickname) {" +
-                                                "redirectUrl += '&nickname=' + encodeURIComponent(user.nickname);" +
-                                            "}" +
                                             "setTimeout(() => {" +
-                                                "window.location.href = redirectUrl;" +
-                                            "}, 1000);" +
+                                                "window.location.href = frontendUrl + '/dashboard';" +
+                                            "}, 500);" +
                                         "} else {" +
                                             "showError(data.message || '绑定失败，请重试');" +
                                             "btn.disabled = false;" +
@@ -615,19 +611,12 @@ public class AuthController {
                             "<script>" +
                                 "const token = '%s';" +
                                 "const frontendUrl = '%s';" +
-                                "const userAvatar = '%s';" +
-                                "const userNickname = '%s';" +
+                                "const user = %s;" +
                                 "localStorage.setItem('token', token);" +
-                                "let redirectUrl = frontendUrl + '?token=' + encodeURIComponent(token);" +
-                                "if (userAvatar) {" +
-                                    "redirectUrl += '&avatar=' + encodeURIComponent(userAvatar);" +
-                                "}" +
-                                "if (userNickname) {" +
-                                    "redirectUrl += '&nickname=' + encodeURIComponent(userNickname);" +
-                                "}" +
+                                "localStorage.setItem('user', JSON.stringify(user));" +
                                 "setTimeout(() => {" +
-                                    "window.location.href = redirectUrl;" +
-                                "}, 1500);" +
+                                    "window.location.href = frontendUrl + '/dashboard';" +
+                                "}, 1000);" +
                             "</script>" +
                         "</body>" +
                         "</html>";
@@ -641,16 +630,23 @@ public class AuthController {
                     
                     logger.info("已绑定用户跳转页面 - Token: {}, FrontendUrl: {}", token, frontendUrl);
                     
-                    String userAvatar = user.get("wechatAvatar") != null ? user.get("wechatAvatar").toString() : "";
                     String userNickname = user.get("nickname") != null ? user.get("nickname").toString() : "";
+                    
+                    // 将 user Map 转换为 JSON 字符串
+                    String userJson;
+                    try {
+                        userJson = objectMapper.writeValueAsString(user);
+                    } catch (Exception e) {
+                        logger.error("转换用户信息为JSON失败", e);
+                        userJson = "{}";
+                    }
                     
                     String html = String.format(htmlTemplate,
                         avatarHtml,           // %s - avatar (HTML)
                         userNickname,         // %s - nickname (页面显示)
                         token,                // %s - token (JavaScript)
                         frontendUrl,          // %s - frontendUrl (JavaScript)
-                        userAvatar,           // %s - userAvatar (JavaScript)
-                        userNickname          // %s - userNickname (JavaScript)
+                        userJson              // %s - user JSON (JavaScript)
                     );
                     
                     return ResponseEntity.ok(html);
