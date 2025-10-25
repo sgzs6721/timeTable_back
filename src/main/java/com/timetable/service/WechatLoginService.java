@@ -219,7 +219,10 @@ public class WechatLoginService {
         if (existingUser != null) {
             // 更新用户微信信息
             logger.info("更新已存在用户的微信信息，用户ID: {}", existingUser.getId());
-            existingUser.setNickname(wechatUserInfo.getNickname());
+            // 只在临时微信账号或没有昵称时才更新昵称
+            if (existingUser.getUsername().startsWith("wx_") || existingUser.getNickname() == null || existingUser.getNickname().isEmpty()) {
+                existingUser.setNickname(wechatUserInfo.getNickname());
+            }
             existingUser.setWechatAvatar(wechatUserInfo.getHeadimgurl());
             existingUser.setWechatSex(wechatUserInfo.getSex() != null ? wechatUserInfo.getSex().byteValue() : null);
             existingUser.setWechatProvince(wechatUserInfo.getProvince());
