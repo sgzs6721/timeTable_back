@@ -478,6 +478,9 @@ public class ScheduleService {
         if (request.getNote() != null) {
             schedule.setNote(request.getNote());
         }
+        if (request.getIsTrial() != null) {
+            schedule.setIsTrial(request.getIsTrial() ? (byte) 1 : (byte) 0);
+        }
 
         schedule.setUpdatedAt(LocalDateTime.now());
         scheduleRepository.update(schedule);

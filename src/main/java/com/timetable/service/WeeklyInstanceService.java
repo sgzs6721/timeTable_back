@@ -797,6 +797,7 @@ public class WeeklyInstanceService {
                         existingSchedule.setStudentName(templateSchedule.getStudentName());
                         existingSchedule.setSubject(templateSchedule.getSubject());
                         existingSchedule.setNote(templateSchedule.getNote());
+                        existingSchedule.setIsTrial(templateSchedule.getIsTrial());
                         existingSchedule.setIsModified(false);
                         existingSchedule.setUpdatedAt(LocalDateTime.now());
                         weeklyInstanceScheduleRepository.save(existingSchedule);
@@ -819,6 +820,7 @@ public class WeeklyInstanceService {
                     );
                     newSchedule.setIsManualAdded(false);
                     newSchedule.setIsModified(false);
+                    newSchedule.setIsTrial(templateSchedule.getIsTrial());
                     weeklyInstanceScheduleRepository.save(newSchedule);
                     logger.info("在实例中新增课程: {} {}", templateSchedule.getStudentName(), key);
                 }
@@ -873,6 +875,7 @@ public class WeeklyInstanceService {
                     exist.setStudentName(templateSchedule.getStudentName());
                     exist.setSubject(templateSchedule.getSubject());
                     exist.setNote(templateSchedule.getNote());
+                    exist.setIsTrial(templateSchedule.getIsTrial());
                     exist.setIsManualAdded(false);
                     exist.setIsModified(false);
                     exist.setUpdatedAt(java.time.LocalDateTime.now());
@@ -890,6 +893,7 @@ public class WeeklyInstanceService {
                             date,
                             templateSchedule.getNote()
                     );
+                    instanceSchedule.setIsTrial(templateSchedule.getIsTrial());
                     weeklyInstanceScheduleRepository.save(instanceSchedule);
                 }
             }

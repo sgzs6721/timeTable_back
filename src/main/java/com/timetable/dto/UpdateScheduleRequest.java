@@ -17,6 +17,8 @@ public class UpdateScheduleRequest {
     private Integer weekNumber;
     private LocalDate scheduleDate;
     private String note;
+    private Boolean isTrial;
+    private Boolean isHalfHour;
 
     public UpdateScheduleRequest() {
     }
@@ -83,5 +85,21 @@ public class UpdateScheduleRequest {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public Boolean getIsTrial() {
+        return isTrial;
+    }
+
+    public void setIsTrial(Boolean isTrial) {
+        this.isTrial = isTrial;
+    }
+
+    public Boolean getIsHalfHour() {
+        return isHalfHour;
+    }
+
+    public void setIsHalfHour(Boolean isHalfHour) {
+        this.isHalfHour = isHalfHour;
     }
 } 

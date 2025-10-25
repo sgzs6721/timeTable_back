@@ -23,6 +23,7 @@ public class WeeklyInstanceSchedule {
     private Boolean isOnLeave;         // 是否请假
     private String leaveReason;        // 请假原因
     private LocalDateTime leaveRequestedAt; // 请假申请时间
+    private Byte isTrial;              // 是否为体验课程
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -197,5 +198,13 @@ public class WeeklyInstanceSchedule {
 
     public void setLeaveRequestedAt(LocalDateTime leaveRequestedAt) {
         this.leaveRequestedAt = leaveRequestedAt;
+    }
+
+    public Byte getIsTrial() {
+        return isTrial;
+    }
+
+    public void setIsTrial(Byte isTrial) {
+        this.isTrial = isTrial;
     }
 }
