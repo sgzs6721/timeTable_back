@@ -507,6 +507,7 @@ public class WeeklyInstanceController {
             String endTimeStr = (String) request.get("endTime");
             String scheduleDateStr = (String) request.get("scheduleDate");
             String note = (String) request.get("note");
+            Boolean isTrial = (Boolean) request.get("isTrial");
 
             WeeklyInstanceSchedule updatedSchedule = new WeeklyInstanceSchedule();
             // 只设置非null的字段，让服务层处理部分更新
@@ -519,6 +520,7 @@ public class WeeklyInstanceController {
                 updatedSchedule.setScheduleDate(LocalDate.parse(scheduleDateStr));
             }
             if (note != null) updatedSchedule.setNote(note);
+            if (isTrial != null) updatedSchedule.setIsTrial(isTrial ? (byte) 1 : (byte) 0);
 
             WeeklyInstanceSchedule result = weeklyInstanceService.updateInstanceSchedule(scheduleId, updatedSchedule);
             return ResponseEntity.ok(ApiResponse.success("更新实例课程成功", result));

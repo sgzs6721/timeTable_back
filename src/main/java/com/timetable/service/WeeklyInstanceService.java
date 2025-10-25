@@ -1068,6 +1068,9 @@ public class WeeklyInstanceService {
         if (updatedSchedule.getNote() != null) {
             existingSchedule.setNote(updatedSchedule.getNote());
         }
+        if (updatedSchedule.getIsTrial() != null) {
+            existingSchedule.setIsTrial(updatedSchedule.getIsTrial());
+        }
         
         // 检查是否与原始模板不同
         boolean isDifferentFromTemplate = false;
@@ -1093,6 +1096,9 @@ public class WeeklyInstanceService {
                     isDifferentFromTemplate = true;
                 }
                 if (!Objects.equals(existingSchedule.getNote(), templateSchedule.getNote())) {
+                    isDifferentFromTemplate = true;
+                }
+                if (!Objects.equals(existingSchedule.getIsTrial(), templateSchedule.getIsTrial())) {
                     isDifferentFromTemplate = true;
                 }
             }
