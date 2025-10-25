@@ -106,26 +106,51 @@ public class WechatLoginService {
      */
     public Map<String, Object> processWechatLogin(String code) {
         try {
+            logger.info("开始处理微信登录，授权码: {}", code);
+            
             // 1. 获取微信访问令牌
+            logger.info("步骤1: 获取微信访问令牌");
             WechatAccessToken accessToken = getAccessToken(code);
-            if (accessToken.getAccessToken() == null) {
-                throw new RuntimeException("获取微信访问令牌失败");
+            if (accessToken == null) {
+                logger.error("获取微信访问令牌失败: accessToken 为 null");
+                throw new RuntimeException("获取微信访问令牌失败: 返回结果为空");
             }
+            if (accessToken.getAccessToken() == null) {
+                logger.error("获取微信访问令牌失败: accessToken.getAccessToken() 为 null");
+                throw new RuntimeException("获取微信访问令牌失败: access_token 字段为空");
+            }
+            logger.info("成功获取访问令牌，openid: {}", accessToken.getOpenid());
             
             // 2. 获取微信用户信息
+            logger.info("步骤2: 获取微信用户信息");
             WechatUserInfo wechatUserInfo = getUserInfo(accessToken.getAccessToken(), accessToken.getOpenid());
-            if (wechatUserInfo.getOpenid() == null) {
-                throw new RuntimeException("获取微信用户信息失败");
+            if (wechatUserInfo == null) {
+                logger.error("获取微信用户信息失败: wechatUserInfo 为 null");
+                throw new RuntimeException("获取微信用户信息失败: 返回结果为空");
             }
+            if (wechatUserInfo.getOpenid() == null) {
+                logger.error("获取微信用户信息失败: openid 为 null");
+                throw new RuntimeException("获取微信用户信息失败: openid 字段为空");
+            }
+            logger.info("成功获取用户信息，昵称: {}", wechatUserInfo.getNickname());
             
             // 3. 查找或创建用户
+            logger.info("步骤3: 查找或创建用户");
             Users user = findOrCreateUser(wechatUserInfo);
+            if (user == null) {
+                logger.error("查找或创建用户失败: user 为 null");
+                throw new RuntimeException("查找或创建用户失败");
+            }
+            logger.info("用户处理完成，用户名: {}", user.getUsername());
             
             // 4. 生成JWT Token
+            logger.info("步骤4: 生成JWT Token");
             String token = jwtUtil.generateToken(user.getUsername());
+            logger.info("JWT Token 生成成功");
             
             // 5. 判断是否需要绑定手机号
             boolean needBindPhone = (user.getPhone() == null || user.getPhone().isEmpty());
+            logger.info("是否需要绑定手机号: {}", needBindPhone);
             
             // 6. 构建响应数据
             Map<String, Object> data = new HashMap<>();
@@ -134,11 +159,16 @@ public class WechatLoginService {
             data.put("isNewUser", user.getCreatedAt().equals(user.getUpdatedAt()));
             data.put("needBindPhone", needBindPhone);
             
+            logger.info("微信登录处理成功");
             return data;
             
         } catch (Exception e) {
             logger.error("微信登录处理失败", e);
-            throw new RuntimeException("微信登录失败: " + e.getMessage());
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isEmpty()) {
+                errorMsg = e.getClass().getSimpleName() + ": " + e.toString();
+            }
+            throw new RuntimeException("微信登录失败: " + errorMsg, e);
         }
     }
     
