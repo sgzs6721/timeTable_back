@@ -290,6 +290,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         schedule.setIsOnLeave(record.get("is_on_leave", Boolean.class));
         schedule.setLeaveReason(record.get("leave_reason", String.class));
         schedule.setLeaveRequestedAt(record.get("leave_requested_at", LocalDateTime.class));
+        schedule.setIsTrial(record.get("is_trial", Byte.class));
         schedule.setCreatedAt(record.get("created_at", LocalDateTime.class));
         schedule.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
         return schedule;
