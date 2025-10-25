@@ -257,6 +257,20 @@ public class AdminController {
                     .body(ApiResponse.error("获取模板课程失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取所有活动课表的体验课程信息
+     */
+    @GetMapping("/active-timetables/trial")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTrial() {
+        try {
+            List<Map<String, Object>> result = timetableService.getActiveTimetablesTrialSchedules();
+            return ResponseEntity.ok(ApiResponse.success("获取体验课程成功", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("获取体验课程失败: " + e.getMessage()));
+        }
+    }
     
     /**
      * 更新课表状态（例如，设为活动、归档等）

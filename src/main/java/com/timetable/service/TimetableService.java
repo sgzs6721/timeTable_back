@@ -880,9 +880,10 @@ public class TimetableService {
                         List<WeeklyInstanceSchedule> instanceSchedules = 
                             weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
                         
-                        // 转换为 Schedules 格式，并过滤掉请假的课程
+                        // 转换为 Schedules 格式，并过滤掉请假的课程和体验课程
                         weekSchedules = instanceSchedules.stream()
                             .filter(instanceSchedule -> instanceSchedule.getIsOnLeave() == null || !instanceSchedule.getIsOnLeave()) // 过滤掉请假的课程
+                            .filter(instanceSchedule -> instanceSchedule.getIsTrial() == null || instanceSchedule.getIsTrial() == 0) // 过滤掉体验课程
                             .map(instanceSchedule -> {
                                 Schedules schedule = new Schedules();
                                 schedule.setId(instanceSchedule.getId());
@@ -1509,6 +1510,111 @@ public class TimetableService {
         result.put("page", page);
         result.put("size", size);
         
+        return result;
+    }
+
+    /**
+     * 获取所有活动课表的体验课程（本周和模板）
+     */
+    public List<Map<String, Object>> getActiveTimetablesTrialSchedules() {
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        try {
+            // 获取本周的周一和周日
+            LocalDate today = LocalDate.now();
+            LocalDate monday = today.with(DayOfWeek.MONDAY);
+            LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+
+            // 获取所有活动课表
+            List<Timetables> activeTimetables = timetableRepository.findAll()
+                    .stream()
+                    .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
+                    .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
+                    .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
+                    .collect(Collectors.toList());
+
+            for (Timetables timetable : activeTimetables) {
+                // 获取课表所属用户信息
+                com.timetable.generated.tables.pojos.Users user = userService.findById(timetable.getUserId());
+                if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+                    continue; // 跳过已删除的用户
+                }
+
+                List<com.timetable.generated.tables.pojos.Schedules> trialSchedules = new ArrayList<>();
+
+                if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                    // 周固定课表：从周实例数据获取体验课程
+                    try {
+                        // 检查是否存在当前周实例
+                        WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(timetable.getId());
+                        if (currentInstance == null) {
+                            try {
+                                currentInstance = weeklyInstanceService.generateCurrentWeekInstance(timetable.getId());
+                            } catch (Exception genEx) {
+                                continue;
+                            }
+                        }
+                        
+                        List<WeeklyInstanceSchedule> instanceSchedules = 
+                            weeklyInstanceService.getCurrentWeekInstanceSchedules(timetable.getId());
+                        
+                        // 只获取体验课程（is_trial = 1），不包括请假的
+                        trialSchedules = instanceSchedules.stream()
+                            .filter(instanceSchedule -> instanceSchedule.getIsOnLeave() == null || !instanceSchedule.getIsOnLeave())
+                            .filter(instanceSchedule -> instanceSchedule.getIsTrial() != null && instanceSchedule.getIsTrial() == 1) // 只要体验课程
+                            .map(instanceSchedule -> {
+                                Schedules schedule = new Schedules();
+                                schedule.setId(instanceSchedule.getId());
+                                schedule.setTimetableId(timetable.getId());
+                                schedule.setStudentName(instanceSchedule.getStudentName());
+                                schedule.setSubject(instanceSchedule.getSubject());
+                                schedule.setDayOfWeek(instanceSchedule.getDayOfWeek());
+                                schedule.setStartTime(instanceSchedule.getStartTime());
+                                schedule.setEndTime(instanceSchedule.getEndTime());
+                                schedule.setScheduleDate(instanceSchedule.getScheduleDate());
+                                schedule.setNote(instanceSchedule.getNote());
+                                schedule.setIsTrial((byte) 1);
+                                return schedule;
+                            })
+                            .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        continue;
+                    }
+                } else {
+                    // 日期范围课表：获取本周的体验课程
+                    List<Schedules> weekSchedules = scheduleRepository.findByTimetableIdAndScheduleDateBetween(
+                        timetable.getId(), monday, sunday);
+                    trialSchedules = weekSchedules.stream()
+                        .filter(s -> s.getIsTrial() != null && s.getIsTrial() == 1)
+                        .collect(Collectors.toList());
+                }
+
+                // 将体验课程数据添加到结果中
+                for (Schedules schedule : trialSchedules) {
+                    Map<String, Object> scheduleInfo = new HashMap<>();
+                    scheduleInfo.put("id", schedule.getId());
+                    scheduleInfo.put("timetableId", timetable.getId());
+                    scheduleInfo.put("timetableName", timetable.getName());
+                    scheduleInfo.put("ownerNickname", user.getNickname());
+                    scheduleInfo.put("ownerUsername", user.getUsername());
+                    scheduleInfo.put("isWeekly", timetable.getIsWeekly());
+                    scheduleInfo.put("studentName", schedule.getStudentName());
+                    scheduleInfo.put("subject", schedule.getSubject());
+                    scheduleInfo.put("dayOfWeek", schedule.getDayOfWeek());
+                    scheduleInfo.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                    scheduleInfo.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
+                    scheduleInfo.put("scheduleDate", schedule.getScheduleDate());
+                    scheduleInfo.put("weekNumber", schedule.getWeekNumber());
+                    scheduleInfo.put("note", schedule.getNote());
+                    scheduleInfo.put("isTrial", 1);
+                    result.add(scheduleInfo);
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("获取体验课程失败: " + e.getMessage());
+        }
+
         return result;
     }
 }
