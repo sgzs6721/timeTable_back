@@ -534,7 +534,7 @@ public class AuthController {
                                             "body: JSON.stringify({ phone: phone })" +
                                         "});" +
                                         "const data = await response.json();" +
-                                        "if (data.status === 'success') {" +
+                                        "if (data.success) {" +
                                             "localStorage.setItem('token', token);" +
                                             "localStorage.setItem('user', JSON.stringify(data.data.user));" +
                                             "btn.textContent = '绑定成功，正在跳转...';" +
