@@ -217,12 +217,8 @@ public class WechatLoginService {
         Users existingUser = userRepository.findByWechatOpenid(wechatUserInfo.getOpenid());
         
         if (existingUser != null) {
-            // 更新用户微信信息
+            // 更新用户微信信息（不更新昵称，保留用户原有昵称）
             logger.info("更新已存在用户的微信信息，用户ID: {}", existingUser.getId());
-            // 只在临时微信账号或没有昵称时才更新昵称
-            if (existingUser.getUsername().startsWith("wx_") || existingUser.getNickname() == null || existingUser.getNickname().isEmpty()) {
-                existingUser.setNickname(wechatUserInfo.getNickname());
-            }
             existingUser.setWechatAvatar(wechatUserInfo.getHeadimgurl());
             existingUser.setWechatSex(wechatUserInfo.getSex() != null ? wechatUserInfo.getSex().byteValue() : null);
             existingUser.setWechatProvince(wechatUserInfo.getProvince());
@@ -231,7 +227,7 @@ public class WechatLoginService {
             existingUser.setWechatUnionid(wechatUserInfo.getUnionid());
             existingUser.setUpdatedAt(java.time.LocalDateTime.now());
             
-            logger.info("更新用户信息到数据库");
+            logger.info("更新用户信息到数据库（不更新昵称）");
             userRepository.update(existingUser);
             logger.info("用户信息更新成功");
             return existingUser;
