@@ -41,6 +41,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                     .set(field("note"), schedule.getNote())
                     .set(field("is_manual_added"), schedule.getIsManualAdded())
                     .set(field("is_modified"), schedule.getIsModified())
+                    .set(field("is_trial"), schedule.getIsTrial())
                     .set(field("created_at"), schedule.getCreatedAt())
                     .set(field("updated_at"), schedule.getUpdatedAt())
                     .execute();
@@ -64,6 +65,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                     .set(field("note"), schedule.getNote())
                     .set(field("is_manual_added"), schedule.getIsManualAdded())
                     .set(field("is_modified"), schedule.getIsModified())
+                    .set(field("is_trial"), schedule.getIsTrial())
                     .set(field("updated_at"), LocalDateTime.now())
                     .where(field("id").eq(schedule.getId()))
                     .execute();
@@ -206,6 +208,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .set(field("is_on_leave"), schedule.getIsOnLeave())
                 .set(field("leave_reason"), schedule.getLeaveReason())
                 .set(field("leave_requested_at"), schedule.getLeaveRequestedAt())
+                .set(field("is_trial"), schedule.getIsTrial())
                 .set(field("updated_at"), LocalDateTime.now())
                 .where(field("id").eq(schedule.getId()))
                 .execute();
