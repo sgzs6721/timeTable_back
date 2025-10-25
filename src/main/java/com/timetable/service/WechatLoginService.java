@@ -176,7 +176,13 @@ public class WechatLoginService {
             Map<String, Object> data = new HashMap<>();
             data.put("token", token);
             data.put("user", convertUserToDTO(user));
-            data.put("isNewUser", user.getCreatedAt().equals(user.getUpdatedAt()));
+            
+            // 安全地判断是否是新用户
+            boolean isNewUser = false;
+            if (user.getCreatedAt() != null && user.getUpdatedAt() != null) {
+                isNewUser = user.getCreatedAt().equals(user.getUpdatedAt());
+            }
+            data.put("isNewUser", isNewUser);
             data.put("needBindPhone", needBindPhone);
             
             logger.info("微信登录处理成功");
@@ -221,7 +227,10 @@ public class WechatLoginService {
             existingUser.setWechatCountry(wechatUserInfo.getCountry());
             existingUser.setWechatUnionid(wechatUserInfo.getUnionid());
             existingUser.setUpdatedAt(java.time.LocalDateTime.now());
+            
+            logger.info("更新用户信息到数据库");
             userRepository.update(existingUser);
+            logger.info("用户信息更新成功");
             return existingUser;
         } else {
             // 创建新用户
@@ -247,8 +256,17 @@ public class WechatLoginService {
             newUser.setCreatedAt(java.time.LocalDateTime.now());
             newUser.setUpdatedAt(java.time.LocalDateTime.now());
             
+            logger.info("保存新用户到数据库");
             userRepository.save(newUser);
-            return newUser;
+            
+            // 重新查询保存后的用户以获取生成的ID
+            Users savedUser = userRepository.findByWechatOpenid(wechatUserInfo.getOpenid());
+            if (savedUser == null) {
+                logger.error("保存用户后查询失败");
+                throw new RuntimeException("保存用户失败");
+            }
+            logger.info("新用户保存成功，ID: {}, 用户名: {}", savedUser.getId(), savedUser.getUsername());
+            return savedUser;
         }
     }
     
