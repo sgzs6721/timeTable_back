@@ -4,8 +4,8 @@
 export LANG=zh_CN.UTF-8
 export LC_ALL=zh_CN.UTF-8
 
-# 设置JVM参数
-JAVA_OPTS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dconsole.encoding=UTF-8"
+# 设置JVM参数（包含时区设置）
+JAVA_OPTS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dconsole.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
 
 # 获取当前脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

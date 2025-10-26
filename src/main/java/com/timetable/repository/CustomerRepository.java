@@ -43,8 +43,11 @@ public class CustomerRepository {
     };
 
     public Customer save(Customer customer) {
-        String sql = "INSERT INTO customers (child_name, grade, parent_phone, parent_relation, available_time, source, status, notes, next_contact_time, visit_time, assigned_sales_id, created_by) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // 使用中国时区的当前时间
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
+        
+        String sql = "INSERT INTO customers (child_name, grade, parent_phone, parent_relation, available_time, source, status, notes, next_contact_time, visit_time, assigned_sales_id, created_by, created_at, updated_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         jdbcTemplate.update(sql, 
             customer.getChildName(),
@@ -58,19 +61,26 @@ public class CustomerRepository {
             customer.getNextContactTime(),
             customer.getVisitTime(),
             customer.getAssignedSalesId(),
-            customer.getCreatedBy()
+            customer.getCreatedBy(),
+            now,
+            now
         );
         
         // 获取插入的ID
         Long id = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
         customer.setId(id);
+        customer.setCreatedAt(now);
+        customer.setUpdatedAt(now);
         return customer;
     }
 
     public Customer update(Customer customer) {
+        // 使用中国时区的当前时间
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
+        
         String sql = "UPDATE customers SET child_name = ?, grade = ?, parent_phone = ?, parent_relation = ?, " +
                      "available_time = ?, source = ?, status = ?, notes = ?, next_contact_time = ?, visit_time = ?, " +
-                     "assigned_sales_id = ? WHERE id = ?";
+                     "assigned_sales_id = ?, updated_at = ? WHERE id = ?";
         
         jdbcTemplate.update(sql,
             customer.getChildName(),
@@ -84,9 +94,11 @@ public class CustomerRepository {
             customer.getNextContactTime(),
             customer.getVisitTime(),
             customer.getAssignedSalesId(),
+            now,
             customer.getId()
         );
         
+        customer.setUpdatedAt(now);
         return customer;
     }
 
