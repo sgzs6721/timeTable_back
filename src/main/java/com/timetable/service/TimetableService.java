@@ -916,6 +916,8 @@ public class TimetableService {
                     scheduleInfo.put("timetableName", timetable.getName());
                     scheduleInfo.put("ownerNickname", user.getNickname());
                     scheduleInfo.put("ownerUsername", user.getUsername());
+                    scheduleInfo.put("ownerPosition", user.getPosition());
+                    scheduleInfo.put("ownerRole", user.getRole());
                     scheduleInfo.put("isWeekly", timetable.getIsWeekly());
                     scheduleInfo.put("studentName", schedule.getStudentName());
                     scheduleInfo.put("subject", schedule.getSubject());
@@ -981,6 +983,8 @@ public class TimetableService {
                     scheduleInfo.put("timetableName", timetable.getName());
                     scheduleInfo.put("ownerNickname", user.getNickname());
                     scheduleInfo.put("ownerUsername", user.getUsername());
+                    scheduleInfo.put("ownerPosition", user.getPosition());
+                    scheduleInfo.put("ownerRole", user.getRole());
                     scheduleInfo.put("isWeekly", timetable.getIsWeekly());
                     scheduleInfo.put("studentName", schedule.getStudentName());
                     scheduleInfo.put("subject", schedule.getSubject());
@@ -1597,6 +1601,8 @@ public class TimetableService {
                     scheduleInfo.put("timetableName", timetable.getName());
                     scheduleInfo.put("ownerNickname", user.getNickname());
                     scheduleInfo.put("ownerUsername", user.getUsername());
+                    scheduleInfo.put("ownerPosition", user.getPosition());
+                    scheduleInfo.put("ownerRole", user.getRole());
                     scheduleInfo.put("isWeekly", timetable.getIsWeekly());
                     scheduleInfo.put("studentName", schedule.getStudentName());
                     scheduleInfo.put("subject", schedule.getSubject());
