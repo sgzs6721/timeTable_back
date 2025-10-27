@@ -166,5 +166,18 @@ public class TodoController {
             return ResponseEntity.badRequest().body(ApiResponse.error("更新待办失败: " + e.getMessage()));
         }
     }
+
+    @PutMapping("/{todoId}/reminder-time")
+    public ResponseEntity<ApiResponse<Boolean>> updateReminderTime(
+            @PathVariable Long todoId,
+            @RequestBody Map<String, String> request) {
+        try {
+            String reminderDateTime = request.get("reminderDateTime");
+            boolean success = todoService.updateReminderTime(todoId, reminderDateTime);
+            return ResponseEntity.ok(ApiResponse.success("更新提醒时间成功", success));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("更新提醒时间失败: " + e.getMessage()));
+        }
+    }
 }
 

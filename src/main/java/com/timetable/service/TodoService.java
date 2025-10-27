@@ -122,6 +122,30 @@ public class TodoService {
         return convertToDTO(updated);
     }
 
+    @Transactional
+    public boolean updateReminderTime(Long todoId, String reminderDateTime) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null) {
+            throw new RuntimeException("待办不存在");
+        }
+
+        // 解析日期时间字符串 "2025-10-27 11:30:00"
+        try {
+            String[] parts = reminderDateTime.split(" ");
+            if (parts.length == 2) {
+                todo.setReminderDate(java.time.LocalDate.parse(parts[0]));
+                todo.setReminderTime(java.time.LocalTime.parse(parts[1]));
+            } else {
+                throw new RuntimeException("日期时间格式错误");
+            }
+            
+            todoRepository.update(todo);
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException("更新提醒时间失败: " + e.getMessage());
+        }
+    }
+
     private TodoDTO convertToDTO(Todo todo) {
         TodoDTO dto = new TodoDTO();
         dto.setId(todo.getId());
