@@ -2473,9 +2473,33 @@ public class WeeklyInstanceService {
         }
     }
     
+    /**
+     * 根据开始时间和结束时间计算课时数
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 课时数（以小时为单位，如0.5、1.0、1.5等）
+     */
+    private double calculateCourseHours(java.time.LocalTime startTime, java.time.LocalTime endTime) {
+        if (startTime == null || endTime == null) {
+            return 1.0; // 如果时间为空，默认算1课时
+        }
+        
+        try {
+            // 计算时间差（分钟）
+            long minutes = java.time.Duration.between(startTime, endTime).toMinutes();
+            // 转换为小时（保留一位小数）
+            double hours = minutes / 60.0;
+            // 最小0.5小时
+            return Math.max(0.5, hours);
+        } catch (Exception e) {
+            logger.warn("计算课时失败: startTime={}, endTime={}, error={}", startTime, endTime, e.getMessage());
+            return 1.0;
+        }
+    }
+    
     public List<StudentSummaryDTO> getStudentSummariesByCoach(Long coachId) {
         logger.info("开始获取教练 {} 的学员列表", coachId);
-        Map<String, Integer> studentToCount = new HashMap<>();
+        Map<String, Double> studentToCount = new HashMap<>();
 
         // 获取该教练的所有学员操作规则
         Map<String, String> renameRules = new HashMap<>();
@@ -2565,7 +2589,9 @@ public class WeeklyInstanceService {
                 // 过滤掉隐藏的学员
                 if (hiddenStudents.contains(name)) continue;
                 
-                studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+                // 根据课程时长计算课时数
+                double hours = calculateCourseHours(s.getStartTime(), s.getEndTime());
+                studentToCount.put(name, studentToCount.getOrDefault(name, 0.0) + hours);
             }
 
             // 2) 日期类课表：只统计该教练的日期课表，scheduleDate 不在未来
@@ -2590,7 +2616,9 @@ public class WeeklyInstanceService {
                     // 过滤掉隐藏的学员
                     if (hiddenStudents.contains(name)) continue;
                     
-                    studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+                    // 根据课程时长计算课时数
+                    double hours = calculateCourseHours(s.getStartTime(), s.getEndTime());
+                    studentToCount.put(name, studentToCount.getOrDefault(name, 0.0) + hours);
                 }
             }
         } catch (Exception e) {
@@ -2598,14 +2626,14 @@ public class WeeklyInstanceService {
         }
 
         // 聚合最终结果，处理重命名链和别名
-        Map<String, Integer> finalStudentToCount = new HashMap<>();
+        Map<String, Double> finalStudentToCount = new HashMap<>();
         logger.info("开始处理重命名规则，学员数量: {}", studentToCount.size());
         logger.info("原始学员列表: {}", studentToCount.keySet());
         logger.info("重命名规则映射: {}", renameRules);
         
-        for (Map.Entry<String, Integer> entry : studentToCount.entrySet()) {
+        for (Map.Entry<String, Double> entry : studentToCount.entrySet()) {
             String originalName = entry.getKey();
-            Integer count = entry.getValue();
+            Double count = entry.getValue();
 
             // 解析重命名链
             String currentName = originalName;
@@ -2625,12 +2653,12 @@ public class WeeklyInstanceService {
             }
             
             logger.info("  最终显示名称: '{}'", displayName);
-            finalStudentToCount.put(displayName, finalStudentToCount.getOrDefault(displayName, 0) + count);
+            finalStudentToCount.put(displayName, finalStudentToCount.getOrDefault(displayName, 0.0) + count);
         }
 
-        // 转为 DTO 并排序
+        // 转为 DTO 并排序（将Double转为Integer）
         List<StudentSummaryDTO> list = finalStudentToCount.entrySet().stream()
-                .map(e -> new StudentSummaryDTO(null, coachId, e.getKey(), e.getValue()))
+                .map(e -> new StudentSummaryDTO(null, coachId, e.getKey(), (int) Math.round(e.getValue() * 2)))
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
         
@@ -2642,7 +2670,7 @@ public class WeeklyInstanceService {
      * 统计所有教练范围内每个学员的已上课程数（不含请假），并倒序
      */
     public List<StudentSummaryDTO> getStudentSummariesAll() {
-        Map<String, Integer> studentToCount = new HashMap<>();
+        Map<String, Double> studentToCount = new HashMap<>();
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
         
@@ -2702,7 +2730,9 @@ public class WeeklyInstanceService {
                 // 过滤掉隐藏的学员
                 if (hiddenStudents.contains(name)) continue;
                 
-                studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+                // 根据课程时长计算课时数
+                double hours = calculateCourseHours(s.getStartTime(), s.getEndTime());
+                studentToCount.put(name, studentToCount.getOrDefault(name, 0.0) + hours);
             }
 
             // 日期类（所有课表）
@@ -2726,14 +2756,16 @@ public class WeeklyInstanceService {
                     // 过滤掉隐藏的学员
                     if (hiddenStudents.contains(name)) continue;
                     
-                    studentToCount.put(name, studentToCount.getOrDefault(name, 0) + 1);
+                    // 根据课程时长计算课时数
+                    double hours = calculateCourseHours(s.getStartTime(), s.getEndTime());
+                    studentToCount.put(name, studentToCount.getOrDefault(name, 0.0) + hours);
                 }
             }
         } catch (Exception e) {
             logger.error("统计学员课程数失败(全部): {}", e.getMessage());
         }
         
-        // 转为 DTO 并排序，应用重命名和别名规则
+        // 转为 DTO 并排序，应用重命名和别名规则（将Double转为Integer，乘以2表示半小时为单位）
         List<StudentSummaryDTO> list = studentToCount.entrySet().stream()
                 .map(e -> {
                     String originalName = e.getKey();
@@ -2747,7 +2779,8 @@ public class WeeklyInstanceService {
                     if (!visited.contains(originalName) && aliasRules.containsKey(displayName)) {
                         displayName = aliasRules.get(displayName);
                     }
-                    return new StudentSummaryDTO(null, null, displayName, e.getValue()); // 全部学员列表，没有特定教练ID
+                    // 将Double转为Integer，乘以2表示半小时为单位（0.5小时=1课时，1小时=2课时）
+                    return new StudentSummaryDTO(null, null, displayName, (int) Math.round(e.getValue() * 2));
                 })
                 .sorted((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()))
                 .collect(Collectors.toList());
@@ -2761,7 +2794,7 @@ public class WeeklyInstanceService {
     public List<com.timetable.dto.CoachStudentSummaryDTO> getStudentGroupByCoachSummaryAll() {
         Map<Long, String> coachNameMap = new HashMap<>();
         Map<Long, List<com.timetable.dto.StudentSummaryDTO>> coachStudents = new HashMap<>();
-        Map<Long, Integer> coachTotal = new HashMap<>();
+        Map<Long, Double> coachTotal = new HashMap<>();
         java.time.LocalDate today = java.time.LocalDate.now();
         Set<Long> deletedCoachIds = new HashSet<>();
         
@@ -2887,15 +2920,19 @@ public class WeeklyInstanceService {
                 }
                 List<String> relatedStudents = getRelatedStudents(studentName, coachId, coachMerges, coachAliases);
                 
+                // 根据课程时长计算课时数
+                double hours = calculateCourseHours(s.getStartTime(), s.getEndTime());
+                int courseCount = (int) Math.round(hours * 2); // 乘以2表示半小时为单位
+                
                 List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                 com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                 if (found == null) {
-                    found = new com.timetable.dto.StudentSummaryDTO(null, coachId, displayName, 1);
+                    found = new com.timetable.dto.StudentSummaryDTO(null, coachId, displayName, courseCount);
                     list.add(found);
                 } else {
-                    found.setAttendedCount(found.getAttendedCount() + 1);
+                    found.setAttendedCount(found.getAttendedCount() + courseCount);
                 }
-                coachTotal.put(coachId, coachTotal.getOrDefault(coachId, 0) + 1);
+                coachTotal.put(coachId, coachTotal.getOrDefault(coachId, 0.0) + hours);
             }
             // 日期类课表
             java.util.List<com.timetable.generated.tables.pojos.Timetables> all = timetableRepository.findAll();
@@ -2933,15 +2970,19 @@ public class WeeklyInstanceService {
                     // 处理学员合并和别名，同时应用重命名规则
                     String displayName = getDisplayStudentName(studentName, coachId, coachMerges, coachAliases, coachRenameRules);
                     
+                    // 根据课程时长计算课时数
+                    double hours = calculateCourseHours(s.getStartTime(), s.getEndTime());
+                    int courseCount = (int) Math.round(hours * 2); // 乘以2表示半小时为单位
+                    
                     List<com.timetable.dto.StudentSummaryDTO> list = coachStudents.computeIfAbsent(coachId, k -> new java.util.ArrayList<>());
                     com.timetable.dto.StudentSummaryDTO found = list.stream().filter(dto -> dto.getStudentName().equals(displayName)).findFirst().orElse(null);
                     if (found == null) {
-                        found = new com.timetable.dto.StudentSummaryDTO(null, coachId, displayName, 1);
+                        found = new com.timetable.dto.StudentSummaryDTO(null, coachId, displayName, courseCount);
                         list.add(found);
                     } else {
-                        found.setAttendedCount(found.getAttendedCount() + 1);
+                        found.setAttendedCount(found.getAttendedCount() + courseCount);
                     }
-                    coachTotal.put(coachId, coachTotal.getOrDefault(coachId, 0) + 1);
+                    coachTotal.put(coachId, coachTotal.getOrDefault(coachId, 0.0) + hours);
                 }
             }
         } catch (Exception e) {
@@ -2953,7 +2994,8 @@ public class WeeklyInstanceService {
             String coachName = coachNameMap.get(coachId);
             if (coachName != null && !coachName.trim().isEmpty() && !stuList.isEmpty()) {
                 stuList.sort((a, b) -> b.getAttendedCount().compareTo(a.getAttendedCount()));
-                result.add(new com.timetable.dto.CoachStudentSummaryDTO(coachId, coachName, coachTotal.getOrDefault(coachId, 0), stuList));
+                // 将Double转为Integer，乘以2表示半小时为单位
+                result.add(new com.timetable.dto.CoachStudentSummaryDTO(coachId, coachName, (int) Math.round(coachTotal.getOrDefault(coachId, 0.0) * 2), stuList));
             } else {
                 logger.warn("跳过无效教练数据: coachId={}, coachName='{}', 学员数量={}", coachId, coachName, stuList.size());
             }
