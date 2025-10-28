@@ -149,8 +149,11 @@ public class TodoService {
     private String getStatusText(String status) {
         if (status == null) return "未知";
         switch (status) {
+            case "NEW": return "新客户";
             case "POTENTIAL": return "潜在客户";
+            case "VISITED": return "已到访";
             case "TRIAL": return "试课";
+            case "RE_EXPERIENCE": return "待再体验";
             case "SIGNED": return "已签约";
             case "DEFERRED": return "延期";
             case "LOST": return "已流失";
