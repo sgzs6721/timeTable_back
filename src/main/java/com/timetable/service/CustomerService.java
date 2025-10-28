@@ -137,6 +137,10 @@ public class CustomerService {
         return customerRepository.findByChildNameLike(childName);
     }
 
+    public Customer findById(Long id) {
+        return customerRepository.findById(id);
+    }
+
     private CustomerDTO convertToDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setId(customer.getId());

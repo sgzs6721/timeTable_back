@@ -1590,7 +1590,7 @@ public class ScheduleService {
                 instanceSchedule.setNote(noteText);
                 instanceSchedule.setCreatedAt(LocalDateTime.now());
                 instanceSchedule.setUpdatedAt(LocalDateTime.now());
-                scheduleRepository.insertInstanceSchedule(instanceSchedule, isTrial);
+                scheduleRepository.insertInstanceSchedule(instanceSchedule, isTrial, request.getCustomerId());
             } else {
                 // 保存到课表 - 使用Schedules对象
                 Schedules schedule = new Schedules();
@@ -1603,7 +1603,7 @@ public class ScheduleService {
                 schedule.setNote(noteText);
                 schedule.setCreatedAt(LocalDateTime.now());
                 schedule.setUpdatedAt(LocalDateTime.now());
-                scheduleRepository.insertSchedule(schedule);
+                scheduleRepository.insertSchedule(schedule, isTrial, request.getCustomerId());
             }
             
             logger.info("体验课创建成功: 教练ID={}, 学员={}, 日期={}, 时间={}-{}",

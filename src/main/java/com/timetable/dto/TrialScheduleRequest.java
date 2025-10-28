@@ -27,6 +27,8 @@ public class TrialScheduleRequest {
     private Boolean isHalfHour;
     
     private String customerPhone;
+    
+    private Long customerId;
 
     // Getters and Setters
     public Long getCoachId() {
@@ -91,6 +93,14 @@ public class TrialScheduleRequest {
 
     public void setCustomerPhone(String customerPhone) {
         this.customerPhone = customerPhone;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
     }
 }
 

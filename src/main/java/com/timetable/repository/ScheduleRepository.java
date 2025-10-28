@@ -258,9 +258,9 @@ public class ScheduleRepository {
     }
 
     /**
-     * 插入课程到周实例（带is_trial标志）
+     * 插入课程到周实例（带is_trial标志和customer_id）
      */
-    public void insertInstanceSchedule(com.timetable.generated.tables.pojos.WeeklyInstanceSchedules schedule, boolean isTrial) {
+    public void insertInstanceSchedule(com.timetable.generated.tables.pojos.WeeklyInstanceSchedules schedule, boolean isTrial, Long customerId) {
         dsl.insertInto(WEEKLY_INSTANCE_SCHEDULES)
                 .set(WEEKLY_INSTANCE_SCHEDULES.WEEKLY_INSTANCE_ID, schedule.getWeeklyInstanceId())
                 .set(WEEKLY_INSTANCE_SCHEDULES.STUDENT_NAME, schedule.getStudentName())
@@ -273,16 +273,19 @@ public class ScheduleRepository {
                 .set(WEEKLY_INSTANCE_SCHEDULES.UPDATED_AT, schedule.getUpdatedAt())
                 .execute();
         
-        // 使用原生SQL添加is_trial字段（jooq代码未更新）
+        // 使用原生SQL添加is_trial和customer_id字段（jooq代码未更新）
         if (isTrial) {
             dsl.execute("UPDATE weekly_instance_schedules SET is_trial = 1 WHERE id = LAST_INSERT_ID()");
+        }
+        if (customerId != null) {
+            dsl.execute("UPDATE weekly_instance_schedules SET customer_id = " + customerId + " WHERE id = LAST_INSERT_ID()");
         }
     }
 
     /**
-     * 插入课程到课表
+     * 插入课程到课表（带is_trial标志和customer_id）
      */
-    public void insertSchedule(Schedules schedule) {
+    public void insertSchedule(Schedules schedule, boolean isTrial, Long customerId) {
         dsl.insertInto(SCHEDULES)
                 .set(SCHEDULES.TIMETABLE_ID, schedule.getTimetableId())
                 .set(SCHEDULES.STUDENT_NAME, schedule.getStudentName())
@@ -295,8 +298,13 @@ public class ScheduleRepository {
                 .set(SCHEDULES.UPDATED_AT, schedule.getUpdatedAt())
                 .execute();
         
-        // 使用原生SQL添加is_trial字段（jooq代码未更新）
-        dsl.execute("UPDATE schedules SET is_trial = 1 WHERE id = LAST_INSERT_ID()");
+        // 使用原生SQL添加is_trial和customer_id字段（jooq代码未更新）
+        if (isTrial) {
+            dsl.execute("UPDATE schedules SET is_trial = 1 WHERE id = LAST_INSERT_ID()");
+        }
+        if (customerId != null) {
+            dsl.execute("UPDATE schedules SET customer_id = " + customerId + " WHERE id = LAST_INSERT_ID()");
+        }
     }
 
     /**

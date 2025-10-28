@@ -56,6 +56,9 @@ public class TimetableService {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     /**
      * 获取用户的课表列表
      */
@@ -1622,11 +1625,33 @@ public class TimetableService {
                     scheduleInfo.put("note", schedule.getNote());
                     scheduleInfo.put("isTrial", 1);
                     
-                    // 查询客户信息
-                    if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
+                    // 查询客户信息 - 优先通过customerId，其次通过studentName
+                    try {
+                        Customer customer = null;
+                        Long customerId = null;
+                        
+                        // 尝试从数据库中读取customerId（jOOQ可能还未更新，使用原生SQL）
                         try {
+                            String sql;
+                            if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) {
+                                sql = "SELECT customer_id FROM weekly_instance_schedules WHERE id = ?";
+                            } else {
+                                sql = "SELECT customer_id FROM schedules WHERE id = ?";
+                            }
+                            customerId = jdbcTemplate.queryForObject(sql, Long.class, schedule.getId());
+                        } catch (Exception e) {
+                            // customerId字段可能还不存在或为NULL
+                        }
+                        
+                        // 优先通过customerId查找客户
+                        if (customerId != null) {
+                            customer = customerService.findById(customerId);
+                        }
+                        
+                        // 如果没有customerId或未找到，尝试通过studentName查找
+                        if (customer == null && schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
                             String studentName = schedule.getStudentName();
-                            Customer customer = customerService.findByChildName(studentName);
+                            customer = customerService.findByChildName(studentName);
                             
                             // 如果找不到，尝试去掉空格后再查询（处理名字格式不一致的情况）
                             if (customer == null) {
@@ -1640,16 +1665,16 @@ public class TimetableService {
                             if (customer == null && studentName.length() >= 2) {
                                 customer = customerService.findByChildNameLike(studentName);
                             }
-                            
-                            if (customer != null) {
-                                scheduleInfo.put("customerId", customer.getId());
-                                scheduleInfo.put("customerPhone", customer.getParentPhone());
-                                scheduleInfo.put("customerStatus", customer.getStatus());
-                                scheduleInfo.put("customerSource", customer.getSource());
-                            }
-                        } catch (Exception e) {
-                            // 查询客户信息失败不影响体验课程的显示
                         }
+                        
+                        if (customer != null) {
+                            scheduleInfo.put("customerId", customer.getId());
+                            scheduleInfo.put("customerPhone", customer.getParentPhone());
+                            scheduleInfo.put("customerStatus", customer.getStatus());
+                            scheduleInfo.put("customerSource", customer.getSource());
+                        }
+                    } catch (Exception e) {
+                        // 查询客户信息失败不影响体验课程的显示
                     }
                     
                     result.add(scheduleInfo);

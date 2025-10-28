@@ -18,6 +18,7 @@ public class CustomerStatusHistory {
     private LocalTime trialStartTime;
     private LocalTime trialEndTime;
     private Long trialCoachId;
+    private String trialStudentName;
 
     public CustomerStatusHistory() {
     }
