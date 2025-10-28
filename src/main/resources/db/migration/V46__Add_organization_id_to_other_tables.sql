@@ -6,7 +6,7 @@ ALTER TABLE weekly_instances
 ADD COLUMN organization_id BIGINT NULL COMMENT '所属机构ID';
 
 UPDATE weekly_instances wi
-INNER JOIN timetables t ON wi.timetable_id = t.id
+INNER JOIN timetables t ON wi.template_timetable_id = t.id
 SET wi.organization_id = t.organization_id
 WHERE wi.organization_id IS NULL;
 
@@ -17,7 +17,7 @@ ALTER TABLE todos
 ADD COLUMN organization_id BIGINT NULL COMMENT '所属机构ID';
 
 UPDATE todos td
-INNER JOIN users u ON td.user_id = u.id
+INNER JOIN users u ON td.created_by = u.id
 SET td.organization_id = u.organization_id
 WHERE td.organization_id IS NULL;
 
@@ -39,7 +39,7 @@ ALTER TABLE student_operation_records
 ADD COLUMN organization_id BIGINT NULL COMMENT '所属机构ID';
 
 UPDATE student_operation_records sor
-INNER JOIN users u ON sor.user_id = u.id
+INNER JOIN users u ON sor.coach_id = u.id
 SET sor.organization_id = u.organization_id
 WHERE sor.organization_id IS NULL;
 
