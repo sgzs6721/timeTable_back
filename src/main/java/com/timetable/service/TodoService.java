@@ -146,17 +146,33 @@ public class TodoService {
         }
     }
 
+    private String getStatusText(String status) {
+        if (status == null) return "未知";
+        switch (status) {
+            case "POTENTIAL": return "潜在客户";
+            case "TRIAL": return "试课";
+            case "SIGNED": return "已签约";
+            case "DEFERRED": return "延期";
+            case "LOST": return "已流失";
+            case "PENDING_SOLD": return "待售";
+            default: return status;
+        }
+    }
+
     private TodoDTO convertToDTO(Todo todo) {
         TodoDTO dto = new TodoDTO();
         dto.setId(todo.getId());
         dto.setCustomerId(todo.getCustomerId());
         dto.setCustomerName(todo.getCustomerName());
         
-        // 查询客户电话
+        // 查询客户信息（电话、状态、地点）
         if (todo.getCustomerId() != null) {
             Customer customer = customerRepository.findById(todo.getCustomerId());
             if (customer != null) {
                 dto.setCustomerPhone(customer.getParentPhone());
+                dto.setCustomerStatus(customer.getStatus());
+                dto.setCustomerStatusText(getStatusText(customer.getStatus()));
+                dto.setCustomerSource(customer.getSource());
             }
         }
         

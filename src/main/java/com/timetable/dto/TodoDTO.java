@@ -10,6 +10,9 @@ public class TodoDTO {
     private Long customerId;
     private String customerName;
     private String customerPhone;
+    private String customerStatus;
+    private String customerStatusText;
+    private String customerSource;
     private String content;
     private LocalDate reminderDate;
     private LocalTime reminderTime;
@@ -52,6 +55,30 @@ public class TodoDTO {
 
     public void setCustomerPhone(String customerPhone) {
         this.customerPhone = customerPhone;
+    }
+
+    public String getCustomerStatus() {
+        return customerStatus;
+    }
+
+    public void setCustomerStatus(String customerStatus) {
+        this.customerStatus = customerStatus;
+    }
+
+    public String getCustomerStatusText() {
+        return customerStatusText;
+    }
+
+    public void setCustomerStatusText(String customerStatusText) {
+        this.customerStatusText = customerStatusText;
+    }
+
+    public String getCustomerSource() {
+        return customerSource;
+    }
+
+    public void setCustomerSource(String customerSource) {
+        this.customerSource = customerSource;
     }
 
     public String getContent() {
