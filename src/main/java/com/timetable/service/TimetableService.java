@@ -10,9 +10,11 @@ import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.generated.tables.pojos.Schedules;
 import com.timetable.entity.WeeklyInstance;
 import com.timetable.entity.WeeklyInstanceSchedule;
+import com.timetable.entity.Customer;
 import com.timetable.dto.AdminTimetableDTO;
 import com.timetable.service.UserService;
 import com.timetable.service.WeeklyInstanceService;
+import com.timetable.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +52,9 @@ public class TimetableService {
 
     @Autowired
     private WeeklyInstanceService weeklyInstanceService;
+
+    @Autowired
+    private CustomerService customerService;
 
     /**
      * 获取用户的课表列表
@@ -1616,6 +1621,22 @@ public class TimetableService {
                     scheduleInfo.put("weekNumber", schedule.getWeekNumber());
                     scheduleInfo.put("note", schedule.getNote());
                     scheduleInfo.put("isTrial", 1);
+                    
+                    // 查询客户信息
+                    if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
+                        try {
+                            Customer customer = customerService.findByChildName(schedule.getStudentName());
+                            if (customer != null) {
+                                scheduleInfo.put("customerId", customer.getId());
+                                scheduleInfo.put("customerPhone", customer.getParentPhone());
+                                scheduleInfo.put("customerStatus", customer.getStatus());
+                                scheduleInfo.put("customerSource", customer.getSource());
+                            }
+                        } catch (Exception e) {
+                            // 查询客户信息失败不影响体验课程的显示
+                        }
+                    }
+                    
                     result.add(scheduleInfo);
                 }
             }

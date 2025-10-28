@@ -129,6 +129,10 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
+    public Customer findByChildName(String childName) {
+        return customerRepository.findByChildName(childName);
+    }
+
     private CustomerDTO convertToDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setId(customer.getId());

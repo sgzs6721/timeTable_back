@@ -132,4 +132,10 @@ public class CustomerRepository {
         String sql = "SELECT * FROM customers WHERE created_by = ? ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, customerRowMapper, createdBy);
     }
+
+    public Customer findByChildName(String childName) {
+        String sql = "SELECT * FROM customers WHERE child_name = ? ORDER BY created_at DESC LIMIT 1";
+        List<Customer> customers = jdbcTemplate.query(sql, customerRowMapper, childName);
+        return customers.isEmpty() ? null : customers.get(0);
+    }
 }
