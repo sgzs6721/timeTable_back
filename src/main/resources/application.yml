@@ -41,6 +41,12 @@ wechat:
   scope: snsapi_userinfo
   state: timetable_wechat_login
 
+# 机构管理独立访问凭证
+organization:
+  management:
+    username: timetable
+    password: timetableadmin
+
 # AI API配置 - 请根据实际情况修改
 ai:
   # 语音识别API配置
