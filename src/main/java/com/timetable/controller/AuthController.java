@@ -2,8 +2,10 @@ package com.timetable.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timetable.dto.ApiResponse;
+import com.timetable.dto.ApplyOrganizationRequest;
 import com.timetable.dto.AuthRequest;
 import com.timetable.dto.BindPhoneRequest;
+import com.timetable.dto.UserOrganizationRequestDTO;
 import com.timetable.dto.UserRegistrationRequest;
 import com.timetable.dto.WechatLoginRequest;
 import com.timetable.generated.tables.pojos.Users;
@@ -55,6 +57,9 @@ public class AuthController {
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private com.timetable.service.UserOrganizationRequestService requestService;
     
     /**
      * 用户登录
@@ -442,18 +447,77 @@ public class AuthController {
             // 处理微信登录
             Map<String, Object> loginResult = wechatLoginService.processWechatLogin(code);
             
+            // 前端页面URL
+            String frontendUrl = "https://timetable.devtesting.top";
+            
+            // 检查是否需要选择机构
+            if (loginResult.containsKey("needSelectOrganization") && 
+                (Boolean) loginResult.get("needSelectOrganization")) {
+                // 需要选择机构，跳转到机构选择页面
+                Map<String, Object> wechatUserInfo = (Map<String, Object>) loginResult.get("wechatUserInfo");
+                String wechatUserInfoJson = objectMapper.writeValueAsString(wechatUserInfo);
+                
+                String htmlTemplate = "<!DOCTYPE html>" +
+                    "<html>" +
+                    "<head>" +
+                        "<meta charset=\"UTF-8\">" +
+                        "<title>选择机构</title>" +
+                    "</head>" +
+                    "<body>" +
+                        "<script>" +
+                            "const wechatUserInfo = %s;" +
+                            "const frontendUrl = '%s';" +
+                            "sessionStorage.setItem('wechatUserInfo', JSON.stringify(wechatUserInfo));" +
+                            "window.location.href = frontendUrl + '/select-organization';" +
+                        "</script>" +
+                    "</body>" +
+                    "</html>";
+                
+                String html = String.format(htmlTemplate, wechatUserInfoJson, frontendUrl);
+                return ResponseEntity.ok(html);
+            }
+            
+            // 检查是否有申请记录
+            if (loginResult.containsKey("hasRequest") && 
+                (Boolean) loginResult.get("hasRequest")) {
+                String requestStatus = (String) loginResult.get("requestStatus");
+                Map<String, Object> requestInfo = (Map<String, Object>) loginResult.get("requestInfo");
+                Map<String, Object> wechatUserInfo = (Map<String, Object>) loginResult.get("wechatUserInfo");
+                
+                String requestInfoJson = objectMapper.writeValueAsString(requestInfo);
+                String wechatUserInfoJson = objectMapper.writeValueAsString(wechatUserInfo);
+                
+                String htmlTemplate = "<!DOCTYPE html>" +
+                    "<html>" +
+                    "<head>" +
+                        "<meta charset=\"UTF-8\">" +
+                        "<title>申请状态</title>" +
+                    "</head>" +
+                    "<body>" +
+                        "<script>" +
+                            "const requestInfo = %s;" +
+                            "const wechatUserInfo = %s;" +
+                            "sessionStorage.setItem('requestInfo', JSON.stringify(requestInfo));" +
+                            "sessionStorage.setItem('wechatUserInfo', JSON.stringify(wechatUserInfo));" +
+                            "const frontendUrl = '%s';" +
+                            "window.location.href = frontendUrl + '/application-status';" +
+                        "</script>" +
+                    "</body>" +
+                    "</html>";
+                
+                String html = String.format(htmlTemplate, requestInfoJson, wechatUserInfoJson, frontendUrl);
+                return ResponseEntity.ok(html);
+            }
+            
+            // 已有机构，正常登录
             if (loginResult != null && loginResult.containsKey("token")) {
                 // 构建前端页面，包含token和用户信息
                 String token = (String) loginResult.get("token");
                 Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
-                boolean isNewUser = (Boolean) loginResult.getOrDefault("isNewUser", false);
-                boolean needBindPhone = (Boolean) loginResult.getOrDefault("needBindPhone", false);
                 
-                // 前端页面URL
-                String frontendUrl = "https://timetable.devtesting.top";
-                
-                if (needBindPhone) {
-                    // 需要绑定手机号，显示绑定手机号页面
+                // 直接跳转到Dashboard
+                if (true) {
+                    // 已绑定手机号，直接跳转到前端首页
                     String htmlTemplate = "<!DOCTYPE html>" +
                         "<html>" +
                         "<head>" +
@@ -828,6 +892,54 @@ public class AuthController {
             logger.error("绑定微信到账号失败", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("绑定失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 提交机构申请
+     */
+    @PostMapping("/apply-organization")
+    public ResponseEntity<ApiResponse<UserOrganizationRequestDTO>> applyOrganization(
+            @Valid @RequestBody Map<String, Object> requestBody) {
+        try {
+            Long organizationId = Long.valueOf(requestBody.get("organizationId").toString());
+            String applyReason = requestBody.get("applyReason") != null ? 
+                requestBody.get("applyReason").toString() : null;
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wechatUserInfo = (Map<String, Object>) requestBody.get("wechatUserInfo");
+            
+            if (wechatUserInfo == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("缺少微信用户信息"));
+            }
+            
+            String wechatOpenid = wechatUserInfo.get("openid").toString();
+            String wechatUnionid = wechatUserInfo.get("unionid") != null ? 
+                wechatUserInfo.get("unionid").toString() : null;
+            String wechatNickname = wechatUserInfo.get("nickname") != null ? 
+                wechatUserInfo.get("nickname").toString() : null;
+            String wechatAvatar = wechatUserInfo.get("headimgurl") != null ? 
+                wechatUserInfo.get("headimgurl").toString() : null;
+            Byte wechatSex = wechatUserInfo.get("sex") != null ? 
+                Byte.valueOf(wechatUserInfo.get("sex").toString()) : null;
+            
+            UserOrganizationRequestDTO result = requestService.createRequest(
+                wechatOpenid, wechatUnionid, wechatNickname, wechatAvatar, 
+                wechatSex, organizationId, applyReason
+            );
+            
+            logger.info("用户提交机构申请成功：openid={}, organizationId={}", wechatOpenid, organizationId);
+            return ResponseEntity.ok(ApiResponse.success("申请已提交，请等待管理员审批", result));
+            
+        } catch (RuntimeException e) {
+            logger.warn("提交机构申请失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("提交机构申请失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("提交申请失败，请稍后重试"));
         }
     }
     

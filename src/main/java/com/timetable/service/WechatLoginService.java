@@ -48,6 +48,9 @@ public class WechatLoginService {
     @Autowired
     private JwtUtil jwtUtil;
     
+    @Autowired
+    private UserOrganizationRequestService requestService;
+    
     private final OkHttpClient httpClient = new OkHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -154,39 +157,64 @@ public class WechatLoginService {
             }
             logger.info("成功获取用户信息，昵称: {}", wechatUserInfo.getNickname());
             
-            // 3. 查找或创建用户
-            logger.info("步骤3: 查找或创建用户");
-            Users user = findOrCreateUser(wechatUserInfo);
-            if (user == null) {
-                logger.error("查找或创建用户失败: user 为 null");
-                throw new RuntimeException("查找或创建用户失败");
+            // 3. 检查是否有机构申请记录
+            logger.info("步骤3: 检查机构申请记录");
+            Users existingUser = userRepository.findByWechatOpenid(wechatUserInfo.getOpenid());
+            
+            if (existingUser != null && existingUser.getOrganizationId() != null) {
+                // 用户已经关联机构，正常登录
+                logger.info("用户已关联机构，正常登录");
+                Users user = updateUserWechatInfo(existingUser, wechatUserInfo);
+                
+                String token = jwtUtil.generateToken(user.getUsername());
+                Map<String, Object> data = new HashMap<>();
+                data.put("token", token);
+                data.put("user", convertUserToDTO(user));
+                data.put("needSelectOrganization", false);
+                data.put("hasOrganization", true);
+                
+                logger.info("微信登录处理成功（已有机构）");
+                return data;
+            } else {
+                // 检查是否有申请记录
+                var request = requestService.getRequestByWechatOpenid(wechatUserInfo.getOpenid());
+                
+                if (request != null) {
+                    // 有申请记录，根据状态返回不同信息
+                    logger.info("找到申请记录，状态: {}", request.getStatus());
+                    
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("needSelectOrganization", false);
+                    data.put("hasRequest", true);
+                    data.put("requestStatus", request.getStatus());
+                    data.put("requestInfo", request);
+                    data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
+                    
+                    if ("APPROVED".equals(request.getStatus()) && request.getUserId() != null) {
+                        // 申请已批准，生成token
+                        Users user = userRepository.findById(request.getUserId());
+                        if (user != null) {
+                            String token = jwtUtil.generateToken(user.getUsername());
+                            data.put("token", token);
+                            data.put("user", convertUserToDTO(user));
+                            data.put("hasOrganization", true);
+                        }
+                    }
+                    
+                    return data;
+                } else {
+                    // 没有申请记录，需要选择机构
+                    logger.info("新用户，需要选择机构");
+                    
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("needSelectOrganization", true);
+                    data.put("hasRequest", false);
+                    data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
+                    
+                    logger.info("微信登录处理成功（需要选择机构）");
+                    return data;
+                }
             }
-            logger.info("用户处理完成，用户名: {}", user.getUsername());
-            
-            // 4. 生成JWT Token
-            logger.info("步骤4: 生成JWT Token");
-            String token = jwtUtil.generateToken(user.getUsername());
-            logger.info("JWT Token 生成成功");
-            
-            // 5. 判断是否需要绑定手机号
-            boolean needBindPhone = (user.getPhone() == null || user.getPhone().isEmpty());
-            logger.info("是否需要绑定手机号: {}", needBindPhone);
-            
-            // 6. 构建响应数据
-            Map<String, Object> data = new HashMap<>();
-            data.put("token", token);
-            data.put("user", convertUserToDTO(user));
-            
-            // 安全地判断是否是新用户
-            boolean isNewUser = false;
-            if (user.getCreatedAt() != null && user.getUpdatedAt() != null) {
-                isNewUser = user.getCreatedAt().equals(user.getUpdatedAt());
-            }
-            data.put("isNewUser", isNewUser);
-            data.put("needBindPhone", needBindPhone);
-            
-            logger.info("微信登录处理成功");
-            return data;
             
         } catch (Exception e) {
             logger.error("微信登录处理失败", e);
@@ -199,8 +227,43 @@ public class WechatLoginService {
     }
     
     /**
-     * 查找或创建用户
+     * 更新用户微信信息
      */
+    private Users updateUserWechatInfo(Users user, WechatUserInfo wechatUserInfo) {
+        logger.info("更新用户微信信息，用户ID: {}", user.getId());
+        user.setWechatAvatar(wechatUserInfo.getHeadimgurl());
+        user.setWechatSex(wechatUserInfo.getSex() != null ? wechatUserInfo.getSex().byteValue() : null);
+        user.setWechatProvince(wechatUserInfo.getProvince());
+        user.setWechatCity(wechatUserInfo.getCity());
+        user.setWechatCountry(wechatUserInfo.getCountry());
+        user.setWechatUnionid(wechatUserInfo.getUnionid());
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        userRepository.update(user);
+        logger.info("用户信息更新成功");
+        return user;
+    }
+    
+    /**
+     * 转换微信用户信息为DTO
+     */
+    private Map<String, Object> convertWechatUserInfo(WechatUserInfo wechatUserInfo) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("openid", wechatUserInfo.getOpenid());
+        info.put("unionid", wechatUserInfo.getUnionid());
+        info.put("nickname", wechatUserInfo.getNickname());
+        info.put("headimgurl", wechatUserInfo.getHeadimgurl());
+        info.put("sex", wechatUserInfo.getSex());
+        info.put("province", wechatUserInfo.getProvince());
+        info.put("city", wechatUserInfo.getCity());
+        info.put("country", wechatUserInfo.getCountry());
+        return info;
+    }
+    
+    /**
+     * 查找或创建用户（已废弃，仅保留兼容性）
+     */
+    @Deprecated
     private Users findOrCreateUser(WechatUserInfo wechatUserInfo) {
         if (wechatUserInfo == null) {
             logger.error("findOrCreateUser: wechatUserInfo 为 null");
@@ -292,6 +355,8 @@ public class WechatLoginService {
         userDTO.put("wechatOpenid", user.getWechatOpenid());
         userDTO.put("wechatProvince", user.getWechatProvince());
         userDTO.put("wechatCity", user.getWechatCity());
+        userDTO.put("organizationId", user.getOrganizationId());
+        userDTO.put("hasOrganization", user.getOrganizationId() != null);
         
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
