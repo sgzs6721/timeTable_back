@@ -138,4 +138,10 @@ public class CustomerRepository {
         List<Customer> customers = jdbcTemplate.query(sql, customerRowMapper, childName);
         return customers.isEmpty() ? null : customers.get(0);
     }
+
+    public Customer findByChildNameLike(String childName) {
+        String sql = "SELECT * FROM customers WHERE child_name LIKE ? ORDER BY created_at DESC LIMIT 1";
+        List<Customer> customers = jdbcTemplate.query(sql, customerRowMapper, "%" + childName + "%");
+        return customers.isEmpty() ? null : customers.get(0);
+    }
 }

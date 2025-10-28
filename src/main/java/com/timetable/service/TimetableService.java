@@ -1625,7 +1625,22 @@ public class TimetableService {
                     // 查询客户信息
                     if (schedule.getStudentName() != null && !schedule.getStudentName().trim().isEmpty()) {
                         try {
-                            Customer customer = customerService.findByChildName(schedule.getStudentName());
+                            String studentName = schedule.getStudentName();
+                            Customer customer = customerService.findByChildName(studentName);
+                            
+                            // 如果找不到，尝试去掉空格后再查询（处理名字格式不一致的情况）
+                            if (customer == null) {
+                                String normalizedName = studentName.replaceAll("\\s+", "");
+                                if (!normalizedName.equals(studentName)) {
+                                    customer = customerService.findByChildName(normalizedName);
+                                }
+                            }
+                            
+                            // 如果还是找不到，尝试模糊匹配（处理名字被修改的情况）
+                            if (customer == null && studentName.length() >= 2) {
+                                customer = customerService.findByChildNameLike(studentName);
+                            }
+                            
                             if (customer != null) {
                                 scheduleInfo.put("customerId", customer.getId());
                                 scheduleInfo.put("customerPhone", customer.getParentPhone());

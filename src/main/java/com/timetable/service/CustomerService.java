@@ -133,6 +133,10 @@ public class CustomerService {
         return customerRepository.findByChildName(childName);
     }
 
+    public Customer findByChildNameLike(String childName) {
+        return customerRepository.findByChildNameLike(childName);
+    }
+
     private CustomerDTO convertToDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setId(customer.getId());
