@@ -1,6 +1,7 @@
 package com.timetable.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.timetable.dto.UserOrganizationRequestDTO;
 import com.timetable.dto.WechatAccessToken;
 import com.timetable.dto.WechatUserInfo;
 import com.timetable.generated.tables.pojos.Users;
@@ -177,7 +178,7 @@ public class WechatLoginService {
                 return data;
             } else {
                 // 检查是否有申请记录
-                var request = requestService.getRequestByWechatOpenid(wechatUserInfo.getOpenid());
+                UserOrganizationRequestDTO request = requestService.getRequestByWechatOpenid(wechatUserInfo.getOpenid());
                 
                 if (request != null) {
                     // 有申请记录，根据状态返回不同信息

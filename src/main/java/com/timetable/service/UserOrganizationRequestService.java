@@ -155,10 +155,13 @@ public class UserOrganizationRequestService {
         
         // 设置状态
         newUser.setStatus("ACTIVE");
-        newUser.setIsDeleted(false);
+        newUser.setIsDeleted((byte) 0);
         
         // 保存用户
-        Users savedUser = userRepository.createUser(newUser);
+        userRepository.save(newUser);
+        
+        // 重新查询获取完整的用户信息（包括生成的ID）
+        Users savedUser = userRepository.findByWechatOpenid(newUser.getWechatOpenid());
         
         // 更新申请状态
         request.setUserId(savedUser.getId());
