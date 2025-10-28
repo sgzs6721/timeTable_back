@@ -73,6 +73,17 @@ public class UserRepository {
     public void deleteById(Long id) {
         usersDao.deleteById(id);
     }
+
+    /**
+     * 根据机构ID查找用户
+     */
+    public List<Users> findByOrganizationId(Long organizationId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ID.eq(organizationId))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchInto(Users.class);
+    }
     
     /**
      * 获取所有活跃用户（未被软删除的用户）
