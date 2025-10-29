@@ -38,6 +38,9 @@ public class TodoPushScheduledTask {
     @Autowired
     private WechatMpConfig wechatMpConfig;
 
+    @Autowired
+    private com.timetable.repository.CustomerRepository customerRepository;
+
     /**
      * 每5分钟扫描一次需要推送的待办
      * cron表达式: 0 * /5 * * * * 表示每5分钟执行一次
@@ -96,13 +99,14 @@ public class TodoPushScheduledTask {
                         }
                     }
 
-                    // 获取客户电话（如果有客户ID）
+                    // 获取客户电话（从 customers 表查询）
                     String customerPhone = null;
                     if (todo.getCustomerId() != null) {
                         try {
-                            // 这里简化处理，实际应该注入 CustomerRepository
-                            // 暂时传 null，后续可以优化
-                            customerPhone = null;
+                            com.timetable.entity.Customer customer = customerRepository.findById(todo.getCustomerId());
+                            if (customer != null && customer.getParentPhone() != null && !customer.getParentPhone().isEmpty()) {
+                                customerPhone = customer.getParentPhone();
+                            }
                         } catch (Exception e) {
                             logger.debug("无法获取客户电话: {}", e.getMessage());
                         }

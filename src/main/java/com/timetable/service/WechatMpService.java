@@ -159,8 +159,9 @@ public class WechatMpService {
         }
         message.addData("thing16", customerNameValue, "#173177");
         
-        // phone_number10 字段：联系方式（电话号码格式）
-        String phoneValue = customerPhone != null && !customerPhone.isEmpty() ? customerPhone : "暂无";
+        // phone_number10 字段：联系方式（电话号码格式，必须是有效的手机号）
+        // 如果没有客户电话，使用占位符号码
+        String phoneValue = customerPhone != null && !customerPhone.isEmpty() ? customerPhone : "10000000000";
         message.addData("phone_number10", phoneValue, "#173177");
         
         // thing17 字段：项目名称/待办内容（限制20字）
