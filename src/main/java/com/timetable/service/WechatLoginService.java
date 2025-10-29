@@ -200,7 +200,7 @@ public class WechatLoginService {
                     data.put("needSelectOrganization", false);
                     data.put("hasRequest", true);
                     data.put("requestStatus", "PENDING");
-                    data.put("requestInfo", request);
+                    data.put("requestInfo", convertRequestToMap(request));
                     data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
                     
                     return data;
@@ -279,6 +279,35 @@ public class WechatLoginService {
         info.put("city", wechatUserInfo.getCity());
         info.put("country", wechatUserInfo.getCountry());
         return info;
+    }
+    
+    /**
+     * 转换申请信息为Map
+     */
+    private Map<String, Object> convertRequestToMap(UserOrganizationRequestDTO request) {
+        if (request == null) {
+            return null;
+        }
+        
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("id", request.getId());
+        requestMap.put("userId", request.getUserId());
+        requestMap.put("organizationId", request.getOrganizationId());
+        requestMap.put("organizationName", request.getOrganizationName());
+        requestMap.put("organizationAddress", request.getOrganizationAddress());
+        requestMap.put("wechatOpenid", request.getWechatOpenid());
+        requestMap.put("wechatNickname", request.getWechatNickname());
+        requestMap.put("wechatAvatar", request.getWechatAvatar());
+        requestMap.put("wechatSex", request.getWechatSex());
+        requestMap.put("applyReason", request.getApplyReason());
+        requestMap.put("status", request.getStatus());
+        requestMap.put("approvedBy", request.getApprovedBy());
+        requestMap.put("approvedAt", request.getApprovedAt());
+        requestMap.put("approvedByUsername", request.getApprovedByUsername());
+        requestMap.put("rejectReason", request.getRejectReason());
+        requestMap.put("createdAt", request.getCreatedAt());
+        
+        return requestMap;
     }
     
     /**
