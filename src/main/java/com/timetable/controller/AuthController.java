@@ -896,6 +896,94 @@ public class AuthController {
     }
     
     /**
+     * 微信登录选择机构（直接加入机构，不需要审批）
+     */
+    @PostMapping("/wechat/select-organization")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> selectOrganization(
+            @Valid @RequestBody Map<String, Object> requestBody) {
+        try {
+            Long organizationId = Long.valueOf(requestBody.get("organizationId").toString());
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wechatUserInfo = (Map<String, Object>) requestBody.get("wechatUserInfo");
+            
+            if (wechatUserInfo == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("缺少微信用户信息"));
+            }
+            
+            String wechatOpenid = wechatUserInfo.get("openid").toString();
+            String wechatUnionid = wechatUserInfo.get("unionid") != null ? 
+                wechatUserInfo.get("unionid").toString() : null;
+            String wechatNickname = wechatUserInfo.get("nickname") != null ? 
+                wechatUserInfo.get("nickname").toString() : null;
+            String wechatAvatar = wechatUserInfo.get("headimgurl") != null ? 
+                wechatUserInfo.get("headimgurl").toString() : null;
+            Byte wechatSex = wechatUserInfo.get("sex") != null ? 
+                Byte.valueOf(wechatUserInfo.get("sex").toString()) : null;
+            String wechatProvince = wechatUserInfo.get("province") != null ? 
+                wechatUserInfo.get("province").toString() : null;
+            String wechatCity = wechatUserInfo.get("city") != null ? 
+                wechatUserInfo.get("city").toString() : null;
+            String wechatCountry = wechatUserInfo.get("country") != null ? 
+                wechatUserInfo.get("country").toString() : null;
+            
+            // 检查用户是否已存在
+            Users existingUser = userRepository.findByWechatOpenid(wechatOpenid);
+            Users user;
+            
+            if (existingUser != null) {
+                // 更新用户的机构信息
+                existingUser.setOrganizationId(organizationId);
+                existingUser.setUpdatedAt(java.time.LocalDateTime.now());
+                userRepository.update(existingUser);
+                user = existingUser;
+                logger.info("更新已存在用户的机构信息: userId={}, organizationId={}", user.getId(), organizationId);
+            } else {
+                // 创建新用户
+                Users newUser = new Users();
+                newUser.setUsername("wx_" + wechatOpenid);
+                newUser.setPasswordHash("");
+                newUser.setRole("USER");
+                newUser.setNickname(wechatNickname);
+                newUser.setStatus("APPROVED");
+                newUser.setOrganizationId(organizationId);
+                
+                newUser.setWechatOpenid(wechatOpenid);
+                newUser.setWechatUnionid(wechatUnionid);
+                newUser.setWechatAvatar(wechatAvatar);
+                newUser.setWechatSex(wechatSex);
+                newUser.setWechatProvince(wechatProvince);
+                newUser.setWechatCity(wechatCity);
+                newUser.setWechatCountry(wechatCountry);
+                
+                newUser.setIsDeleted((byte) 0);
+                newUser.setCreatedAt(java.time.LocalDateTime.now());
+                newUser.setUpdatedAt(java.time.LocalDateTime.now());
+                
+                userRepository.save(newUser);
+                user = userRepository.findByWechatOpenid(wechatOpenid);
+                logger.info("创建新用户并关联机构: userId={}, organizationId={}", user.getId(), organizationId);
+            }
+            
+            // 生成JWT Token
+            String token = jwtUtil.generateToken(user.getUsername());
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", token);
+            data.put("user", convertUserToDTO(user));
+            
+            logger.info("微信用户选择机构成功: openid={}, organizationId={}", wechatOpenid, organizationId);
+            return ResponseEntity.ok(ApiResponse.success("加入机构成功", data));
+            
+        } catch (Exception e) {
+            logger.error("选择机构失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("选择机构失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * 提交机构申请
      */
     @PostMapping("/apply-organization")
