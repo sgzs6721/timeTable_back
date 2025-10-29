@@ -885,9 +885,18 @@ public class AuthController {
             Byte wechatSex = wechatUserInfo.get("sex") != null ? 
                 Byte.valueOf(wechatUserInfo.get("sex").toString()) : null;
             
+            // 获取微信地理信息
+            String wechatProvince = wechatUserInfo.get("province") != null ? 
+                wechatUserInfo.get("province").toString() : null;
+            String wechatCity = wechatUserInfo.get("city") != null ? 
+                wechatUserInfo.get("city").toString() : null;
+            String wechatCountry = wechatUserInfo.get("country") != null ? 
+                wechatUserInfo.get("country").toString() : null;
+            
             UserOrganizationRequestDTO result = requestService.createRequest(
                 wechatOpenid, wechatUnionid, wechatNickname, wechatAvatar, 
-                wechatSex, organizationId, applyReason
+                wechatSex, organizationId, applyReason,
+                wechatProvince, wechatCity, wechatCountry
             );
             
             logger.info("用户提交机构申请成功：openid={}, organizationId={}", wechatOpenid, organizationId);
@@ -951,7 +960,7 @@ public class AuthController {
             // 检查该机构是否有管理员
             List<Users> organizationUsers = userRepository.findByOrganizationId(organization.getId());
             boolean hasAdmin = organizationUsers.stream()
-                    .anyMatch(u -> "ADMIN".equals(u.getRole()) && "ACTIVE".equals(u.getStatus()));
+                    .anyMatch(u -> "ADMIN".equals(u.getRole()) && "APPROVED".equals(u.getStatus()));
             
             if (!hasAdmin) {
                 // 机构没有管理员，直接加入成为管理员
@@ -965,7 +974,7 @@ public class AuthController {
                 newUser.setRole("ADMIN");
                 newUser.setPosition("ADMIN");
                 newUser.setNickname(wechatNickname);
-                newUser.setStatus("ACTIVE");
+                newUser.setStatus("APPROVED");
                 newUser.setOrganizationId(organization.getId());
                 
                 newUser.setWechatOpenid(wechatOpenid);
@@ -1002,7 +1011,8 @@ public class AuthController {
                 
                 UserOrganizationRequestDTO result = requestService.createRequest(
                     wechatOpenid, wechatUnionid, wechatNickname, wechatAvatar, 
-                    wechatSex, organization.getId(), "申请加入" + organization.getName()
+                    wechatSex, organization.getId(), "申请加入" + organization.getName(),
+                    wechatProvince, wechatCity, wechatCountry
                 );
                 
                 Map<String, Object> data = new HashMap<>();

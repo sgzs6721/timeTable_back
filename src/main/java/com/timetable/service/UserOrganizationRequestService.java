@@ -45,14 +45,60 @@ public class UserOrganizationRequestService {
     @Transactional
     public UserOrganizationRequestDTO createRequest(String wechatOpenid, String wechatUnionid, 
                                                      String wechatNickname, String wechatAvatar, 
-                                                     Byte wechatSex, Long organizationId, String applyReason) {
+                                                     Byte wechatSex, Long organizationId, String applyReason,
+                                                     String wechatProvince, String wechatCity, String wechatCountry) {
         // 验证机构是否存在
         Organization organization = organizationRepository.findById(organizationId);
         if (organization == null) {
             throw new RuntimeException("机构不存在");
         }
 
-        // 检查是否已有待审批的申请
+        // 检查该微信用户是否已存在
+        Users existingUser = userRepository.findByWechatOpenid(wechatOpenid);
+        if (existingUser != null) {
+            // 用户已存在，检查状态
+            if ("PENDING".equals(existingUser.getStatus())) {
+                throw new RuntimeException("您已有待审批的申请，请耐心等待");
+            } else if ("APPROVED".equals(existingUser.getStatus())) {
+                throw new RuntimeException("您已是该机构成员，无需重复申请");
+            } else if ("REJECTED".equals(existingUser.getStatus())) {
+                // 如果之前被拒绝，允许重新申请，更新状态为PENDING
+                existingUser.setStatus("PENDING");
+                existingUser.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+                userRepository.update(existingUser);
+            }
+        } else {
+            // 创建PENDING状态的用户
+            Users newUser = new Users();
+            String username = generateUniqueUsername(wechatNickname, wechatOpenid);
+            newUser.setUsername(username);
+            newUser.setPasswordHash("");  // 微信用户暂不设置密码
+            newUser.setRole("USER");
+            newUser.setPosition("COACH");
+            newUser.setNickname(wechatNickname);
+            newUser.setStatus("PENDING");
+            newUser.setOrganizationId(organizationId);
+            
+            newUser.setWechatOpenid(wechatOpenid);
+            newUser.setWechatUnionid(wechatUnionid);
+            newUser.setWechatAvatar(wechatAvatar);
+            newUser.setWechatSex(wechatSex);
+            newUser.setWechatProvince(wechatProvince);
+            newUser.setWechatCity(wechatCity);
+            newUser.setWechatCountry(wechatCountry);
+            
+            newUser.setIsDeleted((byte) 0);
+            newUser.setCreatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+            newUser.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+            
+            userRepository.save(newUser);
+            existingUser = userRepository.findByWechatOpenid(wechatOpenid);
+            
+            logger.info("创建待审批用户：userId={}, wechatOpenid={}, organizationId={}", 
+                existingUser.getId(), wechatOpenid, organizationId);
+        }
+
+        // 检查是否已有待审批的申请记录
         if (requestRepository.existsByWechatOpenidAndStatus(wechatOpenid, "PENDING")) {
             throw new RuntimeException("您已有待审批的申请，请耐心等待");
         }
@@ -60,6 +106,7 @@ public class UserOrganizationRequestService {
         // 创建申请记录
         UserOrganizationRequest request = new UserOrganizationRequest();
         request.setOrganizationId(organizationId);
+        request.setUserId(existingUser.getId());
         request.setWechatOpenid(wechatOpenid);
         request.setWechatUnionid(wechatUnionid);
         request.setWechatNickname(wechatNickname);
@@ -70,7 +117,8 @@ public class UserOrganizationRequestService {
 
         UserOrganizationRequest savedRequest = requestRepository.save(request);
         
-        logger.info("用户申请加入机构：wechatOpenid={}, organizationId={}", wechatOpenid, organizationId);
+        logger.info("用户申请加入机构：wechatOpenid={}, organizationId={}, userId={}", 
+            wechatOpenid, organizationId, existingUser.getId());
         
         return convertToDTO(savedRequest);
     }
@@ -128,43 +176,24 @@ public class UserOrganizationRequestService {
             throw new RuntimeException("该申请已被处理");
         }
 
-        // 创建用户账号
-        Users newUser = new Users();
+        // 获取待审批的用户
+        Users user = userRepository.findById(request.getUserId());
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
         
-        // 生成用户名（使用微信昵称或随机生成）
-        String username = generateUniqueUsername(request.getWechatNickname(), request.getWechatOpenid());
-        newUser.setUsername(username);
-        
-        // 设置默认密码（可以是随机密码，用户可以通过微信登录后修改）
-        String randomPassword = UUID.randomUUID().toString().substring(0, 8);
-        newUser.setPasswordHash(passwordEncoder.encode(randomPassword));
-        
-        // 设置角色和职位
-        newUser.setRole(defaultRole != null ? defaultRole : "USER");
-        newUser.setPosition(defaultPosition != null ? defaultPosition : "COACH");
-        
-        // 设置微信信息
-        newUser.setWechatOpenid(request.getWechatOpenid());
-        newUser.setWechatUnionid(request.getWechatUnionid());
-        newUser.setWechatAvatar(request.getWechatAvatar());
-        newUser.setWechatSex(request.getWechatSex());
-        newUser.setNickname(request.getWechatNickname());
-        
-        // 设置机构ID
-        newUser.setOrganizationId(request.getOrganizationId());
-        
-        // 设置状态
-        newUser.setStatus("ACTIVE");
-        newUser.setIsDeleted((byte) 0);
-        
-        // 保存用户
-        userRepository.save(newUser);
-        
-        // 重新查询获取完整的用户信息（包括生成的ID）
-        Users savedUser = userRepository.findByWechatOpenid(newUser.getWechatOpenid());
+        // 更新用户状态为APPROVED
+        user.setStatus("APPROVED");
+        if (defaultRole != null) {
+            user.setRole(defaultRole);
+        }
+        if (defaultPosition != null) {
+            user.setPosition(defaultPosition);
+        }
+        user.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+        userRepository.update(user);
         
         // 更新申请状态
-        request.setUserId(savedUser.getId());
         request.setStatus("APPROVED");
         request.setApprovedBy(approverId);
         request.setApprovedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
@@ -172,9 +201,26 @@ public class UserOrganizationRequestService {
         UserOrganizationRequest updatedRequest = requestRepository.update(request);
         
         logger.info("申请已批准：requestId={}, userId={}, organizationId={}", 
-                    requestId, savedUser.getId(), request.getOrganizationId());
+                    requestId, user.getId(), request.getOrganizationId());
+        
+        // 发送微信推送通知
+        try {
+            sendApprovalNotification(user, request);
+        } catch (Exception e) {
+            logger.error("发送审批通过通知失败：userId={}", user.getId(), e);
+            // 不影响主流程，继续执行
+        }
         
         return convertToDTO(updatedRequest);
+    }
+    
+    /**
+     * 发送审批通过通知
+     */
+    private void sendApprovalNotification(Users user, UserOrganizationRequest request) {
+        // TODO: 实现微信推送通知
+        // 这里需要调用微信模板消息接口
+        logger.info("发送审批通过通知：userId={}, wechatOpenid={}", user.getId(), user.getWechatOpenid());
     }
 
     /**
@@ -191,6 +237,14 @@ public class UserOrganizationRequestService {
             throw new RuntimeException("该申请已被处理");
         }
 
+        // 更新用户状态为REJECTED
+        Users user = userRepository.findById(request.getUserId());
+        if (user != null) {
+            user.setStatus("REJECTED");
+            user.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+            userRepository.update(user);
+        }
+
         // 更新申请状态
         request.setStatus("REJECTED");
         request.setApprovedBy(approverId);
@@ -199,7 +253,7 @@ public class UserOrganizationRequestService {
         
         UserOrganizationRequest updatedRequest = requestRepository.update(request);
         
-        logger.info("申请已拒绝：requestId={}, reason={}", requestId, rejectReason);
+        logger.info("申请已拒绝：requestId={}, userId={}, reason={}", requestId, request.getUserId(), rejectReason);
         
         return convertToDTO(updatedRequest);
     }

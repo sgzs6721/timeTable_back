@@ -158,63 +158,83 @@ public class WechatLoginService {
             }
             logger.info("成功获取用户信息，昵称: {}", wechatUserInfo.getNickname());
             
-            // 3. 检查是否有机构申请记录
-            logger.info("步骤3: 检查机构申请记录");
+            // 3. 检查用户状态
+            logger.info("步骤3: 检查用户状态");
             Users existingUser = userRepository.findByWechatOpenid(wechatUserInfo.getOpenid());
             
-            if (existingUser != null && existingUser.getOrganizationId() != null) {
-                // 用户已经关联机构，正常登录
-                logger.info("用户已关联机构，正常登录");
-                Users user = updateUserWechatInfo(existingUser, wechatUserInfo);
+            if (existingUser != null) {
+                // 用户已存在，检查状态
+                String userStatus = existingUser.getStatus();
+                logger.info("找到已存在用户，状态: {}", userStatus);
                 
-                String token = jwtUtil.generateToken(user.getUsername());
-                Map<String, Object> data = new HashMap<>();
-                data.put("token", token);
-                data.put("user", convertUserToDTO(user));
-                data.put("needSelectOrganization", false);
-                data.put("hasOrganization", true);
-                
-                logger.info("微信登录处理成功（已有机构）");
-                return data;
-            } else {
-                // 检查是否有申请记录
-                UserOrganizationRequestDTO request = requestService.getRequestByWechatOpenid(wechatUserInfo.getOpenid());
-                
-                if (request != null) {
-                    // 有申请记录，根据状态返回不同信息
-                    logger.info("找到申请记录，状态: {}", request.getStatus());
+                if ("APPROVED".equals(userStatus)) {
+                    // 用户已批准，正常登录
+                    if (existingUser.getOrganizationId() != null) {
+                        logger.info("用户已批准且关联机构，正常登录");
+                        Users user = updateUserWechatInfo(existingUser, wechatUserInfo);
+                        
+                        String token = jwtUtil.generateToken(user.getUsername());
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("token", token);
+                        data.put("user", convertUserToDTO(user));
+                        data.put("needSelectOrganization", false);
+                        data.put("hasOrganization", true);
+                        
+                        logger.info("微信登录处理成功（已有机构）");
+                        return data;
+                    } else {
+                        // 理论上不应该出现这种情况
+                        logger.warn("用户已批准但未关联机构，需要重新申请");
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("needSelectOrganization", true);
+                        data.put("hasRequest", false);
+                        data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
+                        return data;
+                    }
+                } else if ("PENDING".equals(userStatus)) {
+                    // 用户待审批
+                    logger.info("用户待审批，显示等待审批页面");
+                    UserOrganizationRequestDTO request = requestService.getRequestByWechatOpenid(wechatUserInfo.getOpenid());
                     
                     Map<String, Object> data = new HashMap<>();
                     data.put("needSelectOrganization", false);
                     data.put("hasRequest", true);
-                    data.put("requestStatus", request.getStatus());
+                    data.put("requestStatus", "PENDING");
                     data.put("requestInfo", request);
                     data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
                     
-                    if ("APPROVED".equals(request.getStatus()) && request.getUserId() != null) {
-                        // 申请已批准，生成token
-                        Users user = userRepository.findById(request.getUserId());
-                        if (user != null) {
-                            String token = jwtUtil.generateToken(user.getUsername());
-                            data.put("token", token);
-                            data.put("user", convertUserToDTO(user));
-                            data.put("hasOrganization", true);
-                        }
-                    }
+                    return data;
+                } else if ("REJECTED".equals(userStatus)) {
+                    // 用户被拒绝，可以重新申请
+                    logger.info("用户已被拒绝，可以重新申请");
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("needSelectOrganization", true);
+                    data.put("hasRequest", false);
+                    data.put("wasRejected", true);
+                    data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
                     
                     return data;
                 } else {
-                    // 没有申请记录，需要选择机构
-                    logger.info("新用户，需要选择机构");
-                    
+                    // 未知状态
+                    logger.warn("用户状态未知: {}", userStatus);
                     Map<String, Object> data = new HashMap<>();
                     data.put("needSelectOrganization", true);
                     data.put("hasRequest", false);
                     data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
                     
-                    logger.info("微信登录处理成功（需要选择机构）");
                     return data;
                 }
+            } else {
+                // 新用户，需要输入机构代码
+                logger.info("新用户，需要输入机构代码");
+                
+                Map<String, Object> data = new HashMap<>();
+                data.put("needSelectOrganization", true);
+                data.put("hasRequest", false);
+                data.put("wechatUserInfo", convertWechatUserInfo(wechatUserInfo));
+                
+                logger.info("微信登录处理成功（需要输入机构代码）");
+                return data;
             }
             
         } catch (Exception e) {
