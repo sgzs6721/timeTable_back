@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,6 +61,9 @@ public class AuthController {
     
     @Autowired
     private com.timetable.service.UserOrganizationRequestService requestService;
+    
+    @Autowired
+    private com.timetable.service.OrganizationService organizationService;
     
     /**
      * 用户登录
@@ -897,6 +901,130 @@ public class AuthController {
             logger.error("提交机构申请失败", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("提交申请失败，请稍后重试"));
+        }
+    }
+    
+    /**
+     * 通过机构代码申请加入机构
+     * 如果机构没有管理员，直接加入成为管理员
+     * 如果机构有管理员，提交申请等待审批
+     */
+    @PostMapping("/wechat/apply-by-code")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> applyByOrganizationCode(
+            @Valid @RequestBody Map<String, Object> requestBody) {
+        try {
+            String organizationCode = requestBody.get("organizationCode").toString();
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wechatUserInfo = (Map<String, Object>) requestBody.get("wechatUserInfo");
+            
+            if (wechatUserInfo == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("缺少微信用户信息"));
+            }
+            
+            // 查找机构
+            com.timetable.entity.Organization organization = 
+                organizationService.getOrganizationByCode(organizationCode);
+            
+            if (organization == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("机构代码不存在，请确认后重试"));
+            }
+            
+            String wechatOpenid = wechatUserInfo.get("openid").toString();
+            String wechatUnionid = wechatUserInfo.get("unionid") != null ? 
+                wechatUserInfo.get("unionid").toString() : null;
+            String wechatNickname = wechatUserInfo.get("nickname") != null ? 
+                wechatUserInfo.get("nickname").toString() : null;
+            String wechatAvatar = wechatUserInfo.get("headimgurl") != null ? 
+                wechatUserInfo.get("headimgurl").toString() : null;
+            Byte wechatSex = wechatUserInfo.get("sex") != null ? 
+                Byte.valueOf(wechatUserInfo.get("sex").toString()) : null;
+            String wechatProvince = wechatUserInfo.get("province") != null ? 
+                wechatUserInfo.get("province").toString() : null;
+            String wechatCity = wechatUserInfo.get("city") != null ? 
+                wechatUserInfo.get("city").toString() : null;
+            String wechatCountry = wechatUserInfo.get("country") != null ? 
+                wechatUserInfo.get("country").toString() : null;
+            
+            // 检查该机构是否有管理员
+            List<Users> organizationUsers = userRepository.findByOrganizationId(organization.getId());
+            boolean hasAdmin = organizationUsers.stream()
+                    .anyMatch(u -> "ADMIN".equals(u.getRole()) && "ACTIVE".equals(u.getStatus()));
+            
+            if (!hasAdmin) {
+                // 机构没有管理员，直接加入成为管理员
+                logger.info("机构 {} 没有管理员，用户 {} 直接加入成为管理员", 
+                    organization.getName(), wechatNickname);
+                
+                // 创建用户并设置为管理员
+                Users newUser = new Users();
+                newUser.setUsername("wx_" + wechatOpenid);
+                newUser.setPasswordHash("");
+                newUser.setRole("ADMIN");
+                newUser.setPosition("ADMIN");
+                newUser.setNickname(wechatNickname);
+                newUser.setStatus("ACTIVE");
+                newUser.setOrganizationId(organization.getId());
+                
+                newUser.setWechatOpenid(wechatOpenid);
+                newUser.setWechatUnionid(wechatUnionid);
+                newUser.setWechatAvatar(wechatAvatar);
+                newUser.setWechatSex(wechatSex);
+                newUser.setWechatProvince(wechatProvince);
+                newUser.setWechatCity(wechatCity);
+                newUser.setWechatCountry(wechatCountry);
+                
+                newUser.setIsDeleted((byte) 0);
+                newUser.setCreatedAt(java.time.LocalDateTime.now());
+                newUser.setUpdatedAt(java.time.LocalDateTime.now());
+                
+                userRepository.save(newUser);
+                Users savedUser = userRepository.findByWechatOpenid(wechatOpenid);
+                
+                // 生成JWT Token
+                String token = jwtUtil.generateToken(savedUser.getUsername());
+                
+                Map<String, Object> data = new HashMap<>();
+                data.put("token", token);
+                data.put("user", convertUserToDTO(savedUser));
+                
+                logger.info("用户成功加入机构成为管理员: openid={}, organizationId={}", 
+                    wechatOpenid, organization.getId());
+                return ResponseEntity.ok(ApiResponse.success(
+                    "恭喜！您已成为" + organization.getName() + "的管理员", data));
+                
+            } else {
+                // 机构有管理员，提交申请
+                logger.info("机构 {} 有管理员，用户 {} 提交申请", 
+                    organization.getName(), wechatNickname);
+                
+                UserOrganizationRequestDTO result = requestService.createRequest(
+                    wechatOpenid, wechatUnionid, wechatNickname, wechatAvatar, 
+                    wechatSex, organization.getId(), "申请加入" + organization.getName()
+                );
+                
+                Map<String, Object> data = new HashMap<>();
+                data.put("id", result.getId());
+                data.put("organizationName", organization.getName());
+                data.put("status", result.getStatus());
+                data.put("createdAt", result.getCreatedAt());
+                
+                logger.info("用户提交机构申请成功：openid={}, organizationId={}", 
+                    wechatOpenid, organization.getId());
+                return ResponseEntity.ok(ApiResponse.success(
+                    "申请已提交至" + organization.getName() + "，请等待管理员审批", data));
+            }
+            
+        } catch (RuntimeException e) {
+            logger.warn("通过机构代码申请失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("通过机构代码申请失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("提交失败，请稍后重试"));
         }
     }
     
