@@ -219,5 +219,11 @@ public class UserOrganizationRequestRepository {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, wechatOpenid, status);
         return count != null && count > 0;
     }
+
+    public boolean existsByWechatOpenidAndOrganizationIdAndStatus(String wechatOpenid, Long organizationId, String status) {
+        String sql = "SELECT COUNT(*) FROM user_organization_requests WHERE wechat_openid = ? AND organization_id = ? AND status = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, wechatOpenid, organizationId, status);
+        return count != null && count > 0;
+    }
 }
 

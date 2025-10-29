@@ -163,14 +163,53 @@ public class UserRepository {
     }
 
     /**
-     * 根据微信OpenID查找用户
+     * 根据微信OpenID查找用户（已废弃，使用 findByWechatOpenidAndOrganizationId）
+     * @deprecated 由于支持多机构，一个openid可能有多条记录，请使用 findByWechatOpenidAndOrganizationId 或 findAllByWechatOpenid
      */
+    @Deprecated
     public Users findByWechatOpenid(String wechatOpenid) {
         return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.WECHAT_OPENID.eq(wechatOpenid))
                 .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
                         .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
                 .fetchOneInto(Users.class);
+    }
+
+    /**
+     * 根据微信OpenID和机构ID查找用户
+     */
+    public Users findByWechatOpenidAndOrganizationId(String wechatOpenid, Long organizationId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.WECHAT_OPENID.eq(wechatOpenid))
+                .and(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ID.eq(organizationId))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchOneInto(Users.class);
+    }
+
+    /**
+     * 根据微信OpenID查找该用户的所有机构记录
+     */
+    public List<Users> findAllByWechatOpenid(String wechatOpenid) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.WECHAT_OPENID.eq(wechatOpenid))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
+    }
+
+    /**
+     * 根据微信OpenID查找该用户已批准的所有机构记录
+     */
+    public List<Users> findApprovedByWechatOpenid(String wechatOpenid) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.WECHAT_OPENID.eq(wechatOpenid))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
     }
 
     /**

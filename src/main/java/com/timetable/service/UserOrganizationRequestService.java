@@ -53,12 +53,12 @@ public class UserOrganizationRequestService {
             throw new RuntimeException("机构不存在");
         }
 
-        // 检查该微信用户是否已存在
-        Users existingUser = userRepository.findByWechatOpenid(wechatOpenid);
+        // 检查该用户在该机构是否已存在记录
+        Users existingUser = userRepository.findByWechatOpenidAndOrganizationId(wechatOpenid, organizationId);
         if (existingUser != null) {
-            // 用户已存在，检查状态
+            // 该机构已有用户记录，检查状态
             if ("PENDING".equals(existingUser.getStatus())) {
-                throw new RuntimeException("您已有待审批的申请，请耐心等待");
+                throw new RuntimeException("您在该机构已有待审批的申请，请耐心等待");
             } else if ("APPROVED".equals(existingUser.getStatus())) {
                 throw new RuntimeException("您已是该机构成员，无需重复申请");
             } else if ("REJECTED".equals(existingUser.getStatus())) {
@@ -92,14 +92,14 @@ public class UserOrganizationRequestService {
             newUser.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
             
             userRepository.save(newUser);
-            existingUser = userRepository.findByWechatOpenid(wechatOpenid);
+            existingUser = userRepository.findByWechatOpenidAndOrganizationId(wechatOpenid, organizationId);
             
             logger.info("创建待审批用户：userId={}, wechatOpenid={}, organizationId={}", 
                 existingUser.getId(), wechatOpenid, organizationId);
         }
 
-        // 检查是否已有待审批的申请记录
-        if (requestRepository.existsByWechatOpenidAndStatus(wechatOpenid, "PENDING")) {
+        // 检查该机构是否已有待审批的申请记录
+        if (requestRepository.existsByWechatOpenidAndOrganizationIdAndStatus(wechatOpenid, organizationId, "PENDING")) {
             throw new RuntimeException("您已有待审批的申请，请耐心等待");
         }
 
