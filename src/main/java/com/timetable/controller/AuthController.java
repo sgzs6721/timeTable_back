@@ -509,212 +509,81 @@ public class AuthController {
                 return ResponseEntity.ok(html);
             }
             
-            // 已有机构，正常登录
+            // 已有机构，正常登录，直接跳转到Dashboard
             if (loginResult != null && loginResult.containsKey("token")) {
-                // 构建前端页面，包含token和用户信息
                 String token = (String) loginResult.get("token");
                 Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
                 
-                // 直接跳转到Dashboard
-                if (true) {
-                    // 已绑定手机号，直接跳转到前端首页
-                    String htmlTemplate = "<!DOCTYPE html>" +
-                        "<html>" +
-                        "<head>" +
-                            "<meta charset=\"UTF-8\">" +
-                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-                            "<title>微信登录成功</title>" +
-                            "<style>" +
-                                "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
-                                    "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                                    "min-height: 100vh; margin: 0; }" +
-                                ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
-                                    "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
-                                ".success { color: #52c41a; margin-bottom: 20px; }" +
-                                ".info { margin: 20px 0; color: #666; }" +
-                                ".info p { margin: 10px 0; }" +
-                                ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
-                                ".form-group { margin: 20px 0; text-align: left; }" +
-                                ".form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }" +
-                                ".form-group input { width: 100%%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 4px; " +
-                                    "font-size: 14px; box-sizing: border-box; }" +
-                                ".form-group input:focus { outline: none; border-color: #667eea; }" +
-                                ".btn { width: 100%%; padding: 12px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                                    "color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }" +
-                                ".btn:hover { opacity: 0.9; }" +
-                                ".btn:disabled { opacity: 0.5; cursor: not-allowed; }" +
-                                ".error { color: #ff4d4f; font-size: 14px; margin-top: 10px; display: none; }" +
-                                ".warning { color: #faad14; font-size: 14px; margin-bottom: 20px; }" +
-                            "</style>" +
-                        "</head>" +
-                        "<body>" +
-                            "<div class=\"container\">" +
-                                "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
-                                "%s" + // avatar
-                                "<div class=\"info\">" +
-                                    "<p><strong>昵称：</strong>%s</p>" +
-                                "</div>" +
-                                "<p class=\"warning\">请绑定手机号以继续使用</p>" +
-                                "<div class=\"form-group\">" +
-                                    "<label for=\"phone\">手机号码</label>" +
-                                    "<input type=\"tel\" id=\"phone\" placeholder=\"请输入手机号\" maxlength=\"11\" />" +
-                                "</div>" +
-                                "<button class=\"btn\" onclick=\"handleBindPhone()\">确定</button>" +
-                                "<div class=\"error\" id=\"error\"></div>" +
+                String htmlTemplate = "<!DOCTYPE html>" +
+                    "<html>" +
+                    "<head>" +
+                        "<meta charset=\"UTF-8\">" +
+                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                        "<title>微信登录成功</title>" +
+                        "<style>" +
+                            "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
+                                "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
+                                "min-height: 100vh; margin: 0; }" +
+                            ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
+                                "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
+                            ".success { color: #52c41a; margin-bottom: 20px; }" +
+                            ".info { margin: 20px 0; color: #666; }" +
+                            ".info p { margin: 10px 0; }" +
+                            ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
+                            ".loading { margin-top: 20px; color: #888; }" +
+                        "</style>" +
+                    "</head>" +
+                    "<body>" +
+                        "<div class=\"container\">" +
+                            "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
+                            "%s" + // avatar
+                            "<div class=\"info\">" +
+                                "<p><strong>昵称：</strong>%s</p>" +
                             "</div>" +
-                            "<script>" +
-                                "const token = '%s';" +
-                                "const frontendUrl = '%s';" +
-                                "const apiUrl = window.location.origin + '/timetable/api';" +
-                                "function showError(message) {" +
-                                    "const errorEl = document.getElementById('error');" +
-                                    "errorEl.textContent = message;" +
-                                    "errorEl.style.display = 'block';" +
-                                "}" +
-                                "function hideError() {" +
-                                    "document.getElementById('error').style.display = 'none';" +
-                                "}" +
-                                "async function handleBindPhone() {" +
-                                    "const phone = document.getElementById('phone').value.trim();" +
-                                    "if (!phone) {" +
-                                        "showError('请输入手机号');" +
-                                        "return;" +
-                                    "}" +
-                                    "if (!/^1[3-9]\\d{9}$/.test(phone)) {" +
-                                        "showError('手机号格式不正确');" +
-                                        "return;" +
-                                    "}" +
-                                    "hideError();" +
-                                    "const btn = document.querySelector('.btn');" +
-                                    "btn.disabled = true;" +
-                                    "btn.textContent = '绑定中...';" +
-                                    "try {" +
-                                        "const response = await fetch(apiUrl + '/auth/bind-phone', {" +
-                                            "method: 'POST'," +
-                                            "headers: {" +
-                                                "'Content-Type': 'application/json'," +
-                                                "'Authorization': 'Bearer ' + token" +
-                                            "}," +
-                                            "body: JSON.stringify({ phone: phone })" +
-                                        "});" +
-                                        "const data = await response.json();" +
-                                        "if (data.success) {" +
-                                            "localStorage.setItem('token', token);" +
-                                            "localStorage.setItem('user', JSON.stringify(data.data.user));" +
-                                            "btn.textContent = '绑定成功，正在跳转...';" +
-                                            "setTimeout(() => {" +
-                                                "window.location.href = frontendUrl + '/dashboard';" +
-                                            "}, 500);" +
-                                        "} else {" +
-                                            "showError(data.message || '绑定失败，请重试');" +
-                                            "btn.disabled = false;" +
-                                            "btn.textContent = '确定';" +
-                                        "}" +
-                                    "} catch (error) {" +
-                                        "showError('网络错误，请重试');" +
-                                        "btn.disabled = false;" +
-                                        "btn.textContent = '确定';" +
-                                    "}" +
-                                "}" +
-                                "document.getElementById('phone').addEventListener('keypress', function(e) {" +
-                                    "if (e.key === 'Enter') {" +
-                                        "handleBindPhone();" +
-                                    "}" +
-                                "});" +
-                            "</script>" +
-                        "</body>" +
-                        "</html>";
-                    
-                    // 构建头像HTML
-                    String avatarHtml = "";
-                    if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
-                        avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
-                            user.get("wechatAvatar"));
-                    }
-                    
-                    logger.info("绑定页面 - Token: {}, FrontendUrl: {}", token, frontendUrl);
-                    
-                    String html = String.format(htmlTemplate,
-                        avatarHtml,           // %s - avatar
-                        user.get("nickname"), // %s - nickname  
-                        token,                // %s - token (JavaScript)
-                        frontendUrl          // %s - frontendUrl (JavaScript)
-                    );
-                    
-                    return ResponseEntity.ok(html);
-                } else {
-                    // 已绑定手机号，直接跳转到前端首页
-                    String htmlTemplate = "<!DOCTYPE html>" +
-                        "<html>" +
-                        "<head>" +
-                            "<meta charset=\"UTF-8\">" +
-                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-                            "<title>微信登录成功</title>" +
-                            "<style>" +
-                                "body { font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; " +
-                                    "text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                                    "min-height: 100vh; margin: 0; }" +
-                                ".container { background: white; border-radius: 10px; padding: 40px; max-width: 400px; " +
-                                    "margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }" +
-                                ".success { color: #52c41a; margin-bottom: 20px; }" +
-                                ".info { margin: 20px 0; color: #666; }" +
-                                ".info p { margin: 10px 0; }" +
-                                ".avatar { width: 80px; height: 80px; border-radius: 50%%; margin: 0 auto 20px; }" +
-                                ".loading { margin-top: 20px; color: #888; }" +
-                            "</style>" +
-                        "</head>" +
-                        "<body>" +
-                            "<div class=\"container\">" +
-                                "<h1 class=\"success\">✓ 微信登录成功！</h1>" +
-                                "%s" + // avatar
-                                "<div class=\"info\">" +
-                                    "<p><strong>昵称：</strong>%s</p>" +
-                                "</div>" +
-                                "<div class=\"loading\">正在跳转...</div>" +
-                            "</div>" +
-                            "<script>" +
-                                "const token = '%s';" +
-                                "const frontendUrl = '%s';" +
-                                "const user = %s;" +
-                                "localStorage.setItem('token', token);" +
-                                "localStorage.setItem('user', JSON.stringify(user));" +
-                                "setTimeout(() => {" +
-                                    "window.location.href = frontendUrl + '/dashboard';" +
-                                "}, 1000);" +
-                            "</script>" +
-                        "</body>" +
-                        "</html>";
-                    
-                    // 构建头像HTML
-                    String avatarHtml = "";
-                    if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
-                        avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
-                            user.get("wechatAvatar"));
-                    }
-                    
-                    logger.info("已绑定用户跳转页面 - Token: {}, FrontendUrl: {}", token, frontendUrl);
-                    
-                    String userNickname = user.get("nickname") != null ? user.get("nickname").toString() : "";
-                    
-                    // 将 user Map 转换为 JSON 字符串
-                    String userJson;
-                    try {
-                        userJson = objectMapper.writeValueAsString(user);
-                    } catch (Exception e) {
-                        logger.error("转换用户信息为JSON失败", e);
-                        userJson = "{}";
-                    }
-                    
-                    String html = String.format(htmlTemplate,
-                        avatarHtml,           // %s - avatar (HTML)
-                        userNickname,         // %s - nickname (页面显示)
-                        token,                // %s - token (JavaScript)
-                        frontendUrl,          // %s - frontendUrl (JavaScript)
-                        userJson              // %s - user JSON (JavaScript)
-                    );
-                    
-                    return ResponseEntity.ok(html);
+                            "<div class=\"loading\">正在跳转...</div>" +
+                        "</div>" +
+                        "<script>" +
+                            "const token = '%s';" +
+                            "const frontendUrl = '%s';" +
+                            "const user = %s;" +
+                            "localStorage.setItem('token', token);" +
+                            "localStorage.setItem('user', JSON.stringify(user));" +
+                            "setTimeout(() => {" +
+                                "window.location.href = frontendUrl + '/dashboard';" +
+                            "}, 1000);" +
+                        "</script>" +
+                    "</body>" +
+                    "</html>";
+                
+                // 构建头像HTML
+                String avatarHtml = "";
+                if (user.get("wechatAvatar") != null && !user.get("wechatAvatar").toString().isEmpty()) {
+                    avatarHtml = String.format("<img src=\"%s\" class=\"avatar\" alt=\"头像\" />", 
+                        user.get("wechatAvatar"));
                 }
+                
+                logger.info("微信登录成功，跳转到Dashboard - Token: {}, FrontendUrl: {}", token, frontendUrl);
+                
+                String userNickname = user.get("nickname") != null ? user.get("nickname").toString() : "";
+                
+                // 将 user Map 转换为 JSON 字符串
+                String userJson;
+                try {
+                    userJson = objectMapper.writeValueAsString(user);
+                } catch (Exception e) {
+                    logger.error("转换用户信息为JSON失败", e);
+                    userJson = "{}";
+                }
+                
+                String html = String.format(htmlTemplate,
+                    avatarHtml,           // %s - avatar (HTML)
+                    userNickname,         // %s - nickname (页面显示)
+                    token,                // %s - token (JavaScript)
+                    frontendUrl,          // %s - frontendUrl (JavaScript)
+                    userJson              // %s - user JSON (JavaScript)
+                );
+                
+                return ResponseEntity.ok(html);
             } else {
                 return ResponseEntity.badRequest()
                         .body("<html><body><h1>登录失败</h1><p>微信登录处理失败</p></body></html>");
