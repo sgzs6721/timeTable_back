@@ -901,6 +901,118 @@ public class AuthController {
     }
     
     /**
+     * 微信用户创建新账号（绑定）
+     */
+    @PostMapping("/wechat/create-account")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createAccountForWechat(
+            @Valid @RequestBody Map<String, String> request,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String currentUsername = jwtUtil.extractUsername(token);
+            
+            String newUsername = request.get("username");
+            
+            logger.info("微信用户 {} 尝试创建新账号: {}", currentUsername, newUsername);
+            
+            // 检查当前用户是否是微信临时账号
+            Users currentUser = userRepository.findByUsername(currentUsername);
+            if (currentUser == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("当前用户不存在"));
+            }
+            
+            if (!currentUsername.startsWith("wx_")) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("只有微信临时账号可以创建新账号"));
+            }
+            
+            // 检查新用户名是否已存在
+            if (userRepository.findByUsername(newUsername) != null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户名已存在"));
+            }
+            
+            // 更新用户名
+            currentUser.setUsername(newUsername);
+            currentUser.setUpdatedAt(java.time.LocalDateTime.now());
+            userRepository.update(currentUser);
+            
+            // 生成新token
+            String newToken = jwtUtil.generateToken(newUsername);
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", newToken);
+            data.put("user", convertUserToDTO(currentUser));
+            
+            logger.info("微信用户创建新账号成功: {}", newUsername);
+            return ResponseEntity.ok(ApiResponse.success("账号创建成功", data));
+            
+        } catch (Exception e) {
+            logger.error("创建账号失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("创建账号失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 设置密码（首次设置，不需要原密码）
+     */
+    @PostMapping("/set-password")
+    public ResponseEntity<ApiResponse<Void>> setPassword(
+            @Valid @RequestBody Map<String, String> passwordData) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户未登录"));
+            }
+            
+            String username = authentication.getName();
+            String newPassword = passwordData.get("newPassword");
+            
+            if (newPassword == null || newPassword.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("请输入新密码"));
+            }
+            
+            if (newPassword.length() < 6) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("新密码至少6个字符"));
+            }
+            
+            // 检查用户是否存在
+            Users user = userService.findByUsername(username);
+            if (user == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户不存在"));
+            }
+            
+            // 检查用户是否已经设置过密码（密码哈希不为空且不是空字符串）
+            if (user.getPasswordHash() != null && !user.getPasswordHash().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("密码已设置，请使用修改密码功能"));
+            }
+            
+            // 设置密码
+            boolean updated = userService.updatePassword(username, newPassword);
+            
+            if (updated) {
+                logger.info("用户首次设置密码成功: {}", username);
+                return ResponseEntity.ok(ApiResponse.success("密码设置成功"));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("密码设置失败"));
+            }
+            
+        } catch (Exception e) {
+            logger.error("设置密码过程中发生错误", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("密码设置失败，请稍后重试"));
+        }
+    }
+    
+    /**
      * 转换用户对象为DTO（不包含敏感信息）
      */
     private Map<String, Object> convertUserToDTO(Users user) {
@@ -913,6 +1025,8 @@ public class AuthController {
         userDTO.put("phone", user.getPhone());
         userDTO.put("hasPhone", user.getPhone() != null && !user.getPhone().isEmpty());
         userDTO.put("wechatAvatar", user.getWechatAvatar());
+        userDTO.put("wechatOpenid", user.getWechatOpenid());
+        userDTO.put("hasPassword", user.getPasswordHash() != null && !user.getPasswordHash().isEmpty());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
         return userDTO;
