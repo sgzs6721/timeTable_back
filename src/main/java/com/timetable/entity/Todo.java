@@ -19,6 +19,12 @@ public class Todo {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean deleted;
+    
+    // 微信推送相关字段
+    private String pushStatus;
+    private LocalDateTime pushedAt;
+    private String pushErrorMessage;
+    private Integer pushRetryCount;
 
     public Long getId() {
         return id;
@@ -130,6 +136,38 @@ public class Todo {
 
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public String getPushStatus() {
+        return pushStatus;
+    }
+
+    public void setPushStatus(String pushStatus) {
+        this.pushStatus = pushStatus;
+    }
+
+    public LocalDateTime getPushedAt() {
+        return pushedAt;
+    }
+
+    public void setPushedAt(LocalDateTime pushedAt) {
+        this.pushedAt = pushedAt;
+    }
+
+    public String getPushErrorMessage() {
+        return pushErrorMessage;
+    }
+
+    public void setPushErrorMessage(String pushErrorMessage) {
+        this.pushErrorMessage = pushErrorMessage;
+    }
+
+    public Integer getPushRetryCount() {
+        return pushRetryCount;
+    }
+
+    public void setPushRetryCount(Integer pushRetryCount) {
+        this.pushRetryCount = pushRetryCount;
     }
 }
 

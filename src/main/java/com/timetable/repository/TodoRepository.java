@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 import static com.timetable.generated.Tables.TODOS;
@@ -143,6 +144,66 @@ public class TodoRepository extends BaseRepository {
                 .execute();
 
         return findById(todo.getId());
+    }
+
+    /**
+     * 查询需要推送的待办
+     * 条件：提醒时间已到，状态为待推送或推送失败（重试次数未超限），未完成，未删除
+     */
+    public List<Todo> findTodosToPush(int maxRetryCount) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate currentDate = now.toLocalDate();
+        LocalTime currentTime = now.toLocalTime();
+
+        return dsl.selectFrom(TODOS)
+                .where(TODOS.DELETED.eq((byte) 0))
+                .and(TODOS.STATUS.ne("COMPLETED"))
+                .and(TODOS.REMINDER_DATE.isNotNull())
+                .and(
+                    // 提醒日期小于今天，或者等于今天且时间已到
+                    TODOS.REMINDER_DATE.lt(currentDate)
+                    .or(
+                        TODOS.REMINDER_DATE.eq(currentDate)
+                        .and(TODOS.REMINDER_TIME.isNotNull())
+                        .and(TODOS.REMINDER_TIME.le(currentTime))
+                    )
+                )
+                .and(
+                    // 推送状态为 PENDING 或 FAILED（且重试次数未超限）
+                    TODOS.PUSH_STATUS.eq("PENDING")
+                    .or(
+                        TODOS.PUSH_STATUS.eq("FAILED")
+                        .and(TODOS.PUSH_RETRY_COUNT.lt(maxRetryCount))
+                    )
+                )
+                .orderBy(TODOS.REMINDER_DATE.asc(), TODOS.REMINDER_TIME.asc())
+                .fetchInto(Todo.class);
+    }
+
+    /**
+     * 更新推送状态为成功
+     */
+    public int updatePushSuccess(Long id) {
+        return dsl.update(TODOS)
+                .set(TODOS.PUSH_STATUS, "PUSHED")
+                .set(TODOS.PUSHED_AT, LocalDateTime.now())
+                .set(TODOS.PUSH_ERROR_MESSAGE, (String) null)
+                .set(TODOS.UPDATED_AT, LocalDateTime.now())
+                .where(TODOS.ID.eq(id))
+                .execute();
+    }
+
+    /**
+     * 更新推送状态为失败
+     */
+    public int updatePushFailed(Long id, String errorMessage) {
+        return dsl.update(TODOS)
+                .set(TODOS.PUSH_STATUS, "FAILED")
+                .set(TODOS.PUSH_ERROR_MESSAGE, errorMessage)
+                .set(TODOS.PUSH_RETRY_COUNT, TODOS.PUSH_RETRY_COUNT.plus(1))
+                .set(TODOS.UPDATED_AT, LocalDateTime.now())
+                .where(TODOS.ID.eq(id))
+                .execute();
     }
 }
 
