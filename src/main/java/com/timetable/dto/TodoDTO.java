@@ -13,6 +13,7 @@ public class TodoDTO {
     private String customerStatus;
     private String customerStatusText;
     private String customerSource;
+    private String customerNotes;
     private String content;
     private LocalDate reminderDate;
     private LocalTime reminderTime;
@@ -79,6 +80,14 @@ public class TodoDTO {
 
     public void setCustomerSource(String customerSource) {
         this.customerSource = customerSource;
+    }
+
+    public String getCustomerNotes() {
+        return customerNotes;
+    }
+
+    public void setCustomerNotes(String customerNotes) {
+        this.customerNotes = customerNotes;
     }
 
     public String getContent() {

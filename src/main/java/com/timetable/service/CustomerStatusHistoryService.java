@@ -157,10 +157,11 @@ public class CustomerStatusHistoryService {
         dto.setToStatus(history.getToStatus());
         dto.setToStatusText(getStatusText(history.getToStatus()));
         
-        // 如果是新建状态（fromStatus为null）且notes为空，从客户表中获取notes
+        // 获取notes：对于新建状态（fromStatus为null或toStatus为NEW），如果notes为空，从客户表获取
         String notes = history.getNotes();
-        if ((history.getFromStatus() == null || history.getFromStatus().isEmpty()) && 
-            (notes == null || notes.trim().isEmpty())) {
+        boolean isNewStatus = (history.getFromStatus() == null || history.getFromStatus().isEmpty() || "NEW".equals(history.getToStatus()));
+        
+        if (isNewStatus && (notes == null || notes.trim().isEmpty())) {
             Customer customer = customerRepository.findById(history.getCustomerId());
             if (customer != null && customer.getNotes() != null && !customer.getNotes().trim().isEmpty()) {
                 notes = customer.getNotes();
