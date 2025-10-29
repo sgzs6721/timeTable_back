@@ -131,6 +131,7 @@ public class OrganizationService {
                 adminInfo.put("username", user.getUsername());
                 adminInfo.put("nickname", user.getNickname());
                 adminInfo.put("phone", user.getPhone());
+                adminInfo.put("wechatAvatar", user.getWechatAvatar());
                 adminInfo.put("status", user.getStatus());
                 adminInfo.put("createdAt", user.getCreatedAt());
                 admins.add(adminInfo);

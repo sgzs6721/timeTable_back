@@ -362,6 +362,10 @@ public class AdminController {
                 dto.put("nickname", user.getNickname());
                 dto.put("role", user.getRole());
                 dto.put("position", user.getPosition());
+                dto.put("phone", user.getPhone());
+                dto.put("status", user.getStatus());
+                dto.put("organizationId", user.getOrganizationId());
+                dto.put("wechatAvatar", user.getWechatAvatar());
                 dto.put("createdAt", user.getCreatedAt());
                 dto.put("updatedAt", user.getUpdatedAt());
                 return dto;

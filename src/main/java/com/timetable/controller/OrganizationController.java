@@ -1,6 +1,7 @@
 package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
+import com.timetable.dto.OrgManagementAuthRequest;
 import com.timetable.dto.OrganizationDTO;
 import com.timetable.entity.Organization;
 import com.timetable.generated.tables.pojos.Users;
@@ -9,6 +10,7 @@ import com.timetable.service.OrganizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +35,48 @@ public class OrganizationController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Value("${organization.management.username}")
+    private String orgMgmtUsername;
+
+    @Value("${organization.management.password}")
+    private String orgMgmtPassword;
+
+    /**
+     * 机构管理访问验证（独立的用户名密码，不依赖系统用户表）
+     */
+    @PostMapping("/auth/verify")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> verifyOrgManagementAuth(
+            @Valid @RequestBody OrgManagementAuthRequest request) {
+        try {
+            logger.info("机构管理访问验证请求: {}", request.getUsername());
+            
+            // 直接验证配置文件中的用户名密码
+            if (!orgMgmtUsername.equals(request.getUsername())) {
+                logger.warn("机构管理用户名错误: {}", request.getUsername());
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户名或密码错误"));
+            }
+            
+            if (!orgMgmtPassword.equals(request.getPassword())) {
+                logger.warn("机构管理密码错误");
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户名或密码错误"));
+            }
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("verified", true);
+            data.put("username", request.getUsername());
+            
+            logger.info("机构管理访问验证成功: {}", request.getUsername());
+            return ResponseEntity.ok(ApiResponse.success("验证成功", data));
+            
+        } catch (Exception e) {
+            logger.error("机构管理访问验证失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("验证失败，请稍后重试"));
+        }
+    }
 
     /**
      * 获取所有活跃机构（公开接口，用于微信登录时选择机构）
