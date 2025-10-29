@@ -43,6 +43,12 @@ public class CustomerService {
         
         // 自动创建状态流转记录（新建客户）
         if (savedCustomer.getId() != null) {
+            System.out.println("=== 创建客户状态流转记录 ===");
+            System.out.println("客户ID: " + savedCustomer.getId());
+            System.out.println("客户姓名: " + savedCustomer.getChildName());
+            System.out.println("备注信息: " + request.getNotes());
+            System.out.println("状态: " + savedCustomer.getStatus());
+            
             CustomerStatusHistory initialHistory = new CustomerStatusHistory();
             initialHistory.setCustomerId(savedCustomer.getId());
             initialHistory.setFromStatus(null); // 新建客户，从无到有
@@ -50,7 +56,10 @@ public class CustomerService {
             initialHistory.setNotes(request.getNotes()); // 保存客户的备注信息到流转记录
             initialHistory.setCreatedBy(currentUserId);
             initialHistory.setCreatedAt(LocalDateTime.now());
-            statusHistoryRepository.save(initialHistory);
+            
+            CustomerStatusHistory savedHistory = statusHistoryRepository.save(initialHistory);
+            System.out.println("流转记录已创建，ID: " + savedHistory.getId());
+            System.out.println("流转记录备注: " + savedHistory.getNotes());
         }
         
         return convertToDTO(savedCustomer);
