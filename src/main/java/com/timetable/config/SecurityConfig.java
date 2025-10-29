@@ -62,6 +62,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/organizations/active").permitAll()
                 .antMatchers("/organizations/auth/verify").permitAll()
                 .antMatchers("/actuator/health", "/actuator/info").permitAll()
+                .antMatchers("/test/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint)
