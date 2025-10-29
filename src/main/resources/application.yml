@@ -44,7 +44,7 @@ wechat:
   # 微信服务号配置（用于模板消息推送）
   mp:
     enabled: true # 是否启用模板消息推送
-    template-id: dBncPXrXjhyUL-dB9t8ThFJQwT01IIGn66LQYGJEkVw # 待办提醒模板ID
+    template-id: bbE7Tvb4DB_W4SPCmy3ZKUhoyaZph1sgpQLOEP6zVvo # 待办提醒模板ID
     token-cache-enabled: true # 是否缓存 Access Token
     token-cache-time: 7000 # Access Token 缓存时间（秒），微信官方有效期7200秒
     push-retry-max: 3 # 推送失败最大重试次数

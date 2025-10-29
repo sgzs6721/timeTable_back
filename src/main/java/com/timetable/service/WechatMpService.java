@@ -134,8 +134,12 @@ public class WechatMpService {
 
     /**
      * 构建待办提醒模板消息
-     * 模板：学员上课自动扣费失败提醒（编号：50769）
-     * 字段：thing5-学员姓名，thing4-课程名称
+     * 模板字段：
+     * - thing16: 客户姓名
+     * - phone_number10: 联系方式
+     * - thing17: 项目名称（待办内容）
+     * - time23: 发布时间（提醒时间）
+     * - thing20: 工单信息
      */
     public WechatTemplateMessage buildTodoReminderMessage(
             String openid,
@@ -148,32 +152,31 @@ public class WechatMpService {
         message.setToUser(openid);
         message.setTemplateId(wechatMpConfig.getMp().getTemplateId());
         
-        // 适配模板字段
-        // thing5 - 学员姓名：显示客户姓名
-        // thing4 - 课程名称：显示待办内容和提醒时间
-        
-        // 如果有 first 字段，添加开头提示
-        message.addData("first", "⏰ 您有新的待办提醒", "#1890ff");
-        
-        // thing5 字段：客户姓名（限制20字）
-        String customerNameValue = customerName != null ? customerName : "无";
+        // thing16 字段：客户姓名（限制20字）
+        String customerNameValue = customerName != null && !customerName.isEmpty() ? customerName : "暂无";
         if (customerNameValue.length() > 20) {
             customerNameValue = customerNameValue.substring(0, 17) + "...";
         }
-        message.addData("thing5", customerNameValue, "#173177");
+        message.addData("thing16", customerNameValue, "#173177");
         
-        // thing4 字段：待办内容 + 提醒时间（限制20字）
-        String contentValue = content;
-        if (reminderTime != null && !reminderTime.isEmpty()) {
-            contentValue = content + " (" + reminderTime + ")";
-        }
+        // phone_number10 字段：联系方式（电话号码格式）
+        String phoneValue = customerPhone != null && !customerPhone.isEmpty() ? customerPhone : "暂无";
+        message.addData("phone_number10", phoneValue, "#173177");
+        
+        // thing17 字段：项目名称/待办内容（限制20字）
+        String contentValue = content != null && !content.isEmpty() ? content : "待办事项";
         if (contentValue.length() > 20) {
             contentValue = contentValue.substring(0, 17) + "...";
         }
-        message.addData("thing4", contentValue, "#173177");
+        message.addData("thing17", contentValue, "#173177");
         
-        // 如果有 remark 字段，添加备注
-        message.addData("remark", "💡 点击查看详情，及时跟进处理", "#52c41a");
+        // time23 字段：发布时间/提醒时间（时间格式：YYYY-MM-DD HH:mm）
+        String timeValue = reminderTime != null && !reminderTime.isEmpty() ? reminderTime : 
+            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        message.addData("time23", timeValue, "#173177");
+        
+        // thing20 字段：工单信息（限制20字）
+        message.addData("thing20", "待办提醒", "#173177");
         
         return message;
     }

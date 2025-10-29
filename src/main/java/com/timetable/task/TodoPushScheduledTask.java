@@ -87,12 +87,24 @@ public class TodoPushScheduledTask {
                         continue;
                     }
 
-                    // 构建提醒时间字符串
+                    // 构建提醒时间字符串（格式：YYYY-MM-DD HH:mm）
                     String reminderTime = "";
                     if (todo.getReminderDate() != null) {
                         reminderTime = todo.getReminderDate().toString();
                         if (todo.getReminderTime() != null) {
                             reminderTime += " " + todo.getReminderTime().toString().substring(0, 5);
+                        }
+                    }
+
+                    // 获取客户电话（如果有客户ID）
+                    String customerPhone = null;
+                    if (todo.getCustomerId() != null) {
+                        try {
+                            // 这里简化处理，实际应该注入 CustomerRepository
+                            // 暂时传 null，后续可以优化
+                            customerPhone = null;
+                        } catch (Exception e) {
+                            logger.debug("无法获取客户电话: {}", e.getMessage());
                         }
                     }
 
@@ -102,7 +114,7 @@ public class TodoPushScheduledTask {
                         todo.getCustomerName(),
                         todo.getContent(),
                         reminderTime,
-                        null // 客户电话需要从 customer 表查询，这里先传 null
+                        customerPhone
                     );
 
                     // 发送模板消息
