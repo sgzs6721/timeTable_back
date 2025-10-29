@@ -52,11 +52,8 @@ public class OrganizationRoleService {
         OrganizationRole existing = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("角色不存在"));
 
-        if (existing.getIsSystem() != null && existing.getIsSystem()) {
-            throw new RuntimeException("系统角色不允许修改");
-        }
-
         existing.setRoleName(dto.getRoleName());
+        existing.setRoleCode(dto.getRoleCode());
         existing.setDescription(dto.getDescription());
         existing.setIcon(dto.getIcon());
         existing.setColor(dto.getColor());
@@ -69,10 +66,6 @@ public class OrganizationRoleService {
     public void deleteRole(Long id) {
         OrganizationRole role = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("角色不存在"));
-
-        if (role.getIsSystem() != null && role.getIsSystem()) {
-            throw new RuntimeException("系统角色不允许删除");
-        }
 
         roleRepository.deleteById(id);
     }
