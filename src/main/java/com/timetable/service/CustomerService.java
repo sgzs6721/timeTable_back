@@ -40,6 +40,19 @@ public class CustomerService {
         customer.setCreatedBy(currentUserId);
 
         Customer savedCustomer = customerRepository.save(customer);
+        
+        // 自动创建状态流转记录（新建客户）
+        if (savedCustomer.getId() != null) {
+            CustomerStatusHistory initialHistory = new CustomerStatusHistory();
+            initialHistory.setCustomerId(savedCustomer.getId());
+            initialHistory.setFromStatus(null); // 新建客户，从无到有
+            initialHistory.setToStatus(savedCustomer.getStatus());
+            initialHistory.setNotes(request.getNotes()); // 保存客户的备注信息到流转记录
+            initialHistory.setCreatedBy(currentUserId);
+            initialHistory.setCreatedAt(LocalDateTime.now());
+            statusHistoryRepository.save(initialHistory);
+        }
+        
         return convertToDTO(savedCustomer);
     }
 
