@@ -177,6 +177,12 @@ public class CustomerStatusHistoryService {
         if (creator != null) {
             dto.setCreatedByName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());
         }
+        
+        // 设置体验课程相关信息
+        dto.setTrialScheduleDate(history.getTrialScheduleDate());
+        dto.setTrialStartTime(history.getTrialStartTime());
+        dto.setTrialEndTime(history.getTrialEndTime());
+        dto.setTrialCoachId(history.getTrialCoachId());
 
         return dto;
     }

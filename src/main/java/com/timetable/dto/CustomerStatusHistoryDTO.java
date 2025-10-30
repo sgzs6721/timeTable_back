@@ -1,6 +1,8 @@
 package com.timetable.dto;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class CustomerStatusHistoryDTO {
     private Long id;
@@ -13,6 +15,12 @@ public class CustomerStatusHistoryDTO {
     private Long createdBy;
     private String createdByName;
     private LocalDateTime createdAt;
+    
+    // 体验课程相关字段
+    private LocalDate trialScheduleDate;
+    private LocalTime trialStartTime;
+    private LocalTime trialEndTime;
+    private Long trialCoachId;
 
     public CustomerStatusHistoryDTO() {
     }
@@ -95,6 +103,38 @@ public class CustomerStatusHistoryDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDate getTrialScheduleDate() {
+        return trialScheduleDate;
+    }
+
+    public void setTrialScheduleDate(LocalDate trialScheduleDate) {
+        this.trialScheduleDate = trialScheduleDate;
+    }
+
+    public LocalTime getTrialStartTime() {
+        return trialStartTime;
+    }
+
+    public void setTrialStartTime(LocalTime trialStartTime) {
+        this.trialStartTime = trialStartTime;
+    }
+
+    public LocalTime getTrialEndTime() {
+        return trialEndTime;
+    }
+
+    public void setTrialEndTime(LocalTime trialEndTime) {
+        this.trialEndTime = trialEndTime;
+    }
+
+    public Long getTrialCoachId() {
+        return trialCoachId;
+    }
+
+    public void setTrialCoachId(Long trialCoachId) {
+        this.trialCoachId = trialCoachId;
     }
 }
 
