@@ -251,18 +251,29 @@ public class CustomerService {
                 // 获取最新的体验时间信息
                 List<CustomerStatusHistory> histories = statusHistoryRepository.findByCustomerId(customer.getId());
                 CustomerStatusHistory latestTrialHistory = null;
-                int trialCount = 0;
                 
-                // 统计体验次数：记录中有多少条状态变为"待体验"或"待再体验"的记录
+                // 统计体验次数：记录中有多少条不同的体验时间
+                // 使用Set来去重，只有体验时间不同才算不同的体验
+                java.util.Set<String> uniqueTrialTimes = new java.util.HashSet<>();
+                
                 for (CustomerStatusHistory history : histories) {
-                    if ("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) {
-                        trialCount++;
-                        // 同时找最新的体验安排（第一条包含体验时间的记录）
-                        if (latestTrialHistory == null && history.getTrialScheduleDate() != null) {
+                    if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
+                        && history.getTrialScheduleDate() != null) {
+                        // 使用日期+时间作为唯一标识
+                        String timeKey = history.getTrialScheduleDate().toString();
+                        if (history.getTrialStartTime() != null) {
+                            timeKey += "_" + history.getTrialStartTime().toString();
+                        }
+                        uniqueTrialTimes.add(timeKey);
+                        
+                        // 找最新的体验安排（第一条包含体验时间的记录）
+                        if (latestTrialHistory == null) {
                             latestTrialHistory = history;
                         }
                     }
                 }
+                
+                int trialCount = uniqueTrialTimes.size();
                 
                 if (latestTrialHistory != null && latestTrialHistory.getTrialScheduleDate() != null) {
                     TrialCustomerDTO dto = new TrialCustomerDTO();
