@@ -2,6 +2,7 @@ package com.timetable.service;
 
 import com.timetable.dto.CustomerDTO;
 import com.timetable.dto.CustomerRequest;
+import com.timetable.dto.TrialCustomerDTO;
 import com.timetable.entity.Customer;
 import com.timetable.entity.CustomerStatusHistory;
 import com.timetable.generated.tables.pojos.Users;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -236,5 +238,67 @@ public class CustomerService {
     private boolean isAdmin(Long userId) {
         Users user = userRepository.findById(userId);
         return user != null && "ADMIN".equals(user.getRole());
+    }
+
+    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId) {
+        List<TrialCustomerDTO> result = new ArrayList<>();
+        
+        // 获取用户所在机构的所有待体验和待再体验客户
+        List<Customer> customers = customerRepository.findByOrganizationId(organizationId);
+        
+        for (Customer customer : customers) {
+            if ("SCHEDULED".equals(customer.getStatus()) || "RE_EXPERIENCE".equals(customer.getStatus())) {
+                // 获取最新的体验时间信息
+                List<CustomerStatusHistory> histories = statusHistoryRepository.findByCustomerId(customer.getId());
+                CustomerStatusHistory latestTrialHistory = null;
+                int trialCount = 0;
+                
+                // 统计体验次数，找最新的体验安排
+                for (CustomerStatusHistory history : histories) {
+                    if ("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) {
+                        trialCount++;
+                        if (latestTrialHistory == null && history.getTrialScheduleDate() != null) {
+                            latestTrialHistory = history;
+                        }
+                    }
+                }
+                
+                if (latestTrialHistory != null && latestTrialHistory.getTrialScheduleDate() != null) {
+                    TrialCustomerDTO dto = new TrialCustomerDTO();
+                    dto.setCustomerId(customer.getId());
+                    dto.setChildName(customer.getChildName());
+                    dto.setParentPhone(customer.getParentPhone());
+                    dto.setStatus(customer.getStatus());
+                    dto.setStatusText(getStatusText(customer.getStatus()));
+                    dto.setTrialScheduleDate(latestTrialHistory.getTrialScheduleDate());
+                    dto.setTrialStartTime(latestTrialHistory.getTrialStartTime());
+                    dto.setTrialEndTime(latestTrialHistory.getTrialEndTime());
+                    dto.setTrialCoachId(latestTrialHistory.getTrialCoachId());
+                    dto.setTrialCount(trialCount);
+                    
+                    // 获取教练名称
+                    if (latestTrialHistory.getTrialCoachId() != null) {
+                        Users coach = userRepository.findById(latestTrialHistory.getTrialCoachId());
+                        if (coach != null) {
+                            dto.setTrialCoachName(coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
+                        }
+                    }
+                    
+                    result.add(dto);
+                }
+            }
+        }
+        
+        // 按体验日期和时间排序
+        result.sort((a, b) -> {
+            int dateCompare = a.getTrialScheduleDate().compareTo(b.getTrialScheduleDate());
+            if (dateCompare != 0) return dateCompare;
+            if (a.getTrialStartTime() != null && b.getTrialStartTime() != null) {
+                return a.getTrialStartTime().compareTo(b.getTrialStartTime());
+            }
+            return 0;
+        });
+        
+        return result;
     }
 }

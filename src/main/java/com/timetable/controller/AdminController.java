@@ -204,7 +204,9 @@ public class AdminController {
 
     /**
      * 获取所有活动课表列表
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables")
     public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getActiveTimetables() {
         try {
@@ -218,7 +220,9 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的指定日期课程信息
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/schedules")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveSchedulesByDate(
             @RequestParam String date) {
@@ -234,7 +238,9 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的本周课程信息（优化版，一次性返回所有数据）
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/this-week")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesThisWeek() {
         try {
@@ -248,7 +254,9 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的模板课程信息（优化版，一次性返回所有数据）
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/templates")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTemplates() {
         try {
@@ -262,7 +270,9 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的体验课程信息
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/trial")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTrial() {
         try {

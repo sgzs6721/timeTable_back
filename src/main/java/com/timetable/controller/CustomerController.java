@@ -3,6 +3,7 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.CustomerDTO;
 import com.timetable.dto.CustomerRequest;
+import com.timetable.dto.TrialCustomerDTO;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.CustomerService;
 import com.timetable.service.UserService;
@@ -128,6 +129,25 @@ public class CustomerController {
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/trials")
+    public ResponseEntity<ApiResponse<List<TrialCustomerDTO>>> getTrialCustomers(Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
+            List<TrialCustomerDTO> trials = customerService.getTrialCustomers(user.getId(), user.getOrganizationId());
+            return ResponseEntity.ok(ApiResponse.success("获取成功", trials));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取待体验客户列表失败: " + e.getMessage()));
         }
     }
 }

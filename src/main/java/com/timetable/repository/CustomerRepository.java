@@ -147,4 +147,9 @@ public class CustomerRepository {
         List<Customer> customers = jdbcTemplate.query(sql, customerRowMapper, "%" + childName + "%");
         return customers.isEmpty() ? null : customers.get(0);
     }
+
+    public List<Customer> findByOrganizationId(Long organizationId) {
+        String sql = "SELECT * FROM customers WHERE organization_id = ? ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, customerRowMapper, organizationId);
+    }
 }
