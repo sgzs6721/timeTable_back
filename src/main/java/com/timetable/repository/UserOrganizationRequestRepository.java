@@ -225,5 +225,19 @@ public class UserOrganizationRequestRepository {
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, wechatOpenid, organizationId, status);
         return count != null && count > 0;
     }
+
+    public UserOrganizationRequest findByWechatOpenidAndOrganizationIdAndStatus(String wechatOpenid, Long organizationId, String status) {
+        String sql = "SELECT r.*, " +
+                     "o.id as org_id, o.name as org_name, o.code as org_code, o.address as org_address, " +
+                     "o.contact_phone as org_contact_phone, o.status as org_status, " +
+                     "u.username as approved_by_username " +
+                     "FROM user_organization_requests r " +
+                     "LEFT JOIN organizations o ON r.organization_id = o.id " +
+                     "LEFT JOIN users u ON r.approved_by = u.id " +
+                     "WHERE r.wechat_openid = ? AND r.organization_id = ? AND r.status = ? " +
+                     "ORDER BY r.created_at DESC LIMIT 1";
+        List<UserOrganizationRequest> requests = jdbcTemplate.query(sql, requestWithOrgRowMapper, wechatOpenid, organizationId, status);
+        return requests.isEmpty() ? null : requests.get(0);
+    }
 }
 

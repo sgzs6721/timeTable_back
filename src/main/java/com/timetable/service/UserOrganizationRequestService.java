@@ -99,8 +99,10 @@ public class UserOrganizationRequestService {
         }
 
         // 检查该机构是否已有待审批的申请记录
-        if (requestRepository.existsByWechatOpenidAndOrganizationIdAndStatus(wechatOpenid, organizationId, "PENDING")) {
-            throw new RuntimeException("您已有待审批的申请，请耐心等待");
+        UserOrganizationRequest existingRequest = requestRepository.findByWechatOpenidAndOrganizationIdAndStatus(wechatOpenid, organizationId, "PENDING");
+        if (existingRequest != null) {
+            // 返回现有的待审批申请信息
+            return convertToDTO(existingRequest);
         }
 
         // 创建申请记录
