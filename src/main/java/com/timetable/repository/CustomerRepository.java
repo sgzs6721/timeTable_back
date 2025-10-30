@@ -35,6 +35,7 @@ public class CustomerRepository {
             customer.setVisitTime(rs.getTimestamp("visit_time") != null ? 
                 rs.getTimestamp("visit_time").toLocalDateTime() : null);
             customer.setAssignedSalesId(rs.getLong("assigned_sales_id") != 0 ? rs.getLong("assigned_sales_id") : null);
+            customer.setOrganizationId(rs.getLong("organization_id") != 0 ? rs.getLong("organization_id") : null);
             customer.setCreatedBy(rs.getLong("created_by"));
             customer.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
             customer.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
@@ -46,8 +47,8 @@ public class CustomerRepository {
         // 使用中国时区的当前时间
         LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
         
-        String sql = "INSERT INTO customers (child_name, grade, parent_phone, parent_relation, available_time, source, status, notes, next_contact_time, visit_time, assigned_sales_id, created_by, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO customers (child_name, grade, parent_phone, parent_relation, available_time, source, status, notes, next_contact_time, visit_time, assigned_sales_id, created_by, created_at, updated_at, organization_id) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         jdbcTemplate.update(sql, 
             customer.getChildName(),
@@ -63,7 +64,8 @@ public class CustomerRepository {
             customer.getAssignedSalesId(),
             customer.getCreatedBy(),
             now,
-            now
+            now,
+            customer.getOrganizationId()
         );
         
         // 获取插入的ID
@@ -80,7 +82,7 @@ public class CustomerRepository {
         
         String sql = "UPDATE customers SET child_name = ?, grade = ?, parent_phone = ?, parent_relation = ?, " +
                      "available_time = ?, source = ?, status = ?, notes = ?, next_contact_time = ?, visit_time = ?, " +
-                     "assigned_sales_id = ?, updated_at = ? WHERE id = ?";
+                     "assigned_sales_id = ?, updated_at = ?, organization_id = ? WHERE id = ?";
         
         jdbcTemplate.update(sql,
             customer.getChildName(),
@@ -95,6 +97,7 @@ public class CustomerRepository {
             customer.getVisitTime(),
             customer.getAssignedSalesId(),
             now,
+            customer.getOrganizationId(),
             customer.getId()
         );
         

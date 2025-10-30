@@ -38,7 +38,13 @@ public class CustomerService {
         customer.setSource(request.getSource());
         customer.setAssignedSalesId(currentUserId);
         customer.setCreatedBy(currentUserId);
-
+        // 设置 organizationId
+        Users currentUser = userRepository.findById(currentUserId);
+        if (currentUser != null) {
+            customer.setOrganizationId(currentUser.getOrganizationId());
+        } else {
+            customer.setOrganizationId(null);
+        }
         Customer savedCustomer = customerRepository.save(customer);
         
         // 自动创建状态流转记录（新建客户）
@@ -88,6 +94,8 @@ public class CustomerService {
         customer.setStatus(request.getStatus());
         customer.setNotes(request.getNotes());
         customer.setSource(request.getSource());
+        // 不需要 currentUser，直接不赋值 organizationId，客户归属机构只允许新建时指定
+        // customer.setOrganizationId(XXX) 这一行删掉，update 仅修改官方字段
 
         Customer updatedCustomer = customerRepository.update(customer);
         return convertToDTO(updatedCustomer);
@@ -184,6 +192,7 @@ public class CustomerService {
         dto.setCreatedBy(customer.getCreatedBy());
         dto.setCreatedAt(customer.getCreatedAt());
         dto.setUpdatedAt(customer.getUpdatedAt());
+        dto.setOrganizationId(customer.getOrganizationId()); // 新增
 
         // 获取销售姓名
         if (customer.getAssignedSalesId() != null) {

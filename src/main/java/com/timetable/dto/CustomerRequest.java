@@ -24,6 +24,8 @@ public class CustomerRequest {
     @NotBlank(message = "详情不能为空")
     private String notes;
 
+    private Long organizationId;
+
     public CustomerRequest() {
     }
 
@@ -113,5 +115,12 @@ public class CustomerRequest {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 }

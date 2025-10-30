@@ -21,6 +21,7 @@ public class Customer {
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long organizationId; // 新增字段：所属机构
 
     public Customer() {
     }
@@ -167,5 +168,12 @@ public class Customer {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 }

@@ -26,6 +26,7 @@ public class CustomerDTO {
     private LocalDateTime updatedAt;
     private String lastStatusChangeNote; // 最后一次状态流转备注
     private LocalDateTime lastStatusChangeTime; // 最后一次状态流转时间
+    private Long organizationId;
 
     public CustomerDTO() {
     }
@@ -212,5 +213,12 @@ public class CustomerDTO {
 
     public void setLastStatusChangeTime(LocalDateTime lastStatusChangeTime) {
         this.lastStatusChangeTime = lastStatusChangeTime;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 }
