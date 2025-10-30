@@ -2,8 +2,10 @@ package com.timetable.service;
 
 import com.timetable.repository.UserRepository;
 import com.timetable.repository.TimetableRepository;
+import com.timetable.repository.OrganizationRepository;
 import com.timetable.dto.UserRegistrationRequest;
 import com.timetable.dto.PendingUserDTO;
+import com.timetable.entity.Organization;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -36,6 +38,9 @@ public class UserService implements UserDetailsService {
     
     @Autowired
     private TimetableRepository timetableRepository;
+    
+    @Autowired
+    private OrganizationRepository organizationRepository;
     
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
@@ -330,6 +335,12 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("用户名已存在");
         }
         
+        // 根据机构代码查找机构
+        Organization organization = organizationRepository.findByCode(request.getOrganizationCode());
+        if (organization == null) {
+            throw new IllegalArgumentException("机构代码不存在，请检查后重试");
+        }
+        
         // 检查是否存在已删除的同名用户，记录日志
         List<Users> deletedUsers = dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
                 .where(com.timetable.generated.tables.Users.USERS.USERNAME.eq(request.getUsername()))
@@ -357,6 +368,7 @@ public class UserService implements UserDetailsService {
         user.setPasswordHash(encodedPassword);
         user.setRole("USER"); // 默认角色为普通用户
         user.setNickname(request.getNickname());
+        user.setOrganizationId(organization.getId()); // 设置机构ID
         user.setStatus("PENDING"); // 设置为待审批状态
         user.setIsDeleted((byte) 0); // 明确设置为未删除状态
         user.setCreatedAt(java.time.LocalDateTime.now());

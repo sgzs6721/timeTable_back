@@ -15,6 +15,10 @@ public class UserRegistrationRequest {
     
     @Size(max = 50, message = "昵称长度不能超过50个字符")
     private String nickname;
+    
+    @NotBlank(message = "机构代码不能为空")
+    @Size(max = 50, message = "机构代码长度不能超过50个字符")
+    private String organizationCode;
 
     // 构造函数
     public UserRegistrationRequest() {}
@@ -48,5 +52,13 @@ public class UserRegistrationRequest {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getOrganizationCode() {
+        return organizationCode;
+    }
+
+    public void setOrganizationCode(String organizationCode) {
+        this.organizationCode = organizationCode;
     }
 } 
