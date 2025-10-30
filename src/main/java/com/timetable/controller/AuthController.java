@@ -989,6 +989,51 @@ public class AuthController {
     }
     
     /**
+     * 查询微信用户的申请状态
+     */
+    @PostMapping("/wechat/check-request-status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkRequestStatus(
+            @Valid @RequestBody Map<String, Object> requestBody) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> wechatUserInfo = (Map<String, Object>) requestBody.get("wechatUserInfo");
+            
+            if (wechatUserInfo == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("缺少微信用户信息"));
+            }
+            
+            String wechatOpenid = wechatUserInfo.get("openid").toString();
+            
+            // 查询最新的申请记录
+            UserOrganizationRequestDTO requestDTO = requestService.getRequestByOpenid(wechatOpenid);
+            
+            if (requestDTO == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("未找到申请记录"));
+            }
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", requestDTO.getId());
+            data.put("organizationName", requestDTO.getOrganizationName());
+            data.put("organizationAddress", requestDTO.getOrganizationAddress());
+            data.put("status", requestDTO.getStatus());
+            data.put("createdAt", requestDTO.getCreatedAt());
+            data.put("approvedAt", requestDTO.getApprovedAt());
+            data.put("approvedByUsername", requestDTO.getApprovedByUsername());
+            data.put("rejectReason", requestDTO.getRejectReason());
+            
+            logger.info("查询申请状态成功：openid={}, status={}", wechatOpenid, requestDTO.getStatus());
+            return ResponseEntity.ok(ApiResponse.success("查询成功", data));
+            
+        } catch (Exception e) {
+            logger.error("查询申请状态失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("查询失败，请稍后重试"));
+        }
+    }
+    
+    /**
      * 微信用户创建新账号（绑定）
      */
     @PostMapping("/wechat/create-account")

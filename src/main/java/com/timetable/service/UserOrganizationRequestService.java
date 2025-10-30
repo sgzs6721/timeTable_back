@@ -40,6 +40,17 @@ public class UserOrganizationRequestService {
     private PasswordEncoder passwordEncoder;
 
     /**
+     * 根据微信openid获取最新的申请记录
+     */
+    public UserOrganizationRequestDTO getRequestByOpenid(String wechatOpenid) {
+        UserOrganizationRequest request = requestRepository.findByWechatOpenid(wechatOpenid);
+        if (request == null) {
+            return null;
+        }
+        return convertToDTO(request);
+    }
+
+    /**
      * 创建机构申请
      */
     @Transactional
