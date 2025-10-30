@@ -21,9 +21,11 @@ import com.timetable.task.WeeklyInstanceScheduledTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import com.timetable.service.WeeklyInstanceService;
@@ -606,7 +608,22 @@ public class AdminController {
      */
     @GetMapping("/users/registration-requests")
     public ResponseEntity<ApiResponse<List<PendingUserDTO>>> getAllRegistrationRequests() {
-        List<PendingUserDTO> allRequests = userService.getAllRegistrationRequests();
+        // 获取当前登录用户
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("未登录"));
+        }
+        
+        String username = authentication.getName();
+        Users currentUser = userService.findByUsername(username);
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户信息异常"));
+        }
+        
+        // 只获取当前用户所在机构的注册申请
+        List<PendingUserDTO> allRequests = userService.getAllRegistrationRequests(currentUser.getOrganizationId());
         return ResponseEntity.ok(ApiResponse.success("获取所有注册申请记录成功", allRequests));
     }
 

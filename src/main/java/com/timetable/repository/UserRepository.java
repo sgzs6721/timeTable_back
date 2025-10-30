@@ -117,6 +117,17 @@ public class UserRepository {
     }
 
     /**
+     * 根据机构ID获取所有注册申请记录（包括已处理的）
+     */
+    public List<Users> findAllRegistrationRequestsByOrganization(Long organizationId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.STATUS.in("PENDING", "APPROVED", "REJECTED"))
+                .and(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ID.eq(organizationId))
+                .orderBy(com.timetable.generated.tables.Users.USERS.CREATED_AT.desc())
+                .fetchInto(Users.class);
+    }
+
+    /**
      * 根据用户名、删除状态和用户状态查找用户
      */
     public Users findByUsernameAndDeletedAndStatus(String username, Byte isDeleted, String status) {

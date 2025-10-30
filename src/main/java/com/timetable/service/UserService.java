@@ -392,8 +392,8 @@ public class UserService implements UserDetailsService {
     /**
      * 获取所有注册申请记录（包括已处理的）
      */
-    public List<PendingUserDTO> getAllRegistrationRequests() {
-        List<Users> allRequests = userRepository.findAllRegistrationRequests();
+    public List<PendingUserDTO> getAllRegistrationRequests(Long organizationId) {
+        List<Users> allRequests = userRepository.findAllRegistrationRequestsByOrganization(organizationId);
         return allRequests.stream()
                 .map(this::convertToPendingUserDTO)
                 .collect(Collectors.toList());
