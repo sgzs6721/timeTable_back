@@ -1114,9 +1114,24 @@ public class AuthController {
         userDTO.put("hasPhone", user.getPhone() != null && !user.getPhone().isEmpty());
         userDTO.put("wechatAvatar", user.getWechatAvatar());
         userDTO.put("wechatOpenid", user.getWechatOpenid());
+        userDTO.put("wechatUnionid", user.getWechatUnionid());
+        userDTO.put("wechatSex", user.getWechatSex());
+        userDTO.put("wechatProvince", user.getWechatProvince());
+        userDTO.put("wechatCity", user.getWechatCity());
+        userDTO.put("wechatCountry", user.getWechatCountry());
         userDTO.put("hasPassword", user.getPasswordHash() != null && !user.getPasswordHash().isEmpty());
         userDTO.put("createdAt", user.getCreatedAt());
         userDTO.put("updatedAt", user.getUpdatedAt());
+        
+        // 添加机构信息
+        userDTO.put("organizationId", user.getOrganizationId());
+        if (user.getOrganizationId() != null) {
+            com.timetable.dto.OrganizationDTO org = organizationService.getOrganizationById(user.getOrganizationId());
+            if (org != null) {
+                userDTO.put("organizationName", org.getName());
+            }
+        }
+        
         return userDTO;
     }
 }
