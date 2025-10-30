@@ -253,25 +253,14 @@ public class CustomerService {
                 CustomerStatusHistory latestTrialHistory = null;
                 int trialCount = 0;
                 
-                // 统计体验次数：计算完成体验的次数 + 当前体验（如果是待再体验则+1）
-                // 1. 统计已完成的体验次数（状态变为"已体验"的次数）
+                // 统计体验次数：记录中有多少条状态变为"待体验"或"待再体验"的记录
                 for (CustomerStatusHistory history : histories) {
-                    if ("VISITED".equals(history.getToStatus())) {
+                    if ("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) {
                         trialCount++;
-                    }
-                }
-                
-                // 2. 当前体验算第几次：如果没有完成过体验，这是第1次；否则是第N+1次
-                trialCount = trialCount + 1;
-                
-                // 3. 找最新的体验安排（最近一条包含体验时间的待体验/待再体验记录）
-                for (CustomerStatusHistory history : histories) {
-                    if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
-                        && history.getTrialScheduleDate() != null) {
-                        if (latestTrialHistory == null) {
+                        // 同时找最新的体验安排（第一条包含体验时间的记录）
+                        if (latestTrialHistory == null && history.getTrialScheduleDate() != null) {
                             latestTrialHistory = history;
                         }
-                        break; // 历史记录已按时间倒序，找到第一条就是最新的
                     }
                 }
                 
