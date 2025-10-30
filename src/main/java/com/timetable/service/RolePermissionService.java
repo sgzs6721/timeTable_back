@@ -154,11 +154,42 @@ public class RolePermissionService {
         Map<String, Boolean> permissions = new HashMap<>();
         permissions.put("refresh", true);
         permissions.put("admin", "ADMIN".equalsIgnoreCase(role));
+        permissions.put("organizationManagement", "ADMIN".equalsIgnoreCase(role));
         permissions.put("archived", true);
         permissions.put("profile", true);
         permissions.put("guide", true);
         permissions.put("logout", true);
         return permissions;
+    }
+
+    /**
+     * 获取ADMIN角色的完整权限
+     */
+    public RolePermissionDTO getAdminPermissions() {
+        RolePermissionDTO dto = new RolePermissionDTO();
+        dto.setRole("ADMIN");
+        
+        Map<String, Boolean> menuPermissions = new HashMap<>();
+        menuPermissions.put("dashboard", true);
+        menuPermissions.put("todo", true);
+        menuPermissions.put("customer", true);
+        menuPermissions.put("mySchedule", true);
+        menuPermissions.put("myStudents", true);
+        menuPermissions.put("myHours", true);
+        menuPermissions.put("mySalary", true);
+        dto.setMenuPermissions(menuPermissions);
+        
+        Map<String, Boolean> actionPermissions = new HashMap<>();
+        actionPermissions.put("refresh", true);
+        actionPermissions.put("admin", true);
+        actionPermissions.put("organizationManagement", true);
+        actionPermissions.put("archived", true);
+        actionPermissions.put("profile", true);
+        actionPermissions.put("guide", true);
+        actionPermissions.put("logout", true);
+        dto.setActionPermissions(actionPermissions);
+        
+        return dto;
     }
 }
 
