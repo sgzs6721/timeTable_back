@@ -45,17 +45,16 @@ public class RolePermissionController {
             Long organizationId = user.getOrganizationId();
             String position = user.getPosition(); // position 字段存储用户职位：COACH, SALES, RECEPTIONIST, MANAGER
             
-            if (organizationId == null || position == null) {
-                return ResponseEntity.ok(ApiResponse.error("用户未分配机构或职位"));
+            if (organizationId == null) {
+                return ResponseEntity.ok(ApiResponse.error("用户未分配机构"));
             }
             
-            // 如果是ADMIN角色，则默认拥有所有权限
-            RolePermissionDTO permission;
-            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-                permission = rolePermissionService.getAdminPermissions();
-            } else {
-                permission = rolePermissionService.getRolePermission(organizationId, position);
+            if (position == null) {
+                return ResponseEntity.ok(ApiResponse.error("用户未分配职位"));
             }
+            
+            // 所有用户都根据 position 查询权限配置（不管 role 是 ADMIN 还是 USER）
+            RolePermissionDTO permission = rolePermissionService.getRolePermission(organizationId, position);
             
             return ResponseEntity.ok(ApiResponse.success("获取当前用户权限成功", permission));
         } catch (Exception e) {
