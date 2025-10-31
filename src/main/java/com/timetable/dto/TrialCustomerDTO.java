@@ -16,6 +16,8 @@ public class TrialCustomerDTO {
     private String trialCoachName;
     private String trialStudentName;
     private Integer trialCount; // 第几次体验
+    private Long historyId; // 体验历史记录ID，用于取消操作
+    private Boolean trialCancelled; // 体验是否已取消
 
     public TrialCustomerDTO() {
     }
@@ -114,6 +116,22 @@ public class TrialCustomerDTO {
 
     public void setTrialCount(Integer trialCount) {
         this.trialCount = trialCount;
+    }
+
+    public Long getHistoryId() {
+        return historyId;
+    }
+
+    public void setHistoryId(Long historyId) {
+        this.historyId = historyId;
+    }
+
+    public Boolean getTrialCancelled() {
+        return trialCancelled;
+    }
+
+    public void setTrialCancelled(Boolean trialCancelled) {
+        this.trialCancelled = trialCancelled;
     }
 }
 

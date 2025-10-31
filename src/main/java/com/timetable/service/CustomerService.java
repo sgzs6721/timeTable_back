@@ -287,6 +287,8 @@ public class CustomerService {
                     dto.setTrialEndTime(latestTrialHistory.getTrialEndTime());
                     dto.setTrialCoachId(latestTrialHistory.getTrialCoachId());
                     dto.setTrialCount(trialCount);
+                    dto.setHistoryId(latestTrialHistory.getId());
+                    dto.setTrialCancelled(latestTrialHistory.getTrialCancelled());
                     
                     // 获取教练名称
                     if (latestTrialHistory.getTrialCoachId() != null) {
