@@ -71,12 +71,12 @@ public class CustomerStatusHistoryController {
     
     /**
      * 取消体验课程（事务：标记取消 + 删除课表）
+     * 直接从历史记录读取课表ID，不需要通过学员名字查询
      */
     @PostMapping("/{historyId}/cancel-trial")
     public ResponseEntity<ApiResponse<String>> cancelTrial(
             @PathVariable Long customerId,
             @PathVariable Long historyId,
-            @RequestParam(required = false) String studentName,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -84,45 +84,12 @@ public class CustomerStatusHistoryController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
-            // 如果提供了学员姓名，查询课表中的体验课程信息
-            Long trialScheduleId = null;
-            Long trialTimetableId = null;
-            String sourceType = null;
-            
-            if (studentName != null && !studentName.isEmpty()) {
-                try {
-                    Map<String, Object> trialSchedule = scheduleService.findTrialScheduleByStudentName(studentName);
-                    if (trialSchedule != null) {
-                        sourceType = (String) trialSchedule.get("sourceType");
-                        Object scheduleIdObj = trialSchedule.get("id");
-                        Object timetableIdObj = trialSchedule.get("timetableId");
-                        
-                        if (scheduleIdObj != null) {
-                            trialScheduleId = ((Number) scheduleIdObj).longValue();
-                        }
-                        if (timetableIdObj != null) {
-                            trialTimetableId = ((Number) timetableIdObj).longValue();
-                        }
-                        
-                        logger.info("查询到体验课程: scheduleId={}, timetableId={}, sourceType={}", 
-                                   trialScheduleId, trialTimetableId, sourceType);
-                    }
-                } catch (Exception e) {
-                    logger.warn("查询课表中的体验课程失败: {}", e.getMessage());
-                    // 查询失败，只标记取消，不删除课表
-                }
-            }
-            
-            // 调用事务方法：标记取消 + 删除课表（如果有权限）
-            boolean success = historyService.cancelTrialScheduleWithTransaction(
-                historyId, 
-                trialScheduleId, 
-                trialTimetableId, 
-                sourceType
-            );
+            // 调用事务方法：标记取消 + 删除课表
+            // 课表ID直接从历史记录中读取
+            boolean success = historyService.cancelTrialScheduleWithTransaction(historyId);
             
             if (success) {
-                logger.info("体验课程取消成功: historyId={}, scheduleId={}", historyId, trialScheduleId);
+                logger.info("体验课程取消成功: historyId={}", historyId);
                 return ResponseEntity.ok(ApiResponse.success("体验课程已取消", "取消成功"));
             } else {
                 return ResponseEntity.badRequest().body(ApiResponse.error("取消失败"));

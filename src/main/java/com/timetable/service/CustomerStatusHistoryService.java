@@ -225,26 +225,30 @@ public class CustomerStatusHistoryService {
     
     /**
      * 取消体验课程（事务：标记取消 + 删除课表）
+     * 直接从历史记录读取课表ID，不需要外部传参
      * @param historyId 历史记录ID
-     * @param trialScheduleId 课表中的课程ID（可为null）
-     * @param trialTimetableId 课表ID（可为null，周实例不需要）
-     * @param sourceType 课程来源类型：schedule 或 weekly_instance
      * @return 是否成功
      */
     @Transactional(rollbackFor = Exception.class)
-    public boolean cancelTrialScheduleWithTransaction(
-            Long historyId, 
-            Long trialScheduleId, 
-            Long trialTimetableId,
-            String sourceType) {
+    public boolean cancelTrialScheduleWithTransaction(Long historyId) {
         
-        // 1. 标记历史记录为已取消
-        boolean marked = historyRepository.markTrialAsCancelled(historyId);
-        if (!marked) {
-            throw new RuntimeException("标记体验课程取消失败，未找到该历史记录");
+        // 1. 获取历史记录，读取课表ID
+        CustomerStatusHistory history = historyRepository.findById(historyId);
+        if (history == null) {
+            throw new RuntimeException("未找到该历史记录");
         }
         
-        // 2. 如果提供了课表信息，删除课表中的课程
+        // 2. 标记历史记录为已取消
+        boolean marked = historyRepository.markTrialAsCancelled(historyId);
+        if (!marked) {
+            throw new RuntimeException("标记体验课程取消失败");
+        }
+        
+        // 3. 如果历史记录中存储了课表信息，删除课表中的课程
+        Long trialScheduleId = history.getTrialScheduleId();
+        Long trialTimetableId = history.getTrialTimetableId();
+        String sourceType = history.getTrialSourceType();
+        
         if (trialScheduleId != null && sourceType != null) {
             try {
                 if ("weekly_instance".equals(sourceType)) {
