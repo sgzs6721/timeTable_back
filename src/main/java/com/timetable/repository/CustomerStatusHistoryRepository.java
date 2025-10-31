@@ -133,5 +133,20 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
             throw new RuntimeException("删除状态历史记录失败: " + e.getMessage(), e);
         }
     }
+    
+    /**
+     * 标记体验课程为已取消
+     */
+    public boolean markTrialAsCancelled(Long historyId) {
+        try {
+            int updated = dsl.update(table("customer_status_history"))
+                    .set(field("trial_cancelled"), true)
+                    .where(field("id").eq(historyId))
+                    .execute();
+            return updated > 0;
+        } catch (Exception e) {
+            throw new RuntimeException("标记体验课程取消失败: " + e.getMessage(), e);
+        }
+    }
 }
 

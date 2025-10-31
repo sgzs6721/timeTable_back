@@ -204,5 +204,16 @@ public class CustomerStatusHistoryService {
             default: return status;
         }
     }
+    
+    /**
+     * 标记体验课程为已取消
+     */
+    public boolean markTrialAsCancelled(Long historyId) {
+        try {
+            return historyRepository.markTrialAsCancelled(historyId);
+        } catch (Exception e) {
+            throw new RuntimeException("标记体验课程取消失败: " + e.getMessage(), e);
+        }
+    }
 }
 
