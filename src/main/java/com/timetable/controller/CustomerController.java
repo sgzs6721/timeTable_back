@@ -137,7 +137,7 @@ public class CustomerController {
     @GetMapping("/trials")
     public ResponseEntity<ApiResponse<List<TrialCustomerDTO>>> getTrialCustomers(
             Authentication authentication,
-            @RequestParam(required = false) String createdByName,
+            @RequestParam(required = false) Long createdById,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate trialDate) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -152,7 +152,7 @@ public class CustomerController {
             List<TrialCustomerDTO> trials = customerService.getTrialCustomers(
                 user.getId(), 
                 user.getOrganizationId(), 
-                createdByName, 
+                createdById, 
                 trialDate
             );
             return ResponseEntity.ok(ApiResponse.success("获取成功", trials));

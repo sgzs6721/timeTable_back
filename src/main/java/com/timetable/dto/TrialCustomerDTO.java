@@ -19,6 +19,7 @@ public class TrialCustomerDTO {
     private Integer trialCount; // 第几次体验
     private Long historyId; // 体验历史记录ID，用于取消操作
     private Boolean trialCancelled; // 体验是否已取消
+    private Long createdById; // 录入人ID
     private String createdByName; // 录入人姓名
     private LocalDateTime createdAt; // 录入时间
 
@@ -135,6 +136,14 @@ public class TrialCustomerDTO {
 
     public void setTrialCancelled(Boolean trialCancelled) {
         this.trialCancelled = trialCancelled;
+    }
+
+    public Long getCreatedById() {
+        return createdById;
+    }
+
+    public void setCreatedById(Long createdById) {
+        this.createdById = createdById;
     }
 
     public String getCreatedByName() {

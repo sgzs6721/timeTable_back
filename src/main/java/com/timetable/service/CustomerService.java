@@ -241,7 +241,7 @@ public class CustomerService {
         return user != null && "ADMIN".equals(user.getRole());
     }
 
-    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, String createdByNameFilter, LocalDate trialDateFilter) {
+    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, Long createdByIdFilter, LocalDate trialDateFilter) {
         List<TrialCustomerDTO> result = new ArrayList<>();
         
         // 获取用户所在机构的所有待体验和待再体验客户
@@ -282,6 +282,11 @@ public class CustomerService {
                         continue;
                     }
                     
+                    // 应用创建人ID过滤
+                    if (createdByIdFilter != null && !createdByIdFilter.equals(latestTrialHistory.getCreatedBy())) {
+                        continue;
+                    }
+                    
                     TrialCustomerDTO dto = new TrialCustomerDTO();
                     dto.setCustomerId(customer.getId());
                     dto.setChildName(customer.getChildName());
@@ -305,20 +310,12 @@ public class CustomerService {
                         }
                     }
                     
-                    // 获取创建人名称
-                    String createdByName = null;
+                    // 获取创建人信息
                     if (latestTrialHistory.getCreatedBy() != null) {
+                        dto.setCreatedById(latestTrialHistory.getCreatedBy());
                         Users creator = userRepository.findById(latestTrialHistory.getCreatedBy());
                         if (creator != null) {
-                            createdByName = creator.getNickname() != null ? creator.getNickname() : creator.getUsername();
-                            dto.setCreatedByName(createdByName);
-                        }
-                    }
-                    
-                    // 应用创建人过滤
-                    if (createdByNameFilter != null && !createdByNameFilter.isEmpty()) {
-                        if (createdByName == null || !createdByName.equals(createdByNameFilter)) {
-                            continue;
+                            dto.setCreatedByName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());
                         }
                     }
                     
