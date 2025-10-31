@@ -257,6 +257,11 @@ public class CustomerService {
                 if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
                     && history.getTrialScheduleDate() != null) {
                     
+                    // 过滤掉已取消的体验记录
+                    if (history.getTrialCancelled() != null && history.getTrialCancelled()) {
+                        continue;
+                    }
+                    
                     // 应用日期过滤
                     if (trialDateFilter != null && !history.getTrialScheduleDate().equals(trialDateFilter)) {
                         continue;
