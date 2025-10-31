@@ -26,6 +26,12 @@ public class CustomerStatusHistoryService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private ScheduleService scheduleService;
+    
+    @Autowired
+    private WeeklyInstanceService weeklyInstanceService;
 
     @Transactional
     public CustomerStatusHistoryDTO changeStatus(Long customerId, CustomerStatusChangeRequest request, Long currentUserId) {
@@ -207,7 +213,7 @@ public class CustomerStatusHistoryService {
     }
     
     /**
-     * 标记体验课程为已取消
+     * 标记体验课程为已取消（仅标记，不删除课表）
      */
     public boolean markTrialAsCancelled(Long historyId) {
         try {
@@ -215,6 +221,52 @@ public class CustomerStatusHistoryService {
         } catch (Exception e) {
             throw new RuntimeException("标记体验课程取消失败: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 取消体验课程（事务：标记取消 + 删除课表）
+     * @param historyId 历史记录ID
+     * @param trialScheduleId 课表中的课程ID（可为null）
+     * @param trialTimetableId 课表ID（可为null，周实例不需要）
+     * @param sourceType 课程来源类型：schedule 或 weekly_instance
+     * @return 是否成功
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancelTrialScheduleWithTransaction(
+            Long historyId, 
+            Long trialScheduleId, 
+            Long trialTimetableId,
+            String sourceType) {
+        
+        // 1. 标记历史记录为已取消
+        boolean marked = historyRepository.markTrialAsCancelled(historyId);
+        if (!marked) {
+            throw new RuntimeException("标记体验课程取消失败，未找到该历史记录");
+        }
+        
+        // 2. 如果提供了课表信息，删除课表中的课程
+        if (trialScheduleId != null && sourceType != null) {
+            try {
+                if ("weekly_instance".equals(sourceType)) {
+                    // 删除周实例课程
+                    weeklyInstanceService.deleteInstanceSchedule(trialScheduleId);
+                } else if ("schedule".equals(sourceType)) {
+                    // 删除普通课程，需要 timetableId
+                    if (trialTimetableId == null) {
+                        throw new RuntimeException("删除普通课程时缺少 timetableId");
+                    }
+                    boolean deleted = scheduleService.deleteSchedule(trialTimetableId, trialScheduleId);
+                    if (!deleted) {
+                        throw new RuntimeException("删除课表中的课程失败");
+                    }
+                }
+            } catch (Exception e) {
+                // 删除课表失败，抛出异常触发事务回滚
+                throw new RuntimeException("删除课表中的体验课程失败: " + e.getMessage(), e);
+            }
+        }
+        
+        return true;
     }
 }
 
