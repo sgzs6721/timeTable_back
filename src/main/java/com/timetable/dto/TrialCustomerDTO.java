@@ -1,6 +1,7 @@
 package com.timetable.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 public class TrialCustomerDTO {
@@ -18,6 +19,8 @@ public class TrialCustomerDTO {
     private Integer trialCount; // 第几次体验
     private Long historyId; // 体验历史记录ID，用于取消操作
     private Boolean trialCancelled; // 体验是否已取消
+    private String createdByName; // 录入人姓名
+    private LocalDateTime createdAt; // 录入时间
 
     public TrialCustomerDTO() {
     }
@@ -132,6 +135,22 @@ public class TrialCustomerDTO {
 
     public void setTrialCancelled(Boolean trialCancelled) {
         this.trialCancelled = trialCancelled;
+    }
+
+    public String getCreatedByName() {
+        return createdByName;
+    }
+
+    public void setCreatedByName(String createdByName) {
+        this.createdByName = createdByName;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
 

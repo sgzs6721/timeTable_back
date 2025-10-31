@@ -289,12 +289,21 @@ public class CustomerService {
                     dto.setTrialCount(trialCount);
                     dto.setHistoryId(latestTrialHistory.getId());
                     dto.setTrialCancelled(latestTrialHistory.getTrialCancelled());
+                    dto.setCreatedAt(latestTrialHistory.getCreatedAt());
                     
                     // 获取教练名称
                     if (latestTrialHistory.getTrialCoachId() != null) {
                         Users coach = userRepository.findById(latestTrialHistory.getTrialCoachId());
                         if (coach != null) {
                             dto.setTrialCoachName(coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
+                        }
+                    }
+                    
+                    // 获取创建人名称
+                    if (latestTrialHistory.getCreatedBy() != null) {
+                        Users creator = userRepository.findById(latestTrialHistory.getCreatedBy());
+                        if (creator != null) {
+                            dto.setCreatedByName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());
                         }
                     }
                     
