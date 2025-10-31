@@ -8,11 +8,13 @@ import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.CustomerService;
 import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -133,7 +135,10 @@ public class CustomerController {
     }
 
     @GetMapping("/trials")
-    public ResponseEntity<ApiResponse<List<TrialCustomerDTO>>> getTrialCustomers(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<TrialCustomerDTO>>> getTrialCustomers(
+            Authentication authentication,
+            @RequestParam(required = false) String createdByName,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate trialDate) {
         try {
             Users user = userService.findByUsername(authentication.getName());
             if (user == null) {
@@ -144,7 +149,12 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
             }
 
-            List<TrialCustomerDTO> trials = customerService.getTrialCustomers(user.getId(), user.getOrganizationId());
+            List<TrialCustomerDTO> trials = customerService.getTrialCustomers(
+                user.getId(), 
+                user.getOrganizationId(), 
+                createdByName, 
+                trialDate
+            );
             return ResponseEntity.ok(ApiResponse.success("获取成功", trials));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取待体验客户列表失败: " + e.getMessage()));

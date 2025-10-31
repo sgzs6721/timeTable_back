@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -240,7 +241,7 @@ public class CustomerService {
         return user != null && "ADMIN".equals(user.getRole());
     }
 
-    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId) {
+    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, String createdByNameFilter, LocalDate trialDateFilter) {
         List<TrialCustomerDTO> result = new ArrayList<>();
         
         // 获取用户所在机构的所有待体验和待再体验客户
@@ -276,6 +277,11 @@ public class CustomerService {
                 int trialCount = uniqueTrialTimes.size();
                 
                 if (latestTrialHistory != null && latestTrialHistory.getTrialScheduleDate() != null) {
+                    // 应用日期过滤
+                    if (trialDateFilter != null && !latestTrialHistory.getTrialScheduleDate().equals(trialDateFilter)) {
+                        continue;
+                    }
+                    
                     TrialCustomerDTO dto = new TrialCustomerDTO();
                     dto.setCustomerId(customer.getId());
                     dto.setChildName(customer.getChildName());
@@ -300,10 +306,19 @@ public class CustomerService {
                     }
                     
                     // 获取创建人名称
+                    String createdByName = null;
                     if (latestTrialHistory.getCreatedBy() != null) {
                         Users creator = userRepository.findById(latestTrialHistory.getCreatedBy());
                         if (creator != null) {
-                            dto.setCreatedByName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());
+                            createdByName = creator.getNickname() != null ? creator.getNickname() : creator.getUsername();
+                            dto.setCreatedByName(createdByName);
+                        }
+                    }
+                    
+                    // 应用创建人过滤
+                    if (createdByNameFilter != null && !createdByNameFilter.isEmpty()) {
+                        if (createdByName == null || !createdByName.equals(createdByNameFilter)) {
+                            continue;
                         }
                     }
                     
