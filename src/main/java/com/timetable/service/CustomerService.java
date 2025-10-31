@@ -244,46 +244,26 @@ public class CustomerService {
     public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, Long createdByIdFilter, LocalDate trialDateFilter) {
         List<TrialCustomerDTO> result = new ArrayList<>();
         
-        // 获取用户所在机构的所有待体验和待再体验客户
+        // 获取用户所在机构的所有客户（不限状态）
         List<Customer> customers = customerRepository.findByOrganizationId(organizationId);
         
         for (Customer customer : customers) {
-            if ("SCHEDULED".equals(customer.getStatus()) || "RE_EXPERIENCE".equals(customer.getStatus())) {
-                // 获取最新的体验时间信息
-                List<CustomerStatusHistory> histories = statusHistoryRepository.findByCustomerId(customer.getId());
-                CustomerStatusHistory latestTrialHistory = null;
-                
-                // 统计体验次数：记录中有多少条不同的体验时间
-                // 使用Set来去重，只有体验时间不同才算不同的体验
-                java.util.Set<String> uniqueTrialTimes = new java.util.HashSet<>();
-                
-                for (CustomerStatusHistory history : histories) {
-                    if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
-                        && history.getTrialScheduleDate() != null) {
-                        // 使用日期+时间作为唯一标识
-                        String timeKey = history.getTrialScheduleDate().toString();
-                        if (history.getTrialStartTime() != null) {
-                            timeKey += "_" + history.getTrialStartTime().toString();
-                        }
-                        uniqueTrialTimes.add(timeKey);
-                        
-                        // 找最新的体验安排（第一条包含体验时间的记录）
-                        if (latestTrialHistory == null) {
-                            latestTrialHistory = history;
-                        }
-                    }
-                }
-                
-                int trialCount = uniqueTrialTimes.size();
-                
-                if (latestTrialHistory != null && latestTrialHistory.getTrialScheduleDate() != null) {
+            // 获取该客户的所有状态流转历史
+            List<CustomerStatusHistory> histories = statusHistoryRepository.findByCustomerId(customer.getId());
+            
+            // 遍历所有历史记录，查找所有有体验时间的记录
+            for (CustomerStatusHistory history : histories) {
+                // 只要有体验时间安排的记录都显示（不管当前状态）
+                if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
+                    && history.getTrialScheduleDate() != null) {
+                    
                     // 应用日期过滤
-                    if (trialDateFilter != null && !latestTrialHistory.getTrialScheduleDate().equals(trialDateFilter)) {
+                    if (trialDateFilter != null && !history.getTrialScheduleDate().equals(trialDateFilter)) {
                         continue;
                     }
                     
                     // 应用创建人ID过滤
-                    if (createdByIdFilter != null && !createdByIdFilter.equals(latestTrialHistory.getCreatedBy())) {
+                    if (createdByIdFilter != null && !createdByIdFilter.equals(history.getCreatedBy())) {
                         continue;
                     }
                     
@@ -293,27 +273,26 @@ public class CustomerService {
                     dto.setParentPhone(customer.getParentPhone());
                     dto.setStatus(customer.getStatus());
                     dto.setStatusText(getStatusText(customer.getStatus()));
-                    dto.setTrialScheduleDate(latestTrialHistory.getTrialScheduleDate());
-                    dto.setTrialStartTime(latestTrialHistory.getTrialStartTime());
-                    dto.setTrialEndTime(latestTrialHistory.getTrialEndTime());
-                    dto.setTrialCoachId(latestTrialHistory.getTrialCoachId());
-                    dto.setTrialCount(trialCount);
-                    dto.setHistoryId(latestTrialHistory.getId());
-                    dto.setTrialCancelled(latestTrialHistory.getTrialCancelled());
-                    dto.setCreatedAt(latestTrialHistory.getCreatedAt());
+                    dto.setTrialScheduleDate(history.getTrialScheduleDate());
+                    dto.setTrialStartTime(history.getTrialStartTime());
+                    dto.setTrialEndTime(history.getTrialEndTime());
+                    dto.setTrialCoachId(history.getTrialCoachId());
+                    dto.setHistoryId(history.getId());
+                    dto.setTrialCancelled(history.getTrialCancelled());
+                    dto.setCreatedAt(history.getCreatedAt());
                     
                     // 获取教练名称
-                    if (latestTrialHistory.getTrialCoachId() != null) {
-                        Users coach = userRepository.findById(latestTrialHistory.getTrialCoachId());
+                    if (history.getTrialCoachId() != null) {
+                        Users coach = userRepository.findById(history.getTrialCoachId());
                         if (coach != null) {
                             dto.setTrialCoachName(coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
                         }
                     }
                     
                     // 获取创建人信息
-                    if (latestTrialHistory.getCreatedBy() != null) {
-                        dto.setCreatedById(latestTrialHistory.getCreatedBy());
-                        Users creator = userRepository.findById(latestTrialHistory.getCreatedBy());
+                    if (history.getCreatedBy() != null) {
+                        dto.setCreatedById(history.getCreatedBy());
+                        Users creator = userRepository.findById(history.getCreatedBy());
                         if (creator != null) {
                             dto.setCreatedByName(creator.getNickname() != null ? creator.getNickname() : creator.getUsername());
                         }
