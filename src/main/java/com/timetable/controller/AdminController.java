@@ -766,7 +766,9 @@ public class AdminController {
 
     /**
      * 获取所有教练的课程统计信息（管理员概览）
+     * 所有登录用户都可访问
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/coaches/statistics")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getCoachesStatistics() {
         try {
