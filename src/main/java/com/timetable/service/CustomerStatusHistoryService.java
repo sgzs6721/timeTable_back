@@ -183,6 +183,7 @@ public class CustomerStatusHistoryService {
         dto.setTrialStartTime(history.getTrialStartTime());
         dto.setTrialEndTime(history.getTrialEndTime());
         dto.setTrialCoachId(history.getTrialCoachId());
+        dto.setTrialCancelled(history.getTrialCancelled());
 
         return dto;
     }

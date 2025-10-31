@@ -21,6 +21,7 @@ public class CustomerStatusHistoryDTO {
     private LocalTime trialStartTime;
     private LocalTime trialEndTime;
     private Long trialCoachId;
+    private Boolean trialCancelled;  // 体验课程是否已取消
 
     public CustomerStatusHistoryDTO() {
     }
@@ -135,6 +136,14 @@ public class CustomerStatusHistoryDTO {
 
     public void setTrialCoachId(Long trialCoachId) {
         this.trialCoachId = trialCoachId;
+    }
+
+    public Boolean getTrialCancelled() {
+        return trialCancelled;
+    }
+
+    public void setTrialCancelled(Boolean trialCancelled) {
+        this.trialCancelled = trialCancelled;
     }
 }
 
