@@ -80,6 +80,11 @@ public class CustomerStatusHistoryService {
         history.setTrialCoachId(request.getTrialCoachId());
 
         CustomerStatusHistory savedHistory = historyRepository.save(history);
+        
+        // 如果状态变更为VISITED（已体验），需要将该客户的体验课程标记为已完成
+        // 即：将之前的体验历史记录从待体验状态下移除（通过客户状态已经实现）
+        // 这里不需要额外操作，因为查询待体验列表时会根据客户当前状态过滤
+        
         return convertToDTO(savedHistory);
     }
 
