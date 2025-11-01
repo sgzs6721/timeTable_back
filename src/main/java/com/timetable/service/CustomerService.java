@@ -280,9 +280,10 @@ public class CustomerService {
             
             // 遍历所有历史记录，查找所有有体验时间的记录
             for (CustomerStatusHistory history : histories) {
-                // 只要有体验时间安排的记录都显示（不管当前状态）
+                // 只显示客户当前状态仍为待体验或待再体验的记录
                 if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
-                    && history.getTrialScheduleDate() != null) {
+                    && history.getTrialScheduleDate() != null
+                    && ("SCHEDULED".equals(customer.getStatus()) || "RE_EXPERIENCE".equals(customer.getStatus()))) {
                     
                     // 过滤掉已取消的体验记录
                     if (Boolean.TRUE.equals(history.getTrialCancelled())) {
