@@ -146,7 +146,8 @@ public class CustomerController {
     public ResponseEntity<ApiResponse<List<TrialCustomerDTO>>> getTrialCustomers(
             Authentication authentication,
             @RequestParam(required = false) Long createdById,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate trialDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate trialDate,
+            @RequestParam(required = false, defaultValue = "false") boolean includeAll) {
         try {
             Users user = userService.findByUsername(authentication.getName());
             if (user == null) {
@@ -161,7 +162,8 @@ public class CustomerController {
                 user.getId(), 
                 user.getOrganizationId(), 
                 createdById, 
-                trialDate
+                trialDate,
+                includeAll
             );
             return ResponseEntity.ok(ApiResponse.success("获取成功", trials));
         } catch (Exception e) {

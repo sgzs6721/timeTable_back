@@ -268,7 +268,7 @@ public class CustomerService {
         return user != null && "ADMIN".equals(user.getRole());
     }
 
-    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, Long createdByIdFilter, LocalDate trialDateFilter) {
+    public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, Long createdByIdFilter, LocalDate trialDateFilter, boolean includeAll) {
         List<TrialCustomerDTO> result = new ArrayList<>();
         
         // 获取用户所在机构的所有客户（不限状态）
@@ -280,14 +280,20 @@ public class CustomerService {
             
             // 遍历所有历史记录，查找所有有体验时间的记录
             for (CustomerStatusHistory history : histories) {
-                // 只显示客户当前状态仍为待体验或待再体验的记录
-                if (("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus())) 
-                    && history.getTrialScheduleDate() != null
-                    && ("SCHEDULED".equals(customer.getStatus()) || "RE_EXPERIENCE".equals(customer.getStatus()))) {
-                    
+                // 检查是否为体验相关状态
+                boolean isTrialStatus = ("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus()));
+                
+                if (isTrialStatus && history.getTrialScheduleDate() != null) {
                     // 过滤掉已取消的体验记录
                     if (Boolean.TRUE.equals(history.getTrialCancelled())) {
                         continue;
+                    }
+                    
+                    // 如果不是includeAll模式，只显示当前状态仍为待体验或待再体验的记录
+                    if (!includeAll) {
+                        if (!("SCHEDULED".equals(customer.getStatus()) || "RE_EXPERIENCE".equals(customer.getStatus()))) {
+                            continue;
+                        }
                     }
                     
                     // 应用日期过滤
