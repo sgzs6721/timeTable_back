@@ -258,7 +258,7 @@ public class CustomerService {
                     && history.getTrialScheduleDate() != null) {
                     
                     // 过滤掉已取消的体验记录
-                    if (history.getTrialCancelled() != null && history.getTrialCancelled()) {
+                    if (Boolean.TRUE.equals(history.getTrialCancelled())) {
                         continue;
                     }
                     

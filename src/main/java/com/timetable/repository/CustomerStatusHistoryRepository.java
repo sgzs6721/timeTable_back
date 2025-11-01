@@ -72,6 +72,16 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
                     
+                    // 读取体验取消状态字段
+                    Object trialCancelledObj = record.get(field("trial_cancelled"));
+                    if (trialCancelledObj != null) {
+                        if (trialCancelledObj instanceof Boolean) {
+                            history.setTrialCancelled((Boolean) trialCancelledObj);
+                        } else if (trialCancelledObj instanceof Number) {
+                            history.setTrialCancelled(((Number) trialCancelledObj).intValue() == 1);
+                        }
+                    }
+                    
                     return history;
                 });
     }
@@ -106,6 +116,16 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
+                    
+                    // 读取体验取消状态字段
+                    Object trialCancelledObj = record.get(field("trial_cancelled"));
+                    if (trialCancelledObj != null) {
+                        if (trialCancelledObj instanceof Boolean) {
+                            history.setTrialCancelled((Boolean) trialCancelledObj);
+                        } else if (trialCancelledObj instanceof Number) {
+                            history.setTrialCancelled(((Number) trialCancelledObj).intValue() == 1);
+                        }
+                    }
                     
                     return history;
                 });
