@@ -117,6 +117,33 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
+    public List<CustomerDTO> getCustomersForUser(Long userId, boolean isAdmin, int page, int pageSize) {
+        List<Customer> customers;
+        if (isAdmin) {
+            customers = customerRepository.findAllWithPagination(page, pageSize);
+        } else {
+            customers = customerRepository.findByAssignedSalesIdWithPagination(userId, page, pageSize);
+        }
+        
+        return customers.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<CustomerDTO> getCustomersWithFilters(Long userId, boolean isAdmin, int page, int pageSize,
+                                                       String status, Long salesId, LocalDate filterDate, String keyword) {
+        List<Customer> customers;
+        if (isAdmin) {
+            customers = customerRepository.findAllWithFiltersAndPagination(page, pageSize, status, salesId, filterDate, keyword);
+        } else {
+            customers = customerRepository.findByUserWithFiltersAndPagination(userId, page, pageSize, status, filterDate, keyword);
+        }
+        
+        return customers.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     public CustomerDTO getCustomerById(Long customerId, Long currentUserId, boolean isAdmin) {
         Customer customer = customerRepository.findById(customerId);
         if (customer == null) {

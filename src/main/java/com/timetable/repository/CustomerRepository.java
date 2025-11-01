@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -116,9 +117,81 @@ public class CustomerRepository {
         return jdbcTemplate.query(sql, customerRowMapper, salesId);
     }
 
+    public List<Customer> findByAssignedSalesIdWithPagination(Long salesId, int page, int pageSize) {
+        String sql = "SELECT * FROM customers WHERE assigned_sales_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, customerRowMapper, salesId, pageSize, page * pageSize);
+    }
+
     public List<Customer> findAll() {
         String sql = "SELECT * FROM customers ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, customerRowMapper);
+    }
+
+    public List<Customer> findAllWithPagination(int page, int pageSize) {
+        String sql = "SELECT * FROM customers ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, customerRowMapper, pageSize, page * pageSize);
+    }
+
+    public List<Customer> findAllWithFiltersAndPagination(int page, int pageSize, String status, Long salesId, 
+                                                           java.time.LocalDate filterDate, String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        
+        if (status != null && !status.isEmpty() && !"all".equals(status)) {
+            sql.append(" AND status = ?");
+            params.add(status);
+        }
+        
+        if (salesId != null && salesId > 0) {
+            sql.append(" AND assigned_sales_id = ?");
+            params.add(salesId);
+        }
+        
+        if (filterDate != null) {
+            sql.append(" AND DATE(created_at) = ?");
+            params.add(filterDate);
+        }
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            sql.append(" AND (child_name LIKE ? OR parent_phone LIKE ?)");
+            params.add("%" + keyword + "%");
+            params.add("%" + keyword + "%");
+        }
+        
+        sql.append(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
+        params.add(pageSize);
+        params.add(page * pageSize);
+        
+        return jdbcTemplate.query(sql.toString(), customerRowMapper, params.toArray());
+    }
+
+    public List<Customer> findByUserWithFiltersAndPagination(Long userId, int page, int pageSize, 
+                                                              String status, java.time.LocalDate filterDate, String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE assigned_sales_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(userId);
+        
+        if (status != null && !status.isEmpty() && !"all".equals(status)) {
+            sql.append(" AND status = ?");
+            params.add(status);
+        }
+        
+        if (filterDate != null) {
+            sql.append(" AND DATE(created_at) = ?");
+            params.add(filterDate);
+        }
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            sql.append(" AND (child_name LIKE ? OR parent_phone LIKE ?)");
+            params.add("%" + keyword + "%");
+            params.add("%" + keyword + "%");
+        }
+        
+        sql.append(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
+        params.add(pageSize);
+        params.add(page * pageSize);
+        
+        return jdbcTemplate.query(sql.toString(), customerRowMapper, params.toArray());
     }
 
     public List<Customer> findByStatus(String status) {
