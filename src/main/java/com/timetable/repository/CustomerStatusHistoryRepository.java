@@ -29,6 +29,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     .set(field("trial_start_time"), history.getTrialStartTime())
                     .set(field("trial_end_time"), history.getTrialEndTime())
                     .set(field("trial_coach_id"), history.getTrialCoachId())
+                    .set(field("trial_student_name"), history.getTrialStudentName())
                     .execute();
 
             // 获取最后插入的ID
@@ -71,6 +72,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
+                    history.setTrialStudentName(record.get(field("trial_student_name", String.class)));
                     
                     // 读取体验取消状态字段
                     Object trialCancelledObj = record.get(field("trial_cancelled"));
@@ -116,6 +118,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
+                    history.setTrialStudentName(record.get(field("trial_student_name", String.class)));
                     
                     // 读取体验取消状态字段
                     Object trialCancelledObj = record.get(field("trial_cancelled"));

@@ -78,6 +78,7 @@ public class CustomerStatusHistoryService {
             history.setTrialEndTime(java.time.LocalTime.parse(request.getTrialEndTime()));
         }
         history.setTrialCoachId(request.getTrialCoachId());
+        history.setTrialStudentName(request.getTrialStudentName());
 
         CustomerStatusHistory savedHistory = historyRepository.save(history);
         

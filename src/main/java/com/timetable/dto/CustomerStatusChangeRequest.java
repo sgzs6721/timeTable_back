@@ -15,6 +15,7 @@ public class CustomerStatusChangeRequest {
     private String trialStartTime;
     private String trialEndTime;
     private Long trialCoachId;
+    private String trialStudentName;
 
     public CustomerStatusChangeRequest() {
     }
@@ -65,6 +66,14 @@ public class CustomerStatusChangeRequest {
 
     public void setTrialCoachId(Long trialCoachId) {
         this.trialCoachId = trialCoachId;
+    }
+
+    public String getTrialStudentName() {
+        return trialStudentName;
+    }
+
+    public void setTrialStudentName(String trialStudentName) {
+        this.trialStudentName = trialStudentName;
     }
 }
 
