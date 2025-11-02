@@ -2,7 +2,6 @@ package com.timetable.service;
 
 import com.timetable.dto.StudentOperationRequest;
 import com.timetable.dto.StudentAliasDTO;
-import com.timetable.repository.StudentAliasRepository;
 import com.timetable.repository.TimetableRepository;
 import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
@@ -24,9 +23,6 @@ import java.util.ArrayList;
 public class StudentOperationService {
     
     private static final Logger logger = LoggerFactory.getLogger(StudentOperationService.class);
-    
-    @Autowired
-    private StudentAliasRepository studentAliasRepository;
     
     @Autowired
     private TimetableRepository timetableRepository;
@@ -179,14 +175,11 @@ public class StudentOperationService {
             logger.error("创建或更新别名规则失败", e);
         }
         
-        // 同时创建传统的别名记录（保持兼容性）
+        // 返回DTO（已迁移到student_operation_records）
         StudentAliasDTO alias = new StudentAliasDTO();
         alias.setCoachId(coachId);
         alias.setAliasName(request.getAliasName());
         alias.setStudentNames(Collections.singletonList(request.getOldName()));
-        
-        Long id = studentAliasRepository.save(alias);
-        alias.setId(id);
         return alias;
     }
     
