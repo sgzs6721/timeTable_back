@@ -40,6 +40,7 @@ public class WeeklyInstanceRepository extends BaseRepository {
                     .set(field("last_synced_at"), instance.getLastSyncedAt())
                     .set(field("created_at"), instance.getCreatedAt())
                     .set(field("updated_at"), instance.getUpdatedAt())
+                    .set(field("organization_id"), instance.getOrganizationId())
                     .execute();
             
             if (affectedRows > 0) {
@@ -71,6 +72,7 @@ public class WeeklyInstanceRepository extends BaseRepository {
                     .set(field("is_current"), instance.getIsCurrent())
                     .set(field("generated_at"), instance.getGeneratedAt())
                     .set(field("last_synced_at"), instance.getLastSyncedAt())
+                    .set(field("organization_id"), instance.getOrganizationId())
                     .set(field("updated_at"), LocalDateTime.now())
                     .where(field("id").eq(instance.getId()))
                     .execute();
@@ -264,6 +266,7 @@ public class WeeklyInstanceRepository extends BaseRepository {
         instance.setLastSyncedAt(record.get("last_synced_at", LocalDateTime.class));
         instance.setCreatedAt(record.get("created_at", LocalDateTime.class));
         instance.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
+        instance.setOrganizationId(record.get("organization_id", Long.class));
         return instance;
     }
 

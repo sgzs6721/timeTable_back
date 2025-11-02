@@ -110,6 +110,8 @@ public class WeeklyInstanceService {
         // 创建新的周实例
         System.out.println("创建新周实例，周开始: " + weekStart + ", 周结束: " + weekEnd + ", 年周: " + yearWeek);
         WeeklyInstance instance = new WeeklyInstance(templateTimetableId, weekStart, weekEnd, yearWeek);
+        // 设置机构ID（从模板课表中获取）
+        instance.setOrganizationId(templateTimetable.getOrganizationId());
         
         System.out.println("保存周实例到数据库...");
         instance = weeklyInstanceRepository.save(instance);
@@ -149,7 +151,15 @@ public class WeeklyInstanceService {
             return existingInstance;
         }
 
+        // 获取模板课表以获取机构ID
+        Timetables templateTimetable = timetableRepository.findById(templateTimetableId);
+        if (templateTimetable == null) {
+            throw new IllegalArgumentException("模板课表不存在");
+        }
+
         WeeklyInstance instance = new WeeklyInstance(templateTimetableId, nextWeekStart, nextWeekEnd, yearWeek);
+        // 设置机构ID（从模板课表中获取）
+        instance.setOrganizationId(templateTimetable.getOrganizationId());
         instance = weeklyInstanceRepository.save(instance);
         if (instance.getId() == null) {
             throw new RuntimeException("保存下周实例失败");

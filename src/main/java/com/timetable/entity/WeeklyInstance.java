@@ -17,6 +17,7 @@ public class WeeklyInstance {
     private LocalDateTime lastSyncedAt; // 最后同步时间
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long organizationId;       // 所属机构ID
 
     // 构造函数
     public WeeklyInstance() {}
@@ -112,5 +113,13 @@ public class WeeklyInstance {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 }
