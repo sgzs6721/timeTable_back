@@ -284,17 +284,17 @@ public class CustomerService {
                 boolean isTrialStatus = ("SCHEDULED".equals(history.getToStatus()) || "RE_EXPERIENCE".equals(history.getToStatus()));
                 
                 if (isTrialStatus && history.getTrialScheduleDate() != null) {
-                    // 过滤掉已取消的体验记录
-                    if (Boolean.TRUE.equals(history.getTrialCancelled())) {
-                        continue;
-                    }
-                    
-                    // 如果不是includeAll模式，只显示当前状态仍为待体验或待再体验的记录
+                    // 如果不是includeAll模式，只显示当前状态仍为待体验或待再体验的记录（且未取消）
                     if (!includeAll) {
                         if (!("SCHEDULED".equals(customer.getStatus()) || "RE_EXPERIENCE".equals(customer.getStatus()))) {
                             continue;
                         }
+                        // 非includeAll模式下，过滤掉已取消的体验记录
+                        if (Boolean.TRUE.equals(history.getTrialCancelled())) {
+                            continue;
+                        }
                     }
+                    // includeAll模式下，已取消的记录也会包含在结果中
                     
                     // 应用日期过滤
                     if (trialDateFilter != null && !history.getTrialScheduleDate().equals(trialDateFilter)) {
