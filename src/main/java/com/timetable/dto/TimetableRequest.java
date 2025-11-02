@@ -23,6 +23,8 @@ public class TimetableRequest {
     
     private LocalDate endDate;
     
+    private Long organizationId;
+    
     public enum TimetableType {
         WEEKLY, DATE_RANGE
     }
@@ -76,5 +78,13 @@ public class TimetableRequest {
     
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
+    }
+    
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+    
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 } 

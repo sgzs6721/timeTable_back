@@ -96,6 +96,7 @@ public class AdminController {
         Integer isWeekly = request.get("isWeekly") != null ? (Integer) request.get("isWeekly") : 1;
         String startDateStr = (String) request.get("startDate");
         String endDateStr = (String) request.get("endDate");
+        Long organizationId = request.get("organizationId") != null ? Long.valueOf(request.get("organizationId").toString()) : null;
         
         // 校验必填字段
         if (userId == null) {
@@ -122,6 +123,7 @@ public class AdminController {
             timetableRequest.setType(isWeekly == 1 ? 
                 com.timetable.dto.TimetableRequest.TimetableType.WEEKLY : 
                 com.timetable.dto.TimetableRequest.TimetableType.DATE_RANGE);
+            timetableRequest.setOrganizationId(organizationId);
             
             // 如果是日期范围课表，设置开始和结束日期
             if (isWeekly == 0) {

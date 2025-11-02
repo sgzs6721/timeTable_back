@@ -88,6 +88,17 @@ public class TimetableService {
         timetable.setEndDate(request.getEndDate());
         timetable.setCreatedAt(LocalDateTime.now());
         timetable.setUpdatedAt(LocalDateTime.now());
+        
+        // 设置机构ID：如果request中有，就使用request中的；否则从用户信息中获取
+        if (request.getOrganizationId() != null) {
+            timetable.setOrganizationId(request.getOrganizationId());
+        } else {
+            Users user = userService.findById(userId);
+            if (user != null && user.getOrganizationId() != null) {
+                timetable.setOrganizationId(user.getOrganizationId());
+            }
+        }
+        
         // 判断是否已有活动课表
         List<Timetables> userTables = timetableRepository.findByUserId(userId)
             .stream().filter(t -> t.getIsActive() != null && t.getIsActive() == 1).collect(Collectors.toList());
