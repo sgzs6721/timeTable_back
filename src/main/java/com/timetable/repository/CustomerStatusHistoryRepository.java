@@ -25,6 +25,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     .set(field("notes"), history.getNotes())
                     .set(field("created_by"), history.getCreatedBy())
                     .set(field("created_at"), LocalDateTime.now())
+                    .set(field("organization_id"), history.getOrganizationId())
                     .set(field("trial_schedule_date"), history.getTrialScheduleDate())
                     .set(field("trial_start_time"), history.getTrialStartTime())
                     .set(field("trial_end_time"), history.getTrialEndTime())
@@ -55,6 +56,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setToStatus(record.get(field("to_status", String.class)));
                     history.setNotes(record.get(field("notes", String.class)));
                     history.setCreatedBy(record.get(field("created_by", Long.class)));
+                    history.setOrganizationId(record.get(field("organization_id", Long.class)));
                     
                     // 处理Timestamp到LocalDateTime的转换
                     Object createdAtObj = record.get(field("created_at"));
@@ -101,6 +103,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setToStatus(record.get(field("to_status", String.class)));
                     history.setNotes(record.get(field("notes", String.class)));
                     history.setCreatedBy(record.get(field("created_by", Long.class)));
+                    history.setOrganizationId(record.get(field("organization_id", Long.class)));
                     
                     // 处理Timestamp到LocalDateTime的转换
                     Object createdAtObj = record.get(field("created_at"));

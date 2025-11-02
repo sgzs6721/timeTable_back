@@ -66,6 +66,7 @@ public class CustomerStatusHistoryService {
         history.setToStatus(toStatus);
         history.setNotes(request.getNotes());
         history.setCreatedBy(currentUserId);
+        history.setOrganizationId(customer.getOrganizationId());
         
         // 保存体验课程时间（如果有）
         if (request.getTrialScheduleDate() != null && !request.getTrialScheduleDate().isEmpty()) {

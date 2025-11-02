@@ -8,7 +8,6 @@ import com.timetable.repository.WeeklyInstanceRepository;
 import com.timetable.repository.WeeklyInstanceScheduleRepository;
 import com.timetable.repository.ScheduleRepository;
 import com.timetable.repository.StudentOperationRecordRepository;
-import com.timetable.repository.StudentNamesRepository;
 import com.timetable.entity.WeeklyInstanceSchedule;
 import com.timetable.entity.StudentOperationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,15 +43,12 @@ public class StudentOperationService {
     @Autowired
     private StudentOperationRecordRepository operationRecordRepository;
     
-    @Autowired
-    private StudentNamesRepository studentNamesRepository;
-    
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
      * 重命名学员（创建或更新重命名规则，不直接修改数据）
      */
-    public void renameStudent(Long coachId, StudentOperationRequest request) {
+    public void renameStudent(Long coachId, Long organizationId, StudentOperationRequest request) {
         // 确保名称一致性：trim处理
         String trimmedOldName = request.getOldName() != null ? request.getOldName().trim() : request.getOldName();
         String trimmedNewName = request.getNewName() != null ? request.getNewName().trim() : request.getNewName();
@@ -63,8 +59,8 @@ public class StudentOperationService {
             System.out.println("*** renameStudent DEBUG *** 开始保存重命名规则: 教练ID=" + coachId + ", 原名='" + trimmedOldName + "', 新名='" + trimmedNewName + "'");
             
             // 检查是否已存在相同学员的重命名规则
-            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
-                coachId, "RENAME", trimmedOldName);
+            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOrganizationIdAndOperationTypeAndOldName(
+                coachId, organizationId, "RENAME", trimmedOldName);
             System.out.println("*** renameStudent DEBUG *** 查找已存在记录结果: " + (existingRecord != null ? "找到ID=" + existingRecord.getId() : "未找到"));
             
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
@@ -88,6 +84,7 @@ public class StudentOperationService {
                     trimmedNewName,
                     details
                 );
+                record.setOrganizationId(organizationId);
                 Long recordId = operationRecordRepository.save(record);
                 System.out.println("*** renameStudent DEBUG *** 保存结果: recordId=" + recordId);
                 logger.info("成功创建重命名规则 (ID: {}, 教练ID: {})", recordId, coachId);
@@ -103,14 +100,14 @@ public class StudentOperationService {
     /**
      * 删除学员（创建或更新隐藏规则，不直接修改数据）
      */
-    public void deleteStudent(Long coachId, String studentName) {
+    public void deleteStudent(Long coachId, Long organizationId, String studentName) {
         // 创建或更新隐藏规则，使学员在列表中不显示
         logger.info("创建或更新隐藏规则: {}", studentName);
         
         try {
             // 检查是否已存在相同学员的隐藏规则
-            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
-                coachId, "DELETE", studentName);
+            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOrganizationIdAndOperationTypeAndOldName(
+                coachId, organizationId, "DELETE", studentName);
             
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "HIDE_RULE");
@@ -132,6 +129,7 @@ public class StudentOperationService {
                     "HIDDEN",
                     details
                 );
+                record.setOrganizationId(organizationId);
                 Long recordId = operationRecordRepository.save(record);
                 logger.info("成功创建隐藏规则 (ID: {}, 教练ID: {})", recordId, coachId);
             }
@@ -143,14 +141,14 @@ public class StudentOperationService {
     /**
      * 为学员分配别名（创建或更新别名规则）
      */
-    public StudentAliasDTO assignAlias(Long coachId, StudentOperationRequest request) {
+    public StudentAliasDTO assignAlias(Long coachId, Long organizationId, StudentOperationRequest request) {
         // 创建或更新别名规则
         logger.info("创建或更新别名规则: {} -> {}", request.getOldName(), request.getAliasName());
         
         try {
             // 检查是否已存在相同学员的别名规则
-            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOperationTypeAndOldName(
-                coachId, "ASSIGN_ALIAS", request.getOldName());
+            StudentOperationRecord existingRecord = operationRecordRepository.findByCoachIdAndOrganizationIdAndOperationTypeAndOldName(
+                coachId, organizationId, "ASSIGN_ALIAS", request.getOldName());
             
             java.util.Map<String, Object> detailsMap = new java.util.HashMap<>();
             detailsMap.put("operationType", "ALIAS_RULE");
@@ -173,6 +171,7 @@ public class StudentOperationService {
                     request.getAliasName(),
                     details
                 );
+                record.setOrganizationId(organizationId);
                 Long recordId = operationRecordRepository.save(record);
                 logger.info("成功创建别名规则 (ID: {}, 教练ID: {})", recordId, coachId);
             }
@@ -194,7 +193,7 @@ public class StudentOperationService {
     /**
      * 合并学员（创建合并规则，不直接修改数据）
      */
-    public void mergeStudents(Long coachId, String displayName, List<String> studentNames) {
+    public void mergeStudents(Long coachId, Long organizationId, String displayName, List<String> studentNames) {
         // 创建合并规则
         logger.info("创建合并规则: {} -> {}", studentNames, displayName);
         
@@ -213,6 +212,7 @@ public class StudentOperationService {
                 displayName,
                 details
             );
+            record.setOrganizationId(organizationId);
             Long recordId = operationRecordRepository.save(record);
             logger.info("成功创建合并规则 (ID: {}, 教练ID: {})", recordId, coachId);
         } catch (Exception e) {

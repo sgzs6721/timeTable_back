@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public class StudentOperationRecord {
     private Long id;
     private Long coachId;
+    private Long organizationId;
     private String operationType; // RENAME, DELETE, ASSIGN_ALIAS, MERGE
     private Long studentId; // 学员ID，引用student_names表
     private String oldName;
@@ -54,6 +55,14 @@ public class StudentOperationRecord {
     
     public void setCoachId(Long coachId) {
         this.coachId = coachId;
+    }
+    
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+    
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
     
     public Long getStudentId() {

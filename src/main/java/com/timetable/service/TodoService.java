@@ -26,7 +26,7 @@ public class TodoService {
     private CustomerStatusHistoryService historyService;
 
     @Transactional
-    public TodoDTO createTodo(TodoRequest request, Long userId) {
+    public TodoDTO createTodo(TodoRequest request, Long userId, Long organizationId) {
         Todo todo = new Todo();
         todo.setCustomerId(request.getCustomerId());
         todo.setCustomerName(request.getCustomerName());
@@ -36,27 +36,28 @@ public class TodoService {
         todo.setType(request.getType() != null ? request.getType() : "CUSTOMER_FOLLOW_UP");
         todo.setStatus(request.getStatus() != null ? request.getStatus() : "PENDING");
         todo.setCreatedBy(userId);
+        todo.setOrganizationId(organizationId);
 
         Todo created = todoRepository.create(todo);
         return convertToDTO(created);
     }
 
-    public List<TodoDTO> getTodosByUser(Long userId) {
-        List<Todo> todos = todoRepository.findByCreatedBy(userId);
+    public List<TodoDTO> getTodosByUser(Long userId, Long organizationId) {
+        List<Todo> todos = todoRepository.findByCreatedByAndOrganizationId(userId, organizationId);
         return todos.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<TodoDTO> getTodosByUserAndStatus(Long userId, String status) {
-        List<Todo> todos = todoRepository.findByCreatedByAndStatus(userId, status);
+    public List<TodoDTO> getTodosByUserAndStatus(Long userId, String status, Long organizationId) {
+        List<Todo> todos = todoRepository.findByCreatedByAndStatusAndOrganizationId(userId, status, organizationId);
         return todos.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    public int getUnreadCount(Long userId) {
-        return todoRepository.countUnreadByCreatedBy(userId);
+    public int getUnreadCount(Long userId, Long organizationId) {
+        return todoRepository.countUnreadByCreatedByAndOrganizationId(userId, organizationId);
     }
 
     @Transactional
@@ -79,12 +80,12 @@ public class TodoService {
         return todoRepository.delete(todoId) > 0;
     }
 
-    public boolean customerHasTodo(Long customerId) {
-        return todoRepository.existsByCustomerId(customerId);
+    public boolean customerHasTodo(Long customerId, Long organizationId) {
+        return todoRepository.existsByCustomerIdAndOrganizationId(customerId, organizationId);
     }
 
-    public TodoDTO getLatestTodoForCustomer(Long customerId) {
-        Todo todo = todoRepository.findLatestTodoByCustomerId(customerId);
+    public TodoDTO getLatestTodoForCustomer(Long customerId, Long organizationId) {
+        Todo todo = todoRepository.findLatestTodoByCustomerIdAndOrganizationId(customerId, organizationId);
         return todo != null ? convertToDTO(todo) : null;
     }
 
@@ -188,6 +189,7 @@ public class TodoService {
         dto.setIsRead(todo.getIsRead());
         dto.setCompletedAt(todo.getCompletedAt());
         dto.setCreatedBy(todo.getCreatedBy());
+        dto.setOrganizationId(todo.getOrganizationId());
         dto.setCreatedAt(todo.getCreatedAt());
         dto.setUpdatedAt(todo.getUpdatedAt());
         

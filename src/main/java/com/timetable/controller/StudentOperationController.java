@@ -35,7 +35,11 @@ public class StudentOperationController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
-            studentOperationService.renameStudent(user.getId(), request);
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+            
+            studentOperationService.renameStudent(user.getId(), user.getOrganizationId(), request);
             return ResponseEntity.ok(ApiResponse.success("重命名学员成功", null));
         } catch (Exception e) {
             logger.error("重命名学员失败", e);
@@ -53,7 +57,11 @@ public class StudentOperationController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
-            studentOperationService.deleteStudent(user.getId(), request.getOldName());
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+            
+            studentOperationService.deleteStudent(user.getId(), user.getOrganizationId(), request.getOldName());
             return ResponseEntity.ok(ApiResponse.success("创建隐藏规则成功", null));
         } catch (Exception e) {
             logger.error("创建隐藏规则失败", e);
@@ -71,7 +79,11 @@ public class StudentOperationController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
-            StudentAliasDTO alias = studentOperationService.assignAlias(user.getId(), request);
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+            
+            StudentAliasDTO alias = studentOperationService.assignAlias(user.getId(), user.getOrganizationId(), request);
             return ResponseEntity.ok(ApiResponse.success("分配别名成功", alias));
         } catch (Exception e) {
             logger.error("分配别名失败", e);
@@ -89,7 +101,11 @@ public class StudentOperationController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
-            studentOperationService.mergeStudents(user.getId(), request.getDisplayName(), request.getStudentNames());
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+            
+            studentOperationService.mergeStudents(user.getId(), user.getOrganizationId(), request.getDisplayName(), request.getStudentNames());
             return ResponseEntity.ok(ApiResponse.success("创建合并规则成功", null));
         } catch (Exception e) {
             logger.error("创建合并规则失败", e);

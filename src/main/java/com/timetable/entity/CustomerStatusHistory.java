@@ -12,6 +12,7 @@ public class CustomerStatusHistory {
     private String notes;
     private Long createdBy;
     private LocalDateTime createdAt;
+    private Long organizationId;
     
     // 体验课程相关字段
     private LocalDate trialScheduleDate;
@@ -81,6 +82,14 @@ public class CustomerStatusHistory {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public LocalDate getTrialScheduleDate() {

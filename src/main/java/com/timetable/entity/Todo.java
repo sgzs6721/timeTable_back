@@ -16,6 +16,7 @@ public class Todo {
     private Boolean isRead;
     private LocalDateTime completedAt;
     private Long createdBy;
+    private Long organizationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean deleted;
@@ -112,6 +113,14 @@ public class Todo {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -36,6 +36,10 @@ public class StudentOperationRecordController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
             List<StudentOperationRecord> records;
             
             // 如果是管理员且请求查看所有记录
@@ -43,7 +47,7 @@ public class StudentOperationRecordController {
                 records = operationRecordService.getAllRecords();
             } else {
                 // 普通用户或管理员不查看全部时，只返回自己的记录
-                records = operationRecordService.getRecordsByCoachId(user.getId());
+                records = operationRecordService.getRecordsByCoachIdAndOrganizationId(user.getId(), user.getOrganizationId());
             }
             
             return ResponseEntity.ok(ApiResponse.success("获取操作记录成功", records));

@@ -29,6 +29,7 @@ public class TodoRepository extends BaseRepository {
                 .set(TODOS.STATUS, todo.getStatus())
                 .set(TODOS.IS_READ, (byte) 0)
                 .set(TODOS.CREATED_BY, todo.getCreatedBy())
+                .set(TODOS.ORGANIZATION_ID, todo.getOrganizationId())
                 .set(TODOS.CREATED_AT, LocalDateTime.now())
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .set(TODOS.DELETED, (byte) 0)
@@ -47,27 +48,30 @@ public class TodoRepository extends BaseRepository {
                 .fetchOneInto(Todo.class);
     }
 
-    public List<Todo> findByCreatedBy(Long userId) {
+    public List<Todo> findByCreatedByAndOrganizationId(Long userId, Long organizationId) {
         return dsl.selectFrom(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
+                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
 
-    public List<Todo> findByCreatedByAndStatus(Long userId, String status) {
+    public List<Todo> findByCreatedByAndStatusAndOrganizationId(Long userId, String status, Long organizationId) {
         return dsl.selectFrom(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
+                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.STATUS.eq(status))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
 
-    public int countUnreadByCreatedBy(Long userId) {
+    public int countUnreadByCreatedByAndOrganizationId(Long userId, Long organizationId) {
         return dsl.selectCount()
                 .from(TODOS)
                 .where(TODOS.CREATED_BY.eq(userId))
+                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.STATUS.ne("COMPLETED"))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .fetchOne(0, int.class);
@@ -109,19 +113,21 @@ public class TodoRepository extends BaseRepository {
                 .execute();
     }
 
-    public boolean existsByCustomerId(Long customerId) {
+    public boolean existsByCustomerIdAndOrganizationId(Long customerId, Long organizationId) {
         Integer count = dsl.selectCount()
                 .from(TODOS)
                 .where(TODOS.CUSTOMER_ID.eq(customerId))
+                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .and(TODOS.STATUS.ne("COMPLETED"))
                 .fetchOne(0, Integer.class);
         return count != null && count > 0;
     }
 
-    public Todo findLatestTodoByCustomerId(Long customerId) {
+    public Todo findLatestTodoByCustomerIdAndOrganizationId(Long customerId, Long organizationId) {
         return dsl.selectFrom(TODOS)
                 .where(TODOS.CUSTOMER_ID.eq(customerId))
+                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .and(TODOS.STATUS.ne("COMPLETED"))
                 .orderBy(TODOS.CREATED_AT.desc())
@@ -138,6 +144,7 @@ public class TodoRepository extends BaseRepository {
                 .set(TODOS.REMINDER_TIME, todo.getReminderTime())
                 .set(TODOS.TYPE, todo.getType())
                 .set(TODOS.STATUS, todo.getStatus())
+                .set(TODOS.ORGANIZATION_ID, todo.getOrganizationId())
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .where(TODOS.ID.eq(todo.getId()))
                 .and(TODOS.DELETED.eq((byte) 0))

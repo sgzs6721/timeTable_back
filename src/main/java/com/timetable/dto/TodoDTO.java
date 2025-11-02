@@ -22,6 +22,7 @@ public class TodoDTO {
     private Boolean isRead;
     private LocalDateTime completedAt;
     private Long createdBy;
+    private Long organizationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CustomerStatusHistoryDTO> statusHistory;
@@ -152,6 +153,14 @@ public class TodoDTO {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public LocalDateTime getCreatedAt() {

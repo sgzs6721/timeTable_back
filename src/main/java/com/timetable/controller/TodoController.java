@@ -35,7 +35,11 @@ public class TodoController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            TodoDTO todo = todoService.createTodo(request, user.getId());
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
+            TodoDTO todo = todoService.createTodo(request, user.getId(), user.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("创建成功", todo));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("创建待办失败: " + e.getMessage()));
@@ -52,11 +56,15 @@ public class TodoController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
             List<TodoDTO> todos;
             if (status != null && !status.isEmpty()) {
-                todos = todoService.getTodosByUserAndStatus(user.getId(), status);
+                todos = todoService.getTodosByUserAndStatus(user.getId(), status, user.getOrganizationId());
             } else {
-                todos = todoService.getTodosByUser(user.getId());
+                todos = todoService.getTodosByUser(user.getId(), user.getOrganizationId());
             }
 
             return ResponseEntity.ok(ApiResponse.success("获取成功", todos));
@@ -74,7 +82,11 @@ public class TodoController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            int count = todoService.getUnreadCount(user.getId());
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
+            int count = todoService.getUnreadCount(user.getId(), user.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("获取成功", count));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取未读数量失败: " + e.getMessage()));
@@ -129,9 +141,15 @@ public class TodoController {
 
     @GetMapping("/customer/{customerId}/exists")
     public ResponseEntity<ApiResponse<Boolean>> checkCustomerHasTodo(
-            @PathVariable Long customerId) {
+            @PathVariable Long customerId,
+            Authentication authentication) {
         try {
-            boolean hasTodo = todoService.customerHasTodo(customerId);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null || user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
+            boolean hasTodo = todoService.customerHasTodo(customerId, user.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("查询成功", hasTodo));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("查询失败: " + e.getMessage()));
@@ -140,9 +158,15 @@ public class TodoController {
 
     @GetMapping("/customer/{customerId}/latest")
     public ResponseEntity<ApiResponse<TodoDTO>> getLatestTodoForCustomer(
-            @PathVariable Long customerId) {
+            @PathVariable Long customerId,
+            Authentication authentication) {
         try {
-            TodoDTO todo = todoService.getLatestTodoForCustomer(customerId);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null || user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
+            TodoDTO todo = todoService.getLatestTodoForCustomer(customerId, user.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("获取成功", todo));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取失败: " + e.getMessage()));

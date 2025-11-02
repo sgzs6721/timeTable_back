@@ -29,6 +29,7 @@ public class StudentOperationRecordRepository extends BaseRepository {
             // 创建新记录 - 使用JOOQ的returningResult来获取生成的ID
             Record result = dsl.insertInto(table("student_operation_records"))
                     .set(field("coach_id"), record.getCoachId())
+                    .set(field("organization_id"), record.getOrganizationId())
                     .set(field("operation_type"), record.getOperationType())
                     .set(field("old_name"), record.getOldName())
                     .set(field("new_name"), record.getNewName())
@@ -51,6 +52,7 @@ public class StudentOperationRecordRepository extends BaseRepository {
             // 更新现有记录
             int affectedRows = dsl.update(table("student_operation_records"))
                     .set(field("coach_id"), record.getCoachId())
+                    .set(field("organization_id"), record.getOrganizationId())
                     .set(field("operation_type"), record.getOperationType())
                     .set(field("old_name"), record.getOldName())
                     .set(field("new_name"), record.getNewName())
@@ -77,12 +79,26 @@ public class StudentOperationRecordRepository extends BaseRepository {
     }
     
     /**
-     * 根据教练ID查找所有操作记录
+     * 根据教练ID查找所有操作记录（旧方法，保持兼容性）
      */
     public List<StudentOperationRecord> findByCoachId(Long coachId) {
         Result<Record> records = dsl.select()
                 .from(table("student_operation_records"))
                 .where(field("coach_id").eq(coachId))
+                .orderBy(field("created_at").desc())
+                .fetch();
+        
+        return records.map(this::mapToStudentOperationRecord);
+    }
+
+    /**
+     * 根据教练ID和机构ID查找所有操作记录
+     */
+    public List<StudentOperationRecord> findByCoachIdAndOrganizationId(Long coachId, Long organizationId) {
+        Result<Record> records = dsl.select()
+                .from(table("student_operation_records"))
+                .where(field("coach_id").eq(coachId))
+                .and(field("organization_id").eq(organizationId))
                 .orderBy(field("created_at").desc())
                 .fetch();
         
@@ -115,12 +131,27 @@ public class StudentOperationRecordRepository extends BaseRepository {
     }
 
     /**
-     * 根据教练ID、操作类型和原名称查找操作记录
+     * 根据教练ID、操作类型和原名称查找操作记录（旧方法，保持兼容性）
      */
     public StudentOperationRecord findByCoachIdAndOperationTypeAndOldName(Long coachId, String operationType, String oldName) {
         Record record = dsl.select()
                 .from(table("student_operation_records"))
                 .where(field("coach_id").eq(coachId))
+                .and(field("operation_type").eq(operationType))
+                .and(field("old_name").eq(oldName))
+                .fetchOne();
+        
+        return record != null ? mapToStudentOperationRecord(record) : null;
+    }
+
+    /**
+     * 根据教练ID、机构ID、操作类型和原名称查找操作记录
+     */
+    public StudentOperationRecord findByCoachIdAndOrganizationIdAndOperationTypeAndOldName(Long coachId, Long organizationId, String operationType, String oldName) {
+        Record record = dsl.select()
+                .from(table("student_operation_records"))
+                .where(field("coach_id").eq(coachId))
+                .and(field("organization_id").eq(organizationId))
                 .and(field("operation_type").eq(operationType))
                 .and(field("old_name").eq(oldName))
                 .fetchOne();
@@ -142,6 +173,7 @@ public class StudentOperationRecordRepository extends BaseRepository {
      */
     public StudentOperationRecord update(StudentOperationRecord record) {
         dsl.update(table("student_operation_records"))
+                .set(field("organization_id"), record.getOrganizationId())
                 .set(field("old_name"), record.getOldName())
                 .set(field("new_name"), record.getNewName())
                 .set(field("details"), record.getDetails())
@@ -159,8 +191,8 @@ public class StudentOperationRecordRepository extends BaseRepository {
         StudentOperationRecord operationRecord = new StudentOperationRecord();
         operationRecord.setId(record.get("id", Long.class));
         operationRecord.setCoachId(record.get("coach_id", Long.class));
+        operationRecord.setOrganizationId(record.get("organization_id", Long.class));
         operationRecord.setOperationType(record.get("operation_type", String.class));
-        // operationRecord.setStudentId(record.get("student_id", Long.class)); // 暂时注释掉，数据库还没有这个字段
         operationRecord.setOldName(record.get("old_name", String.class));
         operationRecord.setNewName(record.get("new_name", String.class));
         operationRecord.setDetails(record.get("details", String.class));

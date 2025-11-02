@@ -21,10 +21,10 @@ public class StudentOperationRecordService {
     }
     
     /**
-     * 根据教练ID获取所有操作记录
+     * 根据教练ID和机构ID获取所有操作记录
      */
-    public List<StudentOperationRecord> getRecordsByCoachId(Long coachId) {
-        return operationRecordRepository.findByCoachId(coachId);
+    public List<StudentOperationRecord> getRecordsByCoachIdAndOrganizationId(Long coachId, Long organizationId) {
+        return operationRecordRepository.findByCoachIdAndOrganizationId(coachId, organizationId);
     }
     
     /**
