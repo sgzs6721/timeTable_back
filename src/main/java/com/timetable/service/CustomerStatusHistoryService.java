@@ -196,6 +196,14 @@ public class CustomerStatusHistoryService {
         dto.setTrialEndTime(history.getTrialEndTime());
         dto.setTrialCoachId(history.getTrialCoachId());
         dto.setTrialCancelled(history.getTrialCancelled());
+        
+        // 获取教练姓名
+        if (history.getTrialCoachId() != null) {
+            Users coach = userRepository.findById(history.getTrialCoachId());
+            if (coach != null) {
+                dto.setTrialCoachName(coach.getNickname() != null ? coach.getNickname() : coach.getUsername());
+            }
+        }
 
         return dto;
     }
