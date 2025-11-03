@@ -76,6 +76,11 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
                     history.setTrialStudentName(record.get(field("trial_student_name", String.class)));
                     
+                    // 读取体验课表信息字段
+                    history.setTrialScheduleId(record.get(field("trial_schedule_id", Long.class)));
+                    history.setTrialTimetableId(record.get(field("trial_timetable_id", Long.class)));
+                    history.setTrialSourceType(record.get(field("trial_source_type", String.class)));
+                    
                     // 读取体验取消状态字段
                     Object trialCancelledObj = record.get(field("trial_cancelled"));
                     if (trialCancelledObj != null) {
@@ -122,6 +127,11 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
                     history.setTrialStudentName(record.get(field("trial_student_name", String.class)));
+                    
+                    // 读取体验课表信息字段
+                    history.setTrialScheduleId(record.get(field("trial_schedule_id", Long.class)));
+                    history.setTrialTimetableId(record.get(field("trial_timetable_id", Long.class)));
+                    history.setTrialSourceType(record.get(field("trial_source_type", String.class)));
                     
                     // 读取体验取消状态字段
                     Object trialCancelledObj = record.get(field("trial_cancelled"));
@@ -172,6 +182,22 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
             return updated > 0;
         } catch (Exception e) {
             throw new RuntimeException("标记体验课程取消失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 更新体验课程的课表信息（scheduleId, timetableId, sourceType）
+     */
+    public void updateTrialScheduleInfo(Long historyId, Long scheduleId, Long timetableId, String sourceType) {
+        try {
+            dsl.update(table("customer_status_history"))
+                    .set(field("trial_schedule_id"), scheduleId)
+                    .set(field("trial_timetable_id"), timetableId)
+                    .set(field("trial_source_type"), sourceType)
+                    .where(field("id").eq(historyId))
+                    .execute();
+        } catch (Exception e) {
+            throw new RuntimeException("更新体验课程课表信息失败: " + e.getMessage(), e);
         }
     }
 }

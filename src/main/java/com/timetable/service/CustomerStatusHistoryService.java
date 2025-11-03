@@ -81,7 +81,47 @@ public class CustomerStatusHistoryService {
         history.setTrialCoachId(request.getTrialCoachId());
         history.setTrialStudentName(request.getTrialStudentName());
 
+        // 先保存流转记录
         CustomerStatusHistory savedHistory = historyRepository.save(history);
+        
+        // 如果有教练ID，说明需要创建课表中的课程
+        if (request.getTrialCoachId() != null && 
+            request.getTrialScheduleDate() != null && !request.getTrialScheduleDate().isEmpty() &&
+            request.getTrialStartTime() != null && !request.getTrialStartTime().isEmpty() &&
+            request.getTrialEndTime() != null && !request.getTrialEndTime().isEmpty() &&
+            request.getTrialStudentName() != null && !request.getTrialStudentName().isEmpty()) {
+            
+            try {
+                // 构建体验课程请求
+                com.timetable.dto.TrialScheduleRequest trialRequest = new com.timetable.dto.TrialScheduleRequest();
+                trialRequest.setCoachId(request.getTrialCoachId());
+                trialRequest.setScheduleDate(request.getTrialScheduleDate());
+                trialRequest.setStartTime(request.getTrialStartTime());
+                trialRequest.setEndTime(request.getTrialEndTime());
+                trialRequest.setStudentName(request.getTrialStudentName());
+                trialRequest.setCustomerPhone(customer.getParentPhone());
+                trialRequest.setIsTrial(true);
+                trialRequest.setCustomerId(customerId);
+                
+                // 创建课表中的课程
+                com.timetable.dto.TrialScheduleInfo scheduleInfo = scheduleService.createTrialSchedule(trialRequest, user);
+                
+                // 更新流转记录，保存课程ID等信息
+                savedHistory.setTrialScheduleId(scheduleInfo.getScheduleId());
+                savedHistory.setTrialTimetableId(scheduleInfo.getTimetableId());
+                savedHistory.setTrialSourceType(scheduleInfo.getSourceType());
+                historyRepository.updateTrialScheduleInfo(
+                    savedHistory.getId(), 
+                    scheduleInfo.getScheduleId(), 
+                    scheduleInfo.getTimetableId(), 
+                    scheduleInfo.getSourceType()
+                );
+                
+            } catch (Exception e) {
+                // 创建课表课程失败，抛出异常，事务回滚
+                throw new RuntimeException("创建体验课程到课表失败: " + e.getMessage(), e);
+            }
+        }
         
         // 如果状态变更为VISITED（已体验），需要将该客户的体验课程标记为已完成
         // 即：将之前的体验历史记录从待体验状态下移除（通过客户状态已经实现）
@@ -259,29 +299,35 @@ public class CustomerStatusHistoryService {
             throw new RuntimeException("标记体验课程取消失败");
         }
         
-        // 3. 如果历史记录中存储了课表信息，删除课表中的课程
-        Long trialScheduleId = history.getTrialScheduleId();
-        Long trialTimetableId = history.getTrialTimetableId();
-        String sourceType = history.getTrialSourceType();
+        // 3. 只有当体验课程关联了教练时，才从课表中删除
+        // 如果没有关联教练，说明这个体验课程没有安排到课表里，只需要标记为已取消即可
+        Long trialCoachId = history.getTrialCoachId();
         
-        if (trialScheduleId != null && sourceType != null) {
-            try {
-                if ("weekly_instance".equals(sourceType)) {
-                    // 删除周实例课程
-                    weeklyInstanceService.deleteInstanceSchedule(trialScheduleId);
-                } else if ("schedule".equals(sourceType)) {
-                    // 删除普通课程，需要 timetableId
-                    if (trialTimetableId == null) {
-                        throw new RuntimeException("删除普通课程时缺少 timetableId");
+        if (trialCoachId != null) {
+            // 有关联教练，需要从课表中删除课程
+            Long trialScheduleId = history.getTrialScheduleId();
+            Long trialTimetableId = history.getTrialTimetableId();
+            String sourceType = history.getTrialSourceType();
+            
+            if (trialScheduleId != null && sourceType != null) {
+                try {
+                    if ("weekly_instance".equals(sourceType)) {
+                        // 删除周实例课程
+                        weeklyInstanceService.deleteInstanceSchedule(trialScheduleId);
+                    } else if ("schedule".equals(sourceType)) {
+                        // 删除普通课程，需要 timetableId
+                        if (trialTimetableId == null) {
+                            throw new RuntimeException("删除普通课程时缺少 timetableId");
+                        }
+                        boolean deleted = scheduleService.deleteSchedule(trialTimetableId, trialScheduleId);
+                        if (!deleted) {
+                            throw new RuntimeException("删除课表中的课程失败");
+                        }
                     }
-                    boolean deleted = scheduleService.deleteSchedule(trialTimetableId, trialScheduleId);
-                    if (!deleted) {
-                        throw new RuntimeException("删除课表中的课程失败");
-                    }
+                } catch (Exception e) {
+                    // 删除课表失败，抛出异常触发事务回滚
+                    throw new RuntimeException("删除课表中的体验课程失败: " + e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                // 删除课表失败，抛出异常触发事务回滚
-                throw new RuntimeException("删除课表中的体验课程失败: " + e.getMessage(), e);
             }
         }
         

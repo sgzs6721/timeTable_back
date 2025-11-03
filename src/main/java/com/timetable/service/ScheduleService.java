@@ -1526,8 +1526,9 @@ public class ScheduleService {
      * 创建体验课程
      * @param request 体验课请求
      * @param createdBy 创建者
+     * @return 体验课程信息（包含课程ID、课表ID、来源类型）
      */
-    public void createTrialSchedule(com.timetable.dto.TrialScheduleRequest request, com.timetable.generated.tables.pojos.Users createdBy) {
+    public com.timetable.dto.TrialScheduleInfo createTrialSchedule(com.timetable.dto.TrialScheduleRequest request, com.timetable.generated.tables.pojos.Users createdBy) {
         try {
             // 1. 获取教练的活动课表
             Timetables activeTimetable = timetableRepository.findActiveTimetableByUserId(request.getCoachId());
@@ -1543,6 +1544,7 @@ public class ScheduleService {
             // 2. 再次检查时间冲突
             boolean hasConflict = false;
             Long targetId = null; // 用于保存课程的目标ID（课表ID或实例ID）
+            String sourceType = null; // 来源类型
             
             if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
                 // 周固定课表：需要保存到当前周实例
@@ -1555,6 +1557,7 @@ public class ScheduleService {
                 
                 if (currentInstance != null) {
                     targetId = currentInstance.getId();
+                    sourceType = "weekly_instance";
                     List<Schedules> existingSchedules = scheduleRepository.findByInstanceAndDateTime(
                         currentInstance.getId(), scheduleDate, startTime, endTime);
                     hasConflict = !existingSchedules.isEmpty();
@@ -1562,6 +1565,7 @@ public class ScheduleService {
             } else {
                 // 日期范围课表：直接保存到课表
                 targetId = activeTimetable.getId();
+                sourceType = "schedule";
                 List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
                     activeTimetable.getId(), scheduleDate, startTime, endTime);
                 hasConflict = !existingSchedules.isEmpty();
@@ -1576,7 +1580,8 @@ public class ScheduleService {
             String noteText = request.getCustomerPhone() != null ? "联系电话: " + request.getCustomerPhone() : null;
             boolean isTrial = request.getIsTrial() != null && request.getIsTrial();
             
-            // 4. 保存课程
+            // 4. 保存课程并获取ID
+            Long scheduleId = null;
             if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
                 // 保存到周实例 - 使用WeeklyInstanceSchedules对象
                 com.timetable.generated.tables.pojos.WeeklyInstanceSchedules instanceSchedule = 
@@ -1590,7 +1595,7 @@ public class ScheduleService {
                 instanceSchedule.setNote(noteText);
                 instanceSchedule.setCreatedAt(LocalDateTime.now());
                 instanceSchedule.setUpdatedAt(LocalDateTime.now());
-                scheduleRepository.insertInstanceSchedule(instanceSchedule, isTrial, request.getCustomerId());
+                scheduleId = scheduleRepository.insertInstanceSchedule(instanceSchedule, isTrial, request.getCustomerId());
             } else {
                 // 保存到课表 - 使用Schedules对象
                 Schedules schedule = new Schedules();
@@ -1603,11 +1608,14 @@ public class ScheduleService {
                 schedule.setNote(noteText);
                 schedule.setCreatedAt(LocalDateTime.now());
                 schedule.setUpdatedAt(LocalDateTime.now());
-                scheduleRepository.insertSchedule(schedule, isTrial, request.getCustomerId());
+                scheduleId = scheduleRepository.insertSchedule(schedule, isTrial, request.getCustomerId());
             }
             
-            logger.info("体验课创建成功: 教练ID={}, 学员={}, 日期={}, 时间={}-{}",
-                request.getCoachId(), request.getStudentName(), scheduleDate, startTime, endTime);
+            logger.info("体验课创建成功: 教练ID={}, 学员={}, 日期={}, 时间={}-{}, scheduleId={}, sourceType={}",
+                request.getCoachId(), request.getStudentName(), scheduleDate, startTime, endTime, scheduleId, sourceType);
+            
+            // 返回课程信息
+            return new com.timetable.dto.TrialScheduleInfo(scheduleId, targetId, sourceType);
                 
         } catch (Exception e) {
             logger.error("创建体验课失败", e);
