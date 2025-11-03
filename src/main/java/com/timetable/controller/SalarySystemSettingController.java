@@ -44,6 +44,25 @@ public class SalarySystemSettingController {
     }
 
     /**
+     * 获取当前工资系统设置（所有用户可访问，用于查询记薪周期）
+     */
+    @GetMapping("/current")
+    public ResponseEntity<ApiResponse<SalarySystemSetting>> getCurrentSettingForAll(
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            SalarySystemSetting setting = salarySystemSettingService.getCurrentSetting();
+            return ResponseEntity.ok(ApiResponse.success("获取工资系统设置成功", setting));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error("获取工资系统设置失败: " + e.getMessage()));
+        }
+    }
+
+    /**
      * 保存或更新工资系统设置（仅管理员）
      */
     @PostMapping
