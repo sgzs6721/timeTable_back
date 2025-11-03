@@ -1795,6 +1795,10 @@ public class WeeklyInstanceService {
         
         logger.info("获取学员记录: 显示名={}, 需要查询的学员名={}, 教练={}", displayName, studentNamesToQuery, coachName);
         
+        // 将查询的学员名列表添加到返回结果中，方便调试
+        result.put("queriedNames", studentNamesToQuery);
+        result.put("displayName", displayName);
+        
         try {
             // 获取当前日期和时间，只显示过去的课程记录
             LocalDate today = LocalDate.now();
