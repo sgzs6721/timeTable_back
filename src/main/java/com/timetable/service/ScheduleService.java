@@ -1625,30 +1625,57 @@ public class ScheduleService {
 
     public Map<String, Object> findTrialScheduleByStudentName(String studentName) {
         try {
-            // 优先从状态流转记录中查询体验时间
-            // 通过原生SQL查询最新的待体验状态记录
+            // 1. 优先从状态流转记录中查询体验时间
             String sql = "SELECT csh.trial_schedule_date, csh.trial_start_time, csh.trial_end_time, csh.trial_coach_id, " +
                         "c.id as customer_id " +
                         "FROM customer_status_history csh " +
                         "JOIN customers c ON csh.customer_id = c.id " +
                         "WHERE c.child_name = ? AND csh.to_status = 'SCHEDULED' " +
                         "AND csh.trial_schedule_date IS NOT NULL " +
+                        "AND (csh.trial_cancelled IS NULL OR csh.trial_cancelled = FALSE) " +
                         "ORDER BY csh.created_at DESC " +
                         "LIMIT 1";
             
             List<Map<String, Object>> statusRecords = scheduleRepository.queryForMaps(sql, studentName);
             if (statusRecords != null && !statusRecords.isEmpty()) {
-                // 从状态记录中获取到了体验时间，但还需要查询课表中的实际课程
-                // 继续执行后面的逻辑，从课表中查询完整信息
+                Map<String, Object> statusRecord = statusRecords.get(0);
+                
+                // 构造返回结果（从流转记录中获取）
+                Map<String, Object> result = new HashMap<>();
+                result.put("scheduleDate", statusRecord.get("trial_schedule_date"));
+                result.put("startTime", statusRecord.get("trial_start_time"));
+                result.put("endTime", statusRecord.get("trial_end_time"));
+                result.put("coachId", statusRecord.get("trial_coach_id"));
+                result.put("customerId", statusRecord.get("customer_id"));
+                result.put("sourceType", "status_history");  // 标记来源为流转记录
+                
+                // 如果流转记录中有教练ID，可能课表中也有记录，尝试查询获取更多信息
+                if (statusRecord.get("trial_coach_id") != null) {
+                    // 从课表中查询，获取scheduleId等信息
+                    List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
+                    List<Map<String, Object>> instanceTrialSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
+                    
+                    List<Map<String, Object>> allTrials = new ArrayList<>();
+                    allTrials.addAll(trialSchedules);
+                    allTrials.addAll(instanceTrialSchedules);
+                    
+                    if (!allTrials.isEmpty()) {
+                        // 找到课表中的记录，补充id和timetableId信息
+                        Map<String, Object> scheduleRecord = allTrials.get(0);
+                        result.put("id", scheduleRecord.get("id"));
+                        result.put("timetableId", scheduleRecord.get("timetable_id"));
+                        result.put("note", scheduleRecord.get("note"));
+                    }
+                }
+                
+                return result;
             }
             
-            // 从课表中查询体验课程（包含timetableId和scheduleId）
+            // 2. 如果流转记录中没有，再从课表中查询
             List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
-            // 标记来源
             trialSchedules.forEach(s -> s.put("source_type", "schedule"));
             
             List<Map<String, Object>> instanceTrialSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
-            // 标记来源
             instanceTrialSchedules.forEach(s -> s.put("source_type", "weekly_instance"));
             
             List<Map<String, Object>> allTrials = new ArrayList<>();
@@ -1671,14 +1698,14 @@ public class ScheduleService {
             
             Map<String, Object> latestTrial = allTrials.get(0);
             Map<String, Object> result = new HashMap<>();
-            result.put("id", latestTrial.get("id"));  // scheduleId或weeklyInstanceScheduleId
-            result.put("timetableId", latestTrial.get("timetable_id"));  // timetableId
+            result.put("id", latestTrial.get("id"));
+            result.put("timetableId", latestTrial.get("timetable_id"));
             result.put("scheduleDate", latestTrial.get("schedule_date"));
             result.put("startTime", latestTrial.get("start_time"));
             result.put("endTime", latestTrial.get("end_time"));
             result.put("note", latestTrial.get("note"));
             result.put("coachId", latestTrial.get("coach_id"));
-            result.put("sourceType", latestTrial.get("source_type"));  // 标记课程来源类型
+            result.put("sourceType", latestTrial.get("source_type"));
             
             return result;
         } catch (Exception e) {
