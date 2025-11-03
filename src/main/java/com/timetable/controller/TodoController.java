@@ -95,9 +95,14 @@ public class TodoController {
 
     @PutMapping("/{todoId}/read")
     public ResponseEntity<ApiResponse<Boolean>> markAsRead(
-            @PathVariable Long todoId) {
+            @PathVariable Long todoId,
+            Authentication authentication) {
         try {
-            boolean success = todoService.markAsRead(todoId);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            boolean success = todoService.markAsRead(todoId, user.getId());
             return ResponseEntity.ok(ApiResponse.success("标记成功", success));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("标记已读失败: " + e.getMessage()));
@@ -106,9 +111,14 @@ public class TodoController {
 
     @PutMapping("/{todoId}/complete")
     public ResponseEntity<ApiResponse<Boolean>> markAsCompleted(
-            @PathVariable Long todoId) {
+            @PathVariable Long todoId,
+            Authentication authentication) {
         try {
-            boolean success = todoService.markAsCompleted(todoId);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            boolean success = todoService.markAsCompleted(todoId, user.getId());
             return ResponseEntity.ok(ApiResponse.success("标记成功", success));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("标记完成失败: " + e.getMessage()));
@@ -118,10 +128,15 @@ public class TodoController {
     @PutMapping("/{todoId}/status")
     public ResponseEntity<ApiResponse<Boolean>> updateStatus(
             @PathVariable Long todoId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
         try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
             String status = request.get("status");
-            boolean success = todoService.updateStatus(todoId, status);
+            boolean success = todoService.updateStatus(todoId, status, user.getId());
             return ResponseEntity.ok(ApiResponse.success("更新成功", success));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("更新状态失败: " + e.getMessage()));
@@ -130,9 +145,14 @@ public class TodoController {
 
     @DeleteMapping("/{todoId}")
     public ResponseEntity<ApiResponse<Boolean>> deleteTodo(
-            @PathVariable Long todoId) {
+            @PathVariable Long todoId,
+            Authentication authentication) {
         try {
-            boolean success = todoService.deleteTodo(todoId);
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            boolean success = todoService.deleteTodo(todoId, user.getId());
             return ResponseEntity.ok(ApiResponse.success("删除成功", success));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("删除待办失败: " + e.getMessage()));
@@ -194,10 +214,15 @@ public class TodoController {
     @PutMapping("/{todoId}/reminder-time")
     public ResponseEntity<ApiResponse<Boolean>> updateReminderTime(
             @PathVariable Long todoId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
         try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
             String reminderDateTime = request.get("reminderDateTime");
-            boolean success = todoService.updateReminderTime(todoId, reminderDateTime);
+            boolean success = todoService.updateReminderTime(todoId, reminderDateTime, user.getId());
             return ResponseEntity.ok(ApiResponse.success("更新提醒时间成功", success));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("更新提醒时间失败: " + e.getMessage()));

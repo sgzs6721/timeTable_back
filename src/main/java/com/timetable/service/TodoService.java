@@ -61,22 +61,38 @@ public class TodoService {
     }
 
     @Transactional
-    public boolean markAsRead(Long todoId) {
+    public boolean markAsRead(Long todoId, Long userId) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+            throw new RuntimeException("无权限操作此待办");
+        }
         return todoRepository.markAsRead(todoId) > 0;
     }
 
     @Transactional
-    public boolean markAsCompleted(Long todoId) {
+    public boolean markAsCompleted(Long todoId, Long userId) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+            throw new RuntimeException("无权限操作此待办");
+        }
         return todoRepository.markAsCompleted(todoId) > 0;
     }
 
     @Transactional
-    public boolean updateStatus(Long todoId, String status) {
+    public boolean updateStatus(Long todoId, String status, Long userId) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+            throw new RuntimeException("无权限操作此待办");
+        }
         return todoRepository.updateStatus(todoId, status) > 0;
     }
 
     @Transactional
-    public boolean deleteTodo(Long todoId) {
+    public boolean deleteTodo(Long todoId, Long userId) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+            throw new RuntimeException("无权限操作此待办");
+        }
         return todoRepository.delete(todoId) > 0;
     }
 
@@ -124,10 +140,14 @@ public class TodoService {
     }
 
     @Transactional
-    public boolean updateReminderTime(Long todoId, String reminderDateTime) {
+    public boolean updateReminderTime(Long todoId, String reminderDateTime, Long userId) {
         Todo todo = todoRepository.findById(todoId);
         if (todo == null) {
             throw new RuntimeException("待办不存在");
+        }
+        
+        if (!todo.getCreatedBy().equals(userId)) {
+            throw new RuntimeException("无权限操作此待办");
         }
 
         // 解析日期时间字符串 "2025-10-27 11:30:00"
