@@ -315,6 +315,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         Result<Record> records = dsl.select()
                 .from(table("weekly_instance_schedules"))
                 .where(field("student_name").eq(studentName))
+                .and(field("deleted").eq(0))
                 .orderBy(field("schedule_date").desc(), field("start_time"))
                 .fetch();
         return records.map(this::mapToWeeklyInstanceSchedule);
