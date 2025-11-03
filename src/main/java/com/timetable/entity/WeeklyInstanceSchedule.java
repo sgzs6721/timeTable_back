@@ -24,6 +24,8 @@ public class WeeklyInstanceSchedule {
     private String leaveReason;        // 请假原因
     private LocalDateTime leaveRequestedAt; // 请假申请时间
     private Byte isTrial;              // 是否为体验课程
+    private Boolean isCancelled;       // 是否已取消
+    private LocalDateTime cancelledAt; // 取消时间
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -206,5 +208,21 @@ public class WeeklyInstanceSchedule {
 
     public void setIsTrial(Byte isTrial) {
         this.isTrial = isTrial;
+    }
+
+    public Boolean getIsCancelled() {
+        return isCancelled;
+    }
+
+    public void setIsCancelled(Boolean isCancelled) {
+        this.isCancelled = isCancelled;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
     }
 }

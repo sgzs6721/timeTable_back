@@ -293,6 +293,8 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         schedule.setLeaveReason(record.get("leave_reason", String.class));
         schedule.setLeaveRequestedAt(record.get("leave_requested_at", LocalDateTime.class));
         schedule.setIsTrial(record.get("is_trial", Byte.class));
+        schedule.setIsCancelled(record.get("is_cancelled", Boolean.class));
+        schedule.setCancelledAt(record.get("cancelled_at", LocalDateTime.class));
         schedule.setCreatedAt(record.get("created_at", LocalDateTime.class));
         schedule.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
         return schedule;

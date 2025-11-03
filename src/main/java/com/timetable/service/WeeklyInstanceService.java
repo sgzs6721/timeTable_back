@@ -2607,6 +2607,7 @@ public class WeeklyInstanceService {
                 }
                 
                 if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue; // 请假不计入
+                if (s.getIsCancelled() != null && s.getIsCancelled()) continue; // 已取消不计入
 
                 WeeklyInstance instance = weeklyInstanceRepository.findById(s.getWeeklyInstanceId());
                 if (instance == null) continue;
@@ -2911,7 +2912,8 @@ public class WeeklyInstanceService {
                     if (s.getEndTime().isAfter(now)) continue; // 结束时间还未到，不算已上
                 }
                 
-                if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue;
+                if (s.getIsOnLeave() != null && s.getIsOnLeave()) continue; // 请假不计入
+                if (s.getIsCancelled() != null && s.getIsCancelled()) continue; // 已取消不计入
                 com.timetable.entity.WeeklyInstance instance = weeklyInstanceRepository.findById(s.getWeeklyInstanceId());
                 if (instance == null) continue;
                 com.timetable.generated.tables.pojos.Timetables timetable = timetableRepository.findById(instance.getTemplateTimetableId());
