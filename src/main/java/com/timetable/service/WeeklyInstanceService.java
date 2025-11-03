@@ -1766,6 +1766,9 @@ public class WeeklyInstanceService {
             }
             studentNamesToQuery.add(originalStudentName);
             
+            // 注释掉合并查询逻辑：只查询当前学员名的记录，不查询被合并进来的其他学员
+            // 合并规则只影响显示名称，不应该把其他学员的上课记录混在一起
+            /*
             // 2. 查找合并规则：如果当前学员是合并后的结果，需要找到所有被合并的学员
             for (StudentOperationRecord record : allRecords) {
                 if ("MERGE".equals(record.getOperationType()) && 
@@ -1785,6 +1788,7 @@ public class WeeklyInstanceService {
                     break;
                 }
             }
+            */
         } catch (Exception e) {
             logger.error("反向查找学员原始名字失败: {}", e.getMessage());
             // 如果查找失败，至少要查询原始的studentName
@@ -1867,6 +1871,12 @@ public class WeeklyInstanceService {
                     scheduleRecord.put("timetableName", timetable.getName());
                     scheduleRecord.put("status", "正常");
                     scheduleRecord.put("coachName", scheduleCoachName);
+                    scheduleRecord.put("queriedName", queryName); // 记录是从哪个学员名查出来的
+                    scheduleRecord.put("actualStudentName", schedule.getStudentName()); // 记录实际的学员名
+                    
+                    logger.info("添加上课记录: 查询名={}, 实际名={}, 日期={}, 时间={}", 
+                        queryName, schedule.getStudentName(), schedule.getScheduleDate(), 
+                        schedule.getStartTime() + "-" + schedule.getEndTime());
                     
                     schedules.add(scheduleRecord);
                 }
@@ -1923,6 +1933,12 @@ public class WeeklyInstanceService {
                     scheduleRecord.put("timetableName", timetable.getName());
                     scheduleRecord.put("status", "正常"); // 日期类课表暂时不支持请假功能
                     scheduleRecord.put("coachName", scheduleCoachName);
+                    scheduleRecord.put("queriedName", queryName); // 记录是从哪个学员名查出来的
+                    scheduleRecord.put("actualStudentName", dateSchedule.getStudentName()); // 记录实际的学员名
+                    
+                    logger.info("添加上课记录(日期类): 查询名={}, 实际名={}, 日期={}, 时间={}", 
+                        queryName, dateSchedule.getStudentName(), dateSchedule.getScheduleDate(), 
+                        dateSchedule.getStartTime() + "-" + dateSchedule.getEndTime());
                     
                     schedules.add(scheduleRecord);
                 }
