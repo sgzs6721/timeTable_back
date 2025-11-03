@@ -154,10 +154,12 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
     }
 
     /**
-     * 删除周实例课程
+     * 删除周实例课程（标记为已取消）
      */
     public void delete(Long id) {
-        dsl.deleteFrom(table("weekly_instance_schedules"))
+        dsl.update(table("weekly_instance_schedules"))
+                .set(field("is_cancelled"), true)
+                .set(field("cancelled_at"), java.time.LocalDateTime.now())
                 .where(field("id").eq(id))
                 .execute();
     }
@@ -309,13 +311,13 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
     }
 
     /**
-     * 根据学生姓名查找所有课程
+     * 根据学生姓名查找所有课程（不包括已取消的）
      */
     public List<WeeklyInstanceSchedule> findByStudentName(String studentName) {
         Result<Record> records = dsl.select()
                 .from(table("weekly_instance_schedules"))
                 .where(field("student_name").eq(studentName))
-                .and(field("deleted").eq(0))
+                .and(field("is_cancelled").eq(false))
                 .orderBy(field("schedule_date").desc(), field("start_time"))
                 .fetch();
         return records.map(this::mapToWeeklyInstanceSchedule);

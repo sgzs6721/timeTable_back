@@ -139,7 +139,6 @@ public class ScheduleRepository {
         return dsl.selectFrom(SCHEDULES)
                 .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
                 .and(SCHEDULES.STUDENT_NAME.eq(studentName))
-                .and(field("deleted").eq(0))
                 .orderBy(SCHEDULES.SCHEDULE_DATE.desc(), SCHEDULES.START_TIME.desc(), SCHEDULES.DAY_OF_WEEK.desc())
                 .fetchInto(Schedules.class);
     }
