@@ -52,6 +52,8 @@ public class ReportRepository {
                         .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
                 .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
                         .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)))
+                .and(field(name("weekly_instance_schedules", "is_cancelled"), Boolean.class).isNull()
+                        .or(field(name("weekly_instance_schedules", "is_cancelled"), Boolean.class).eq(false)))
                 .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
                         .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
                                 .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
@@ -186,6 +188,8 @@ public class ReportRepository {
                         .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
                 .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
                         .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)))
+                .and(field(name("weekly_instance_schedules", "is_cancelled"), Boolean.class).isNull()
+                        .or(field(name("weekly_instance_schedules", "is_cancelled"), Boolean.class).eq(false)))
                 .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
                         .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
                                 .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
