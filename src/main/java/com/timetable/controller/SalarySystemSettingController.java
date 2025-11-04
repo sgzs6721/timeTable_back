@@ -43,11 +43,6 @@ public class SalarySystemSettingController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }
 
-            // 验证管理员是否属于该机构
-            if (user.getOrganizationId() == null || !user.getOrganizationId().equals(targetOrganizationId)) {
-                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问该机构的工资设置"));
-            }
-
             SalarySystemSetting setting = salarySystemSettingService.getSettingByOrganizationId(targetOrganizationId);
             return ResponseEntity.ok(ApiResponse.success("获取工资系统设置成功", setting));
         } catch (Exception e) {
@@ -72,11 +67,6 @@ public class SalarySystemSettingController {
             Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
-            }
-
-            // 验证用户是否属于该机构
-            if (user.getOrganizationId() == null || !user.getOrganizationId().equals(targetOrganizationId)) {
-                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问该机构的工资设置"));
             }
 
             SalarySystemSetting setting = salarySystemSettingService.getSettingByOrganizationId(targetOrganizationId);
@@ -108,11 +98,6 @@ public class SalarySystemSettingController {
             Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
-            }
-
-            // 验证管理员是否属于该机构
-            if (user.getOrganizationId() == null || !user.getOrganizationId().equals(targetOrganizationId)) {
-                return ResponseEntity.status(403).body(ApiResponse.error("无权限操作该机构的工资设置"));
             }
 
             setting.setOrganizationId(targetOrganizationId);
