@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
@@ -1528,6 +1529,7 @@ public class ScheduleService {
      * @param createdBy 创建者
      * @return 体验课程信息（包含课程ID、课表ID、来源类型）
      */
+    @Transactional
     public com.timetable.dto.TrialScheduleInfo createTrialSchedule(com.timetable.dto.TrialScheduleRequest request, com.timetable.generated.tables.pojos.Users createdBy) {
         try {
             // 1. 获取教练的活动课表
