@@ -32,6 +32,12 @@ public class CustomerStatusHistoryService {
     
     @Autowired
     private WeeklyInstanceService weeklyInstanceService;
+    
+    @Autowired
+    private com.timetable.repository.ScheduleRepository scheduleRepository;
+    
+    @Autowired
+    private com.timetable.repository.WeeklyInstanceScheduleRepository weeklyInstanceScheduleRepository;
 
     @Transactional
     public CustomerStatusHistoryDTO changeStatus(Long customerId, CustomerStatusChangeRequest request, Long currentUserId) {
@@ -92,6 +98,13 @@ public class CustomerStatusHistoryService {
             request.getTrialStudentName() != null && !request.getTrialStudentName().isEmpty()) {
             
             try {
+                System.out.println("=== 创建体验课程到课表 ===");
+                System.out.println("客户ID: " + customerId);
+                System.out.println("教练ID: " + request.getTrialCoachId());
+                System.out.println("学员姓名: " + request.getTrialStudentName());
+                System.out.println("体验日期: " + request.getTrialScheduleDate());
+                System.out.println("体验时间: " + request.getTrialStartTime() + " - " + request.getTrialEndTime());
+                
                 // 构建体验课程请求
                 com.timetable.dto.TrialScheduleRequest trialRequest = new com.timetable.dto.TrialScheduleRequest();
                 trialRequest.setCoachId(request.getTrialCoachId());
@@ -106,6 +119,11 @@ public class CustomerStatusHistoryService {
                 // 创建课表中的课程
                 com.timetable.dto.TrialScheduleInfo scheduleInfo = scheduleService.createTrialSchedule(trialRequest, user);
                 
+                System.out.println("体验课程创建成功");
+                System.out.println("课程ID: " + scheduleInfo.getScheduleId());
+                System.out.println("课表ID: " + scheduleInfo.getTimetableId());
+                System.out.println("来源类型: " + scheduleInfo.getSourceType());
+                
                 // 更新流转记录，保存课程ID等信息
                 savedHistory.setTrialScheduleId(scheduleInfo.getScheduleId());
                 savedHistory.setTrialTimetableId(scheduleInfo.getTimetableId());
@@ -117,10 +135,16 @@ public class CustomerStatusHistoryService {
                     scheduleInfo.getSourceType()
                 );
                 
+                System.out.println("历史记录已更新，保存了课程关联信息");
+                
             } catch (Exception e) {
                 // 创建课表课程失败，抛出异常，事务回滚
+                System.err.println("创建体验课程到课表失败: " + e.getMessage());
+                e.printStackTrace();
                 throw new RuntimeException("创建体验课程到课表失败: " + e.getMessage(), e);
             }
+        } else {
+            System.out.println("未提供完整的体验课程信息，不创建课表课程");
         }
         
         // 如果状态变更为VISITED（已体验），需要将该客户的体验课程标记为已完成
@@ -293,6 +317,15 @@ public class CustomerStatusHistoryService {
             throw new RuntimeException("未找到该历史记录");
         }
         
+        System.out.println("=== 取消体验课程 ===");
+        System.out.println("历史记录ID: " + historyId);
+        System.out.println("客户ID: " + history.getCustomerId());
+        System.out.println("教练ID: " + history.getTrialCoachId());
+        System.out.println("体验课程ID: " + history.getTrialScheduleId());
+        System.out.println("课表ID: " + history.getTrialTimetableId());
+        System.out.println("课程来源类型: " + history.getTrialSourceType());
+        System.out.println("学员名称: " + history.getTrialStudentName());
+        
         // 2. 标记历史记录为已取消
         boolean marked = historyRepository.markTrialAsCancelled(historyId);
         if (!marked) {
@@ -311,24 +344,127 @@ public class CustomerStatusHistoryService {
             
             if (trialScheduleId != null && sourceType != null) {
                 try {
+                    System.out.println("准备删除课表中的课程，来源类型: " + sourceType);
                     if ("weekly_instance".equals(sourceType)) {
                         // 删除周实例课程
+                        System.out.println("删除周实例课程，ID: " + trialScheduleId);
                         weeklyInstanceService.deleteInstanceSchedule(trialScheduleId);
+                        System.out.println("周实例课程删除成功");
                     } else if ("schedule".equals(sourceType)) {
                         // 删除普通课程，需要 timetableId
                         if (trialTimetableId == null) {
                             throw new RuntimeException("删除普通课程时缺少 timetableId");
                         }
+                        System.out.println("删除普通课程，课表ID: " + trialTimetableId + ", 课程ID: " + trialScheduleId);
                         boolean deleted = scheduleService.deleteSchedule(trialTimetableId, trialScheduleId);
                         if (!deleted) {
                             throw new RuntimeException("删除课表中的课程失败");
                         }
+                        System.out.println("普通课程删除成功");
                     }
                 } catch (Exception e) {
                     // 删除课表失败，抛出异常触发事务回滚
+                    System.err.println("删除课表中的体验课程失败: " + e.getMessage());
+                    e.printStackTrace();
                     throw new RuntimeException("删除课表中的体验课程失败: " + e.getMessage(), e);
                 }
+            } else {
+                // trial_schedule_id 或 source_type 为 null，说明课程信息未正确保存
+                // 尝试使用兜底方案：通过学员姓名、时间等信息查找并删除课程
+                System.err.println("警告：体验课程关联了教练但课程ID或来源类型为空");
+                System.err.println("trialScheduleId: " + trialScheduleId + ", sourceType: " + sourceType);
+                System.out.println("尝试使用兜底方案：通过学员姓名、时间等信息查找并删除课程");
+                
+                String studentName = history.getTrialStudentName();
+                java.time.LocalDate scheduleDate = history.getTrialScheduleDate();
+                java.time.LocalTime startTime = history.getTrialStartTime();
+                java.time.LocalTime endTime = history.getTrialEndTime();
+                
+                if (studentName != null && !studentName.isEmpty() && 
+                    scheduleDate != null && startTime != null && endTime != null) {
+                    
+                    boolean foundAndDeleted = false;
+                    
+                    try {
+                        // 1. 在普通课表中查找体验课程
+                        System.out.println("在普通课表中查找学员: " + studentName);
+                        List<java.util.Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
+                        
+                        for (java.util.Map<String, Object> schedule : trialSchedules) {
+                            java.time.LocalDate schedDate = schedule.get("schedule_date") != null ? 
+                                ((java.sql.Date) schedule.get("schedule_date")).toLocalDate() : null;
+                            java.time.LocalTime sTime = schedule.get("start_time") != null ?
+                                ((java.sql.Time) schedule.get("start_time")).toLocalTime() : null;
+                            java.time.LocalTime eTime = schedule.get("end_time") != null ?
+                                ((java.sql.Time) schedule.get("end_time")).toLocalTime() : null;
+                            Long coachId = schedule.get("coach_id") != null ?
+                                ((Number) schedule.get("coach_id")).longValue() : null;
+                            
+                            // 匹配日期、时间和教练
+                            if (schedDate != null && schedDate.equals(scheduleDate) &&
+                                sTime != null && sTime.equals(startTime) &&
+                                eTime != null && eTime.equals(endTime) &&
+                                coachId != null && coachId.equals(trialCoachId)) {
+                                
+                                Long scheduleId = ((Number) schedule.get("id")).longValue();
+                                Long timetableId = ((Number) schedule.get("timetable_id")).longValue();
+                                
+                                System.out.println("找到匹配的普通课程，ID: " + scheduleId + ", 课表ID: " + timetableId);
+                                boolean deleted = scheduleService.deleteSchedule(timetableId, scheduleId);
+                                if (deleted) {
+                                    System.out.println("通过兜底方案成功删除普通课程");
+                                    foundAndDeleted = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // 2. 如果在普通课表中没找到，在周实例中查找
+                        if (!foundAndDeleted) {
+                            System.out.println("在周实例中查找学员: " + studentName);
+                            List<java.util.Map<String, Object>> instanceSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
+                            
+                            for (java.util.Map<String, Object> schedule : instanceSchedules) {
+                                java.time.LocalDate schedDate = schedule.get("schedule_date") != null ? 
+                                    ((java.sql.Date) schedule.get("schedule_date")).toLocalDate() : null;
+                                java.time.LocalTime sTime = schedule.get("start_time") != null ?
+                                    ((java.sql.Time) schedule.get("start_time")).toLocalTime() : null;
+                                java.time.LocalTime eTime = schedule.get("end_time") != null ?
+                                    ((java.sql.Time) schedule.get("end_time")).toLocalTime() : null;
+                                Long coachId = schedule.get("coach_id") != null ?
+                                    ((Number) schedule.get("coach_id")).longValue() : null;
+                                
+                                // 匹配日期、时间和教练
+                                if (schedDate != null && schedDate.equals(scheduleDate) &&
+                                    sTime != null && sTime.equals(startTime) &&
+                                    eTime != null && eTime.equals(endTime) &&
+                                    coachId != null && coachId.equals(trialCoachId)) {
+                                    
+                                    Long scheduleId = ((Number) schedule.get("id")).longValue();
+                                    
+                                    System.out.println("找到匹配的周实例课程，ID: " + scheduleId);
+                                    weeklyInstanceService.deleteInstanceSchedule(scheduleId);
+                                    System.out.println("通过兜底方案成功删除周实例课程");
+                                    foundAndDeleted = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!foundAndDeleted) {
+                            System.err.println("兜底方案：未找到匹配的体验课程");
+                        }
+                        
+                    } catch (Exception e) {
+                        System.err.println("兜底方案执行失败: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                } else {
+                    System.err.println("缺少必要的信息（学员姓名、日期或时间），无法使用兜底方案");
+                }
             }
+        } else {
+            System.out.println("体验课程未关联教练，无需删除课表");
         }
         
         return true;
