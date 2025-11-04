@@ -92,6 +92,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         Result<Record> records = dsl.select()
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .orderBy(field("schedule_date"), field("start_time"))
                 .fetch();
         
@@ -106,6 +107,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
                 .and(field("schedule_date").eq(date))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .orderBy(field("start_time"))
                 .fetch();
         
@@ -120,6 +122,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
                 .and(field("day_of_week").eq(dayOfWeek))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .orderBy(field("start_time"))
                 .fetch();
         
@@ -147,6 +150,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
                 .and(field("student_name").eq(studentName))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .orderBy(field("schedule_date"), field("start_time"))
                 .fetch();
         
@@ -236,6 +240,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
                 .and(field("schedule_date").eq(date))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .and(
                     field("start_time").lt(endTime)
                     .and(field("end_time").gt(startTime))
@@ -256,6 +261,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
                 .and(field("schedule_date").between(startDate, endDate))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .orderBy(field("schedule_date"), field("start_time"))
                 .fetch();
         
@@ -269,6 +275,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         return dsl.selectCount()
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(weeklyInstanceId))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .fetchOne(0, Integer.class);
     }
 
@@ -343,6 +350,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         Result<Record> records = dsl.select()
                 .from(table("weekly_instance_schedules"))
                 .where(field("weekly_instance_id").eq(instanceId))
+                .and(field("is_cancelled").isNull().or(field("is_cancelled").eq(false)))
                 .orderBy(field("schedule_date"), field("start_time"))
                 .fetch();
         return records.map(this::mapToWeeklyInstanceSchedule);
