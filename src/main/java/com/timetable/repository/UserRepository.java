@@ -293,4 +293,22 @@ public class UserRepository {
                         .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
                 .fetchInto(Users.class);
     }
+
+    /**
+     * 统计特定职位和机构的成员数量
+     */
+    public int countByPositionAndOrganizationId(String position, Long organizationId) {
+        if (position == null || organizationId == null) {
+            return 0;
+        }
+        Integer count = dsl.selectCount()
+                .from(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.POSITION.eq(position))
+                .and(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ID.eq(organizationId))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchOne(0, int.class);
+        return count != null ? count : 0;
+    }
 } 

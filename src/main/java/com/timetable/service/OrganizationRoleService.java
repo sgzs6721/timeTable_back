@@ -70,8 +70,8 @@ public class OrganizationRoleService {
         OrganizationRole role = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("角色不存在"));
 
-        // 检查角色是否有成员
-        int memberCount = userRepository.countByOrganizationRoleId(id);
+        // 检查角色是否有成员（根据 position 字段统计）
+        int memberCount = userRepository.countByPositionAndOrganizationId(role.getRoleCode(), role.getOrganizationId());
         if (memberCount > 0) {
             throw new RuntimeException("该角色下有 " + memberCount + " 个成员，无法删除");
         }
@@ -124,8 +124,8 @@ public class OrganizationRoleService {
     private OrganizationRoleDTO convertToDTO(OrganizationRole role) {
         OrganizationRoleDTO dto = new OrganizationRoleDTO();
         BeanUtils.copyProperties(role, dto);
-        // 添加成员数量
-        dto.setMemberCount(userRepository.countByOrganizationRoleId(role.getId()));
+        // 添加成员数量（根据 position 字段统计）
+        dto.setMemberCount(userRepository.countByPositionAndOrganizationId(role.getRoleCode(), role.getOrganizationId()));
         return dto;
     }
 }
