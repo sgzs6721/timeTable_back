@@ -217,6 +217,7 @@ public class TodoService {
         dto.setStatus(todo.getStatus());
         dto.setIsRead(todo.getIsRead());
         dto.setCompletedAt(todo.getCompletedAt());
+        dto.setCancelledAt(todo.getCancelledAt());
         dto.setCreatedBy(todo.getCreatedBy());
         dto.setOrganizationId(todo.getOrganizationId());
         dto.setCreatedAt(todo.getCreatedAt());

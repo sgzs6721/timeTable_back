@@ -21,6 +21,7 @@ public class TodoDTO {
     private String status;
     private Boolean isRead;
     private LocalDateTime completedAt;
+    private LocalDateTime cancelledAt;
     private Long createdBy;
     private Long organizationId;
     private LocalDateTime createdAt;
@@ -145,6 +146,14 @@ public class TodoDTO {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
     }
 
     public Long getCreatedBy() {

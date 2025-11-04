@@ -73,6 +73,7 @@ public class TodoRepository extends BaseRepository {
                 .where(TODOS.CREATED_BY.eq(userId))
                 .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.STATUS.ne("COMPLETED"))
+                .and(TODOS.STATUS.ne("CANCELLED"))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .fetchOne(0, int.class);
     }
@@ -99,6 +100,7 @@ public class TodoRepository extends BaseRepository {
     public int markAsCancelled(Long id) {
         return dsl.update(TODOS)
                 .set(TODOS.STATUS, "CANCELLED")
+                .set(TODOS.CANCELLED_AT, LocalDateTime.now())
                 .set(TODOS.UPDATED_AT, LocalDateTime.now())
                 .where(TODOS.ID.eq(id))
                 .and(TODOS.DELETED.eq((byte) 0))
@@ -129,6 +131,7 @@ public class TodoRepository extends BaseRepository {
                 .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .and(TODOS.STATUS.ne("COMPLETED"))
+                .and(TODOS.STATUS.ne("CANCELLED"))
                 .fetchOne(0, Integer.class);
         return count != null && count > 0;
     }
@@ -139,6 +142,7 @@ public class TodoRepository extends BaseRepository {
                 .and(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .and(TODOS.STATUS.ne("COMPLETED"))
+                .and(TODOS.STATUS.ne("CANCELLED"))
                 .orderBy(TODOS.CREATED_AT.desc())
                 .limit(1)
                 .fetchOneInto(Todo.class);
