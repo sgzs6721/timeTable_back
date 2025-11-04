@@ -125,6 +125,22 @@ public class TodoController {
         }
     }
 
+    @PutMapping("/{todoId}/cancel")
+    public ResponseEntity<ApiResponse<Boolean>> markAsCancelled(
+            @PathVariable Long todoId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            boolean success = todoService.markAsCancelled(todoId, user.getId());
+            return ResponseEntity.ok(ApiResponse.success("关闭成功", success));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("关闭待办失败: " + e.getMessage()));
+        }
+    }
+
     @PutMapping("/{todoId}/status")
     public ResponseEntity<ApiResponse<Boolean>> updateStatus(
             @PathVariable Long todoId,

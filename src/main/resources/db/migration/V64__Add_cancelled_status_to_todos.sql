@@ -1,0 +1,3 @@
+-- 修改待办表的status字段注释，添加CANCELLED状态说明
+ALTER TABLE todos MODIFY COLUMN status VARCHAR(20) DEFAULT 'PENDING' COMMENT '待办状态：PENDING-待办，COMPLETED-已完成，CANCELLED-已取消';
+

@@ -79,6 +79,15 @@ public class TodoService {
     }
 
     @Transactional
+    public boolean markAsCancelled(Long todoId, Long userId) {
+        Todo todo = todoRepository.findById(todoId);
+        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+            throw new RuntimeException("无权限操作此待办");
+        }
+        return todoRepository.markAsCancelled(todoId) > 0;
+    }
+
+    @Transactional
     public boolean updateStatus(Long todoId, String status, Long userId) {
         Todo todo = todoRepository.findById(todoId);
         if (todo == null || !todo.getCreatedBy().equals(userId)) {

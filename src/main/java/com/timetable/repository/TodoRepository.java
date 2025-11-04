@@ -96,6 +96,15 @@ public class TodoRepository extends BaseRepository {
                 .execute();
     }
 
+    public int markAsCancelled(Long id) {
+        return dsl.update(TODOS)
+                .set(TODOS.STATUS, "CANCELLED")
+                .set(TODOS.UPDATED_AT, LocalDateTime.now())
+                .where(TODOS.ID.eq(id))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .execute();
+    }
+
     public int updateStatus(Long id, String status) {
         return dsl.update(TODOS)
                 .set(TODOS.STATUS, status)
