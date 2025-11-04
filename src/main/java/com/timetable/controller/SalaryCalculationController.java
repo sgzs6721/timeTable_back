@@ -23,6 +23,16 @@ public class SalaryCalculationController {
     private UserService userService;
 
     /**
+     * 判断用户是否有管理权限（ADMIN角色或MANAGER职位）
+     */
+    private boolean isManager(Users user) {
+        if (user == null) {
+            return false;
+        }
+        return "ADMIN".equalsIgnoreCase(user.getRole()) || "MANAGER".equalsIgnoreCase(user.getPosition());
+    }
+
+    /**
      * 获取指定月份的工资计算结果（仅管理员）
      */
     @GetMapping("/{month}")
@@ -31,7 +41,7 @@ public class SalaryCalculationController {
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
-            if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!isManager(user)) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
             }
 
@@ -54,7 +64,7 @@ public class SalaryCalculationController {
             }
 
             List<SalaryCalculationDTO> result;
-            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (isManager(user)) {
                 // 管理员获取所有教练的工资数据（最近6个月）
                 result = salaryCalculationService.getRecentSalaryCalculations(6);
             } else {
@@ -77,7 +87,7 @@ public class SalaryCalculationController {
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
-            if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!isManager(user)) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
             }
 
@@ -100,7 +110,7 @@ public class SalaryCalculationController {
             }
 
             List<String> months;
-            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (isManager(user)) {
                 // 管理员获取所有月份
                 months = salaryCalculationService.getAvailableMonths();
             } else {
