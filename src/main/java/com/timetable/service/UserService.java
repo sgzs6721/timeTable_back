@@ -496,4 +496,11 @@ public class UserService implements UserDetailsService {
     public List<Users> getAllApprovedUsers() {
         return userRepository.findAllApprovedUsers();
     }
+
+    /**
+     * 根据机构ID获取用户列表
+     */
+    public List<Users> getUsersByOrganizationId(Long organizationId) {
+        return userRepository.findByOrganizationId(organizationId);
+    }
 } 

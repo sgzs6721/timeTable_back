@@ -55,6 +55,45 @@ public class UserSalarySettingService {
         return dtoList;
     }
 
+    public List<UserSalarySettingDTO> getUserSalarySettingsByOrganizationId(Long organizationId) {
+        List<UserSalarySettingDTO> dtoList = new ArrayList<>();
+        
+        // 获取该机构所有已批准的用户
+        List<Users> users = userService.getUsersByOrganizationId(organizationId);
+        
+        for (Users user : users) {
+            if (!"APPROVED".equalsIgnoreCase(user.getStatus())) {
+                continue;
+            }
+
+            UserSalarySettingDTO dto = new UserSalarySettingDTO();
+            dto.setUserId(user.getId());
+            dto.setUsername(user.getUsername());
+            dto.setNickname(user.getNickname());
+            dto.setRole(user.getRole());
+            
+            // 查找该用户在该机构的工资设置
+            UserSalarySetting setting = salarySettingRepository.findByUserIdAndOrganizationId(user.getId(), organizationId);
+            if (setting != null) {
+                dto.setId(setting.getId());
+                dto.setBaseSalary(setting.getBaseSalary());
+                dto.setSocialSecurity(setting.getSocialSecurity());
+                dto.setHourlyRate(setting.getHourlyRate());
+                dto.setCommissionRate(setting.getCommissionRate());
+            } else {
+                // 如果没有设置，使用默认值
+                dto.setBaseSalary(BigDecimal.ZERO);
+                dto.setSocialSecurity(BigDecimal.ZERO);
+                dto.setHourlyRate(BigDecimal.ZERO);
+                dto.setCommissionRate(BigDecimal.ZERO);
+            }
+            
+            dtoList.add(dto);
+        }
+        
+        return dtoList;
+    }
+
     public UserSalarySetting saveOrUpdate(UserSalarySetting setting) {
         if (setting == null) {
             throw new IllegalArgumentException("工资设置对象不能为空");
@@ -63,9 +102,14 @@ public class UserSalarySettingService {
         if (setting.getUserId() == null) {
             throw new IllegalArgumentException("用户ID不能为空");
         }
+
+        if (setting.getOrganizationId() == null) {
+            throw new IllegalArgumentException("机构ID不能为空");
+        }
         
         try {
-            UserSalarySetting existing = salarySettingRepository.findByUserId(setting.getUserId());
+            UserSalarySetting existing = salarySettingRepository.findByUserIdAndOrganizationId(
+                setting.getUserId(), setting.getOrganizationId());
             
             if (existing != null) {
                 // 更新现有记录
@@ -92,6 +136,10 @@ public class UserSalarySettingService {
 
     public void deleteByUserId(Long userId) {
         salarySettingRepository.deleteByUserId(userId);
+    }
+
+    public void deleteByUserIdAndOrganizationId(Long userId, Long organizationId) {
+        salarySettingRepository.deleteByUserIdAndOrganizationId(userId, organizationId);
     }
 }
 

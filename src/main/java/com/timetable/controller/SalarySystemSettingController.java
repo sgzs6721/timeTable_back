@@ -25,6 +25,7 @@ public class SalarySystemSettingController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<SalarySystemSetting>> getCurrentSetting(
+            @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -36,7 +37,18 @@ public class SalarySystemSettingController {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
             }
 
-            SalarySystemSetting setting = salarySystemSettingService.getCurrentSetting();
+            // 确定要使用的机构ID
+            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            if (targetOrganizationId == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
+            }
+
+            // 验证管理员是否属于该机构
+            if (user.getOrganizationId() == null || !user.getOrganizationId().equals(targetOrganizationId)) {
+                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问该机构的工资设置"));
+            }
+
+            SalarySystemSetting setting = salarySystemSettingService.getSettingByOrganizationId(targetOrganizationId);
             return ResponseEntity.ok(ApiResponse.success("获取工资系统设置成功", setting));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("获取工资系统设置失败: " + e.getMessage()));
@@ -48,6 +60,7 @@ public class SalarySystemSettingController {
      */
     @GetMapping("/current")
     public ResponseEntity<ApiResponse<SalarySystemSetting>> getCurrentSettingForAll(
+            @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -55,7 +68,18 @@ public class SalarySystemSettingController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            SalarySystemSetting setting = salarySystemSettingService.getCurrentSetting();
+            // 确定要使用的机构ID
+            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            if (targetOrganizationId == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
+            }
+
+            // 验证用户是否属于该机构
+            if (user.getOrganizationId() == null || !user.getOrganizationId().equals(targetOrganizationId)) {
+                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问该机构的工资设置"));
+            }
+
+            SalarySystemSetting setting = salarySystemSettingService.getSettingByOrganizationId(targetOrganizationId);
             return ResponseEntity.ok(ApiResponse.success("获取工资系统设置成功", setting));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error("获取工资系统设置失败: " + e.getMessage()));
@@ -68,6 +92,7 @@ public class SalarySystemSettingController {
     @PostMapping
     public ResponseEntity<ApiResponse<SalarySystemSetting>> saveOrUpdateSetting(
             @RequestBody SalarySystemSetting setting,
+            @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
             Users user = userService.findByUsername(authentication.getName());
@@ -79,7 +104,19 @@ public class SalarySystemSettingController {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限操作"));
             }
 
-            SalarySystemSetting savedSetting = salarySystemSettingService.saveOrUpdate(setting);
+            // 确定要使用的机构ID
+            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            if (targetOrganizationId == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
+            }
+
+            // 验证管理员是否属于该机构
+            if (user.getOrganizationId() == null || !user.getOrganizationId().equals(targetOrganizationId)) {
+                return ResponseEntity.status(403).body(ApiResponse.error("无权限操作该机构的工资设置"));
+            }
+
+            setting.setOrganizationId(targetOrganizationId);
+            SalarySystemSetting savedSetting = salarySystemSettingService.saveOrUpdateByOrganizationId(setting);
             return ResponseEntity.ok(ApiResponse.success("保存工资系统设置成功", savedSetting));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

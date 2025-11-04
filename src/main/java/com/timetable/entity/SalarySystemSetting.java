@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class SalarySystemSetting {
     private Long id;
+    private Long organizationId;
     private Integer salaryStartDay; // 记薪开始日
     private Integer salaryEndDay;   // 记薪结束日
     private Integer salaryPayDay;   // 工资发放日
@@ -20,6 +21,14 @@ public class SalarySystemSetting {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public Integer getSalaryStartDay() {

@@ -28,6 +28,23 @@ public class SalarySystemSettingService {
     }
 
     /**
+     * 根据机构ID获取工资系统设置
+     */
+    public SalarySystemSetting getSettingByOrganizationId(Long organizationId) {
+        SalarySystemSetting setting = salarySystemSettingRepository.getSettingByOrganizationId(organizationId);
+        if (setting == null) {
+            // 如果没有设置，返回默认值
+            setting = new SalarySystemSetting();
+            setting.setOrganizationId(organizationId);
+            setting.setSalaryStartDay(1);
+            setting.setSalaryEndDay(31);
+            setting.setSalaryPayDay(5);
+            setting.setDescription("默认记薪周期：每月1号到31号，工资在次月5号发放");
+        }
+        return setting;
+    }
+
+    /**
      * 保存或更新工资系统设置
      */
     public SalarySystemSetting saveOrUpdate(SalarySystemSetting setting) {
@@ -35,6 +52,20 @@ public class SalarySystemSettingService {
         validateSetting(setting);
         
         return salarySystemSettingRepository.saveOrUpdate(setting);
+    }
+
+    /**
+     * 根据机构ID保存或更新工资系统设置
+     */
+    public SalarySystemSetting saveOrUpdateByOrganizationId(SalarySystemSetting setting) {
+        // 验证数据
+        validateSetting(setting);
+        
+        if (setting.getOrganizationId() == null) {
+            throw new IllegalArgumentException("机构ID不能为空");
+        }
+        
+        return salarySystemSettingRepository.saveOrUpdateByOrganizationId(setting);
     }
 
     /**

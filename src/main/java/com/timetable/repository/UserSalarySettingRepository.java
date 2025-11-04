@@ -28,6 +28,19 @@ public class UserSalarySettingRepository {
                 .fetchOneInto(UserSalarySetting.class);
     }
 
+    public UserSalarySetting findByUserIdAndOrganizationId(Long userId, Long organizationId) {
+        return dsl.selectFrom(table(TABLE_NAME))
+                .where(field("user_id").eq(userId)
+                        .and(field("organization_id").eq(organizationId)))
+                .fetchOneInto(UserSalarySetting.class);
+    }
+
+    public List<UserSalarySetting> findByOrganizationId(Long organizationId) {
+        return dsl.selectFrom(table(TABLE_NAME))
+                .where(field("organization_id").eq(organizationId))
+                .fetchInto(UserSalarySetting.class);
+    }
+
     public UserSalarySetting findById(Long id) {
         return dsl.selectFrom(table(TABLE_NAME))
                 .where(field("id").eq(id))
@@ -38,6 +51,7 @@ public class UserSalarySettingRepository {
         try {
             org.jooq.Record1<Long> result = dsl.insertInto(table(TABLE_NAME))
                     .set(field("user_id"), setting.getUserId())
+                    .set(field("organization_id"), setting.getOrganizationId())
                     .set(field("base_salary"), setting.getBaseSalary() != null ? setting.getBaseSalary() : java.math.BigDecimal.ZERO)
                     .set(field("social_security"), setting.getSocialSecurity() != null ? setting.getSocialSecurity() : java.math.BigDecimal.ZERO)
                     .set(field("hourly_rate"), setting.getHourlyRate() != null ? setting.getHourlyRate() : java.math.BigDecimal.ZERO)
@@ -94,6 +108,13 @@ public class UserSalarySettingRepository {
     public void deleteByUserId(Long userId) {
         dsl.deleteFrom(table(TABLE_NAME))
                 .where(field("user_id").eq(userId))
+                .execute();
+    }
+
+    public void deleteByUserIdAndOrganizationId(Long userId, Long organizationId) {
+        dsl.deleteFrom(table(TABLE_NAME))
+                .where(field("user_id").eq(userId)
+                        .and(field("organization_id").eq(organizationId)))
                 .execute();
     }
 }

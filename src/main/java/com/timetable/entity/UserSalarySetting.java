@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public class UserSalarySetting {
     private Long id;
     private Long userId;
+    private Long organizationId;
     private BigDecimal baseSalary;
     private BigDecimal socialSecurity;
     private BigDecimal hourlyRate;
@@ -30,6 +31,14 @@ public class UserSalarySetting {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public BigDecimal getBaseSalary() {

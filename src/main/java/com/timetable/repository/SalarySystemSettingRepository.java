@@ -22,6 +22,7 @@ public class SalarySystemSettingRepository extends BaseRepository {
     private final RowMapper<SalarySystemSetting> rowMapper = (rs, rowNum) -> {
         SalarySystemSetting setting = new SalarySystemSetting();
         setting.setId(rs.getLong("id"));
+        setting.setOrganizationId(rs.getLong("organization_id"));
         setting.setSalaryStartDay(rs.getInt("salary_start_day"));
         setting.setSalaryEndDay(rs.getInt("salary_end_day"));
         setting.setSalaryPayDay(rs.getInt("salary_pay_day"));
@@ -45,21 +46,35 @@ public class SalarySystemSettingRepository extends BaseRepository {
     }
 
     /**
+     * 根据机构ID获取工资系统设置
+     */
+    public SalarySystemSetting getSettingByOrganizationId(Long organizationId) {
+        String sql = "SELECT * FROM salary_system_settings WHERE organization_id = ?";
+        try {
+            List<SalarySystemSetting> settings = jdbcTemplate.query(sql, rowMapper, organizationId);
+            return settings.isEmpty() ? null : settings.get(0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 保存工资系统设置
      */
     public Long save(SalarySystemSetting setting) {
-        String sql = "INSERT INTO salary_system_settings (salary_start_day, salary_end_day, salary_pay_day, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO salary_system_settings (organization_id, salary_start_day, salary_end_day, salary_pay_day, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         KeyHolder keyHolder = new GeneratedKeyHolder();
         
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setInt(1, setting.getSalaryStartDay());
-            ps.setInt(2, setting.getSalaryEndDay());
-            ps.setInt(3, setting.getSalaryPayDay());
-            ps.setString(4, setting.getDescription());
-            ps.setObject(5, setting.getCreatedAt());
-            ps.setObject(6, setting.getUpdatedAt());
+            ps.setLong(1, setting.getOrganizationId());
+            ps.setInt(2, setting.getSalaryStartDay());
+            ps.setInt(3, setting.getSalaryEndDay());
+            ps.setInt(4, setting.getSalaryPayDay());
+            ps.setString(5, setting.getDescription());
+            ps.setObject(6, setting.getCreatedAt());
+            ps.setObject(7, setting.getUpdatedAt());
             return ps;
         }, keyHolder);
         
@@ -87,6 +102,33 @@ public class SalarySystemSettingRepository extends BaseRepository {
      */
     public SalarySystemSetting saveOrUpdate(SalarySystemSetting setting) {
         SalarySystemSetting existing = getCurrentSetting();
+        LocalDateTime now = LocalDateTime.now();
+        
+        if (existing != null) {
+            // 更新现有记录
+            setting.setId(existing.getId());
+            setting.setCreatedAt(existing.getCreatedAt());
+            setting.setUpdatedAt(now);
+            update(setting);
+            return findById(existing.getId());
+        } else {
+            // 创建新记录
+            setting.setCreatedAt(now);
+            setting.setUpdatedAt(now);
+            Long id = save(setting);
+            return findById(id);
+        }
+    }
+
+    /**
+     * 根据机构ID保存或更新设置
+     */
+    public SalarySystemSetting saveOrUpdateByOrganizationId(SalarySystemSetting setting) {
+        if (setting.getOrganizationId() == null) {
+            throw new IllegalArgumentException("机构ID不能为空");
+        }
+
+        SalarySystemSetting existing = getSettingByOrganizationId(setting.getOrganizationId());
         LocalDateTime now = LocalDateTime.now();
         
         if (existing != null) {
