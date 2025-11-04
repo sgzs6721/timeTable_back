@@ -256,4 +256,41 @@ public class UserRepository {
                         .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
         );
     }
+
+    /**
+     * 统计特定角色的成员数量
+     */
+    public int countByOrganizationRoleId(Long roleId) {
+        if (roleId == null) {
+            return 0;
+        }
+        Integer count = dsl.selectCount()
+                .from(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ROLE_ID.eq(roleId))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchOne(0, int.class);
+        return count != null ? count : 0;
+    }
+
+    /**
+     * 更新用户的机构角色
+     */
+    public void updateOrganizationRoleId(Long userId, Long roleId) {
+        dsl.update(com.timetable.generated.tables.Users.USERS)
+                .set(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ROLE_ID, roleId)
+                .where(com.timetable.generated.tables.Users.USERS.ID.eq(userId))
+                .execute();
+    }
+
+    /**
+     * 根据机构角色ID查找用户
+     */
+    public List<Users> findByOrganizationRoleId(Long roleId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ROLE_ID.eq(roleId))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchInto(Users.class);
+    }
 } 

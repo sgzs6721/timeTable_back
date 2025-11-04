@@ -9,6 +9,7 @@ public class OrganizationRoleDTO {
     private String icon;
     private String color;
     private Boolean isSystem;
+    private Integer memberCount; // 角色成员数量
 
     public OrganizationRoleDTO() {
     }
@@ -76,6 +77,14 @@ public class OrganizationRoleDTO {
 
     public void setIsSystem(Boolean isSystem) {
         this.isSystem = isSystem;
+    }
+
+    public Integer getMemberCount() {
+        return memberCount;
+    }
+
+    public void setMemberCount(Integer memberCount) {
+        this.memberCount = memberCount;
     }
 }
 

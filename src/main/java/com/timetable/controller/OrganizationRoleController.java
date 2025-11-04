@@ -67,5 +67,45 @@ public class OrganizationRoleController {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @GetMapping("/{roleId}/member-count")
+    public ResponseEntity<ApiResponse<Integer>> getRoleMemberCount(@PathVariable Long roleId) {
+        try {
+            int count = roleService.getRoleMemberCount(roleId);
+            return ResponseEntity.ok(ApiResponse.success("获取成员数量成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{roleId}/members/{userId}")
+    public ResponseEntity<ApiResponse<Void>> assignRoleToUser(@PathVariable Long roleId, @PathVariable Long userId) {
+        try {
+            roleService.assignRoleToUser(roleId, userId);
+            return ResponseEntity.ok(ApiResponse.success("分配角色成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{roleId}/members/{userId}")
+    public ResponseEntity<ApiResponse<Void>> removeUserFromRole(@PathVariable Long roleId, @PathVariable Long userId) {
+        try {
+            roleService.removeUserFromRole(userId);
+            return ResponseEntity.ok(ApiResponse.success("移除成员成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{roleId}/members/batch")
+    public ResponseEntity<ApiResponse<Void>> assignRoleToUsers(@PathVariable Long roleId, @RequestBody List<Long> userIds) {
+        try {
+            roleService.assignRoleToUsers(roleId, userIds);
+            return ResponseEntity.ok(ApiResponse.success("批量分配角色成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
+    }
 }
 
