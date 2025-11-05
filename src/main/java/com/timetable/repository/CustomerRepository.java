@@ -132,10 +132,11 @@ public class CustomerRepository {
         return jdbcTemplate.query(sql, customerRowMapper, pageSize, page * pageSize);
     }
 
-    public List<Customer> findAllWithFiltersAndPagination(int page, int pageSize, String status, Long salesId, 
+    public List<Customer> findAllWithFiltersAndPagination(Long organizationId, int page, int pageSize, String status, Long salesId, 
                                                            java.time.LocalDate filterDate, String keyword) {
-        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE 1=1");
+        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE organization_id = ?");
         List<Object> params = new ArrayList<>();
+        params.add(organizationId);
         
         if (status != null && !status.isEmpty() && !"all".equals(status)) {
             sql.append(" AND status = ?");
@@ -194,9 +195,9 @@ public class CustomerRepository {
         return jdbcTemplate.query(sql.toString(), customerRowMapper, params.toArray());
     }
 
-    public List<Customer> findByStatus(String status) {
-        String sql = "SELECT * FROM customers WHERE status = ? ORDER BY created_at DESC";
-        return jdbcTemplate.query(sql, customerRowMapper, status);
+    public List<Customer> findByStatus(Long organizationId, String status) {
+        String sql = "SELECT * FROM customers WHERE organization_id = ? AND status = ? ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, customerRowMapper, organizationId, status);
     }
 
     public void deleteById(Long id) {

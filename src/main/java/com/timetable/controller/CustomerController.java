@@ -59,10 +59,14 @@ public class CustomerController {
             if (user == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
+            
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+            }
 
             boolean isAdmin = "ADMIN".equals(user.getRole());
             List<CustomerDTO> customers = customerService.getCustomersWithFilters(
-                user.getId(), isAdmin, page, pageSize, status, salesId, filterDate, keyword);
+                user.getId(), user.getOrganizationId(), isAdmin, page, pageSize, status, salesId, filterDate, keyword);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));
@@ -133,9 +137,13 @@ public class CustomerController {
             if (user == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
+            
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+            }
 
             boolean isAdmin = "ADMIN".equals(user.getRole());
-            List<CustomerDTO> customers = customerService.getCustomersByStatus(status, user.getId(), isAdmin);
+            List<CustomerDTO> customers = customerService.getCustomersByStatus(status, user.getId(), user.getOrganizationId(), isAdmin);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));

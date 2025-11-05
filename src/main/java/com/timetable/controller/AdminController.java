@@ -78,8 +78,24 @@ public class AdminController {
      */
     @GetMapping("/timetables")
     public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getAllTimetables(
+            Authentication authentication,
             @RequestParam(value = "activeOnly", required = false, defaultValue = "false") boolean activeOnly) {
-        List<AdminTimetableDTO> timetables = timetableService.getAllTimetablesWithUser(activeOnly);
+        Users currentUser = userService.findByUsername(authentication.getName());
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户信息异常或未关联机构"));
+        }
+        
+        List<AdminTimetableDTO> allTimetables = timetableService.getAllTimetablesWithUser(activeOnly);
+        // 过滤出当前用户所在机构的课表
+        List<AdminTimetableDTO> timetables = allTimetables.stream()
+                .filter(t -> {
+                    // 根据userId获取用户的organizationId
+                    Users user = userService.findById(t.getUserId());
+                    return user != null && currentUser.getOrganizationId().equals(user.getOrganizationId());
+                })
+                .collect(Collectors.toList());
+        
         return ResponseEntity.ok(ApiResponse.success("获取所有课表成功", timetables));
     }
 
@@ -159,8 +175,19 @@ public class AdminController {
      * 有课表（活动或归档）的教练列表，按注册时间倒序
      */
     @GetMapping("/coaches/with-timetables")
-    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCoachesWithTimetables() {
-        java.util.List<com.timetable.generated.tables.pojos.Users> users = userService.getAllApprovedUsers();
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCoachesWithTimetables(Authentication authentication) {
+        Users currentUser = userService.findByUsername(authentication.getName());
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("用户信息异常或未关联机构"));
+        }
+        
+        // 只获取当前机构的用户
+        java.util.List<com.timetable.generated.tables.pojos.Users> users = userService.getUsersByOrganizationId(currentUser.getOrganizationId())
+                .stream()
+                .filter(u -> "APPROVED".equals(u.getStatus()))
+                .filter(u -> u.getIsDeleted() == null || u.getIsDeleted() == 0)
+                .collect(java.util.stream.Collectors.toList());
         java.util.List<com.timetable.dto.AdminTimetableDTO> all = timetableService.getAllTimetablesWithUser(false);
         java.util.Set<Long> userIds = all.stream().map(com.timetable.dto.AdminTimetableDTO::getUserId).collect(java.util.stream.Collectors.toSet());
         java.util.List<java.util.Map<String, Object>> list = users.stream()
@@ -772,12 +799,23 @@ public class AdminController {
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/coaches/statistics")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getCoachesStatistics() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCoachesStatistics(Authentication authentication) {
         try {
+            // 获取当前用户
+            Users currentUser = userService.findByUsername(authentication.getName());
+            if (currentUser == null || currentUser.getOrganizationId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户信息异常或未关联机构"));
+            }
+            
             Map<String, Object> statistics = new HashMap<>();
             
-            // 获取所有已审批通过且未删除的用户（包括管理员，但只统计有活动课表的）
-            List<Users> allUsers = userService.getAllApprovedUsers();
+            // 只获取当前用户所在机构的已审批通过且未删除的用户
+            List<Users> allUsers = userService.getUsersByOrganizationId(currentUser.getOrganizationId())
+                    .stream()
+                    .filter(u -> "APPROVED".equals(u.getStatus()))
+                    .filter(u -> u.getIsDeleted() == null || u.getIsDeleted() == 0)
+                    .collect(Collectors.toList());
             
             // 过滤出有活动课表的用户（包括管理员）
             List<Users> coaches = allUsers.stream()

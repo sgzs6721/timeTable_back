@@ -130,11 +130,11 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
-    public List<CustomerDTO> getCustomersWithFilters(Long userId, boolean isAdmin, int page, int pageSize,
+    public List<CustomerDTO> getCustomersWithFilters(Long userId, Long organizationId, boolean isAdmin, int page, int pageSize,
                                                        String status, Long salesId, LocalDate filterDate, String keyword) {
         List<Customer> customers;
         if (isAdmin) {
-            customers = customerRepository.findAllWithFiltersAndPagination(page, pageSize, status, salesId, filterDate, keyword);
+            customers = customerRepository.findAllWithFiltersAndPagination(organizationId, page, pageSize, status, salesId, filterDate, keyword);
         } else {
             customers = customerRepository.findByUserWithFiltersAndPagination(userId, page, pageSize, status, filterDate, keyword);
         }
@@ -173,10 +173,10 @@ public class CustomerService {
         customerRepository.deleteById(customerId);
     }
 
-    public List<CustomerDTO> getCustomersByStatus(String status, Long userId, boolean isAdmin) {
+    public List<CustomerDTO> getCustomersByStatus(String status, Long userId, Long organizationId, boolean isAdmin) {
         List<Customer> customers;
         if (isAdmin) {
-            customers = customerRepository.findByStatus(status);
+            customers = customerRepository.findByStatus(organizationId, status);
         } else {
             List<Customer> allCustomers = customerRepository.findByAssignedSalesId(userId);
             customers = allCustomers.stream()
