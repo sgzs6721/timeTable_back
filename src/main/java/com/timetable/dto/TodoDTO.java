@@ -23,6 +23,7 @@ public class TodoDTO {
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
     private Long createdBy;
+    private String createdByName;
     private Long organizationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -162,6 +163,14 @@ public class TodoDTO {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public String getCreatedByName() {
+        return createdByName;
+    }
+
+    public void setCreatedByName(String createdByName) {
+        this.createdByName = createdByName;
     }
 
     public Long getOrganizationId() {

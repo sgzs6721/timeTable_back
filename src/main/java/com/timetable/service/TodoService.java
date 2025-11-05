@@ -4,8 +4,10 @@ import com.timetable.dto.TodoDTO;
 import com.timetable.dto.TodoRequest;
 import com.timetable.entity.Customer;
 import com.timetable.entity.Todo;
+import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.CustomerRepository;
 import com.timetable.repository.TodoRepository;
+import com.timetable.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,9 @@ public class TodoService {
 
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private CustomerStatusHistoryService historyService;
@@ -219,6 +224,20 @@ public class TodoService {
         dto.setCompletedAt(todo.getCompletedAt());
         dto.setCancelledAt(todo.getCancelledAt());
         dto.setCreatedBy(todo.getCreatedBy());
+        
+        // 查询创建人名字
+        if (todo.getCreatedBy() != null) {
+            Users creator = userRepository.findById(todo.getCreatedBy());
+            if (creator != null) {
+                // 优先使用昵称，如果昵称为空则使用用户名
+                String name = creator.getNickname();
+                if (name == null || name.trim().isEmpty()) {
+                    name = creator.getUsername();
+                }
+                dto.setCreatedByName(name);
+            }
+        }
+        
         dto.setOrganizationId(todo.getOrganizationId());
         dto.setCreatedAt(todo.getCreatedAt());
         dto.setUpdatedAt(todo.getUpdatedAt());
