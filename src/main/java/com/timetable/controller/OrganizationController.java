@@ -3,10 +3,13 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.OrgManagementAuthRequest;
 import com.timetable.dto.OrganizationDTO;
+import com.timetable.dto.UserOrganizationRequestDTO;
 import com.timetable.entity.Organization;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.UserRepository;
 import com.timetable.service.OrganizationService;
+import com.timetable.service.UserOrganizationRequestService;
+import com.timetable.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,12 @@ public class OrganizationController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserOrganizationRequestService requestService;
 
     @Value("${organization.management.username}")
     private String orgMgmtUsername;
@@ -305,6 +314,85 @@ public class OrganizationController {
             logger.error("移除机构管理员失败", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("移除机构管理员失败"));
+        }
+    }
+
+    /**
+     * 已登录用户通过机构代码申请加入其他机构
+     */
+    @PostMapping("/apply-by-code")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> applyToOrganizationByCode(
+            @Valid @RequestBody Map<String, String> requestBody,
+            Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户未登录"));
+            }
+
+            String organizationCode = requestBody.get("organizationCode");
+            if (organizationCode == null || organizationCode.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("机构代码不能为空"));
+            }
+
+            // 获取当前用户
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户不存在"));
+            }
+
+            // 查找机构
+            Organization organization = organizationService.getOrganizationByCode(organizationCode.trim());
+            if (organization == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("机构代码不存在，请确认后重试"));
+            }
+
+            // 检查用户是否已经在该机构
+            if (user.getOrganizationId() != null && user.getOrganizationId().equals(organization.getId())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("您已经是该机构的成员"));
+            }
+
+            // 创建申请（使用用户的昵称或用户名）
+            String nickname = user.getNickname() != null ? user.getNickname() : user.getUsername();
+            
+            UserOrganizationRequestDTO result = requestService.createRequestForExistingUser(
+                user.getId(),
+                user.getWechatOpenid(),
+                user.getWechatUnionid(),
+                nickname,
+                user.getWechatAvatar(),
+                user.getWechatSex(),
+                organization.getId(),
+                "申请加入" + organization.getName(),
+                user.getWechatProvince(),
+                user.getWechatCity(),
+                user.getWechatCountry()
+            );
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", result.getId());
+            data.put("organizationName", organization.getName());
+            data.put("status", result.getStatus());
+            data.put("createdAt", result.getCreatedAt());
+
+            logger.info("用户 {} (ID: {}) 提交申请加入机构 {} (ID: {})", 
+                user.getUsername(), user.getId(), organization.getName(), organization.getId());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                "申请已提交至" + organization.getName() + "，请等待管理员审批", data));
+
+        } catch (RuntimeException e) {
+            logger.warn("申请加入机构失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("申请加入机构失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("提交失败，请稍后重试"));
         }
     }
 

@@ -137,6 +137,60 @@ public class UserOrganizationRequestService {
     }
 
     /**
+     * 为已存在的用户创建机构申请
+     */
+    @Transactional
+    public UserOrganizationRequestDTO createRequestForExistingUser(Long userId, String wechatOpenid, String wechatUnionid, 
+                                                                    String wechatNickname, String wechatAvatar, 
+                                                                    Byte wechatSex, Long organizationId, String applyReason,
+                                                                    String wechatProvince, String wechatCity, String wechatCountry) {
+        // 验证机构是否存在
+        Organization organization = organizationRepository.findById(organizationId);
+        if (organization == null) {
+            throw new RuntimeException("机构不存在");
+        }
+
+        // 获取用户信息
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        // 检查是否已经在该机构
+        if (user.getOrganizationId() != null && user.getOrganizationId().equals(organizationId)) {
+            throw new RuntimeException("您已是该机构成员，无需重复申请");
+        }
+
+        // 检查是否已有待审批的申请
+        if (wechatOpenid != null) {
+            UserOrganizationRequest existingRequest = requestRepository.findByWechatOpenidAndOrganizationIdAndStatus(
+                wechatOpenid, organizationId, "PENDING");
+            if (existingRequest != null) {
+                return convertToDTO(existingRequest);
+            }
+        }
+
+        // 创建申请记录
+        UserOrganizationRequest request = new UserOrganizationRequest();
+        request.setOrganizationId(organizationId);
+        request.setUserId(userId);
+        request.setWechatOpenid(wechatOpenid);
+        request.setWechatUnionid(wechatUnionid);
+        request.setWechatNickname(wechatNickname);
+        request.setWechatAvatar(wechatAvatar);
+        request.setWechatSex(wechatSex);
+        request.setApplyReason(applyReason);
+        request.setStatus("PENDING");
+
+        UserOrganizationRequest savedRequest = requestRepository.save(request);
+        
+        logger.info("已登录用户申请加入机构：userId={}, username={}, organizationId={}", 
+            userId, user.getUsername(), organizationId);
+        
+        return convertToDTO(savedRequest);
+    }
+
+    /**
      * 根据微信OpenID获取最新申请
      */
     public UserOrganizationRequestDTO getRequestByWechatOpenid(String wechatOpenid) {
