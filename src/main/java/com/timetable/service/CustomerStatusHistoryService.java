@@ -147,9 +147,27 @@ public class CustomerStatusHistoryService {
             System.out.println("未提供完整的体验课程信息，不创建课表课程");
         }
         
-        // 如果状态变更为VISITED（已体验），需要将该客户的体验课程标记为已完成
-        // 即：将之前的体验历史记录从待体验状态下移除（通过客户状态已经实现）
-        // 这里不需要额外操作，因为查询待体验列表时会根据客户当前状态过滤
+        // 如果状态变更为VISITED（已体验），自动将该客户之前的待体验历史记录标记为已完成
+        if ("VISITED".equals(toStatus) && ("SCHEDULED".equals(fromStatus) || "RE_EXPERIENCE".equals(fromStatus))) {
+            try {
+                // 查找该客户最近的待体验历史记录
+                List<CustomerStatusHistory> histories = historyRepository.findByCustomerId(customerId);
+                for (CustomerStatusHistory h : histories) {
+                    // 找到待体验或待再体验状态的历史记录，且有体验时间信息，且未完成且未取消
+                    if (("SCHEDULED".equals(h.getToStatus()) || "RE_EXPERIENCE".equals(h.getToStatus())) &&
+                        h.getTrialScheduleDate() != null &&
+                        (h.getTrialCompleted() == null || !h.getTrialCompleted()) &&
+                        (h.getTrialCancelled() == null || !h.getTrialCancelled())) {
+                        // 标记为已完成
+                        historyRepository.markTrialAsCompleted(h.getId());
+                        System.out.println("自动标记体验课程为已完成: historyId=" + h.getId());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("自动标记体验课程完成失败: " + e.getMessage());
+                // 不影响主流程，只记录错误
+            }
+        }
         
         return convertToDTO(savedHistory);
     }
@@ -261,6 +279,7 @@ public class CustomerStatusHistoryService {
         dto.setTrialEndTime(history.getTrialEndTime());
         dto.setTrialCoachId(history.getTrialCoachId());
         dto.setTrialCancelled(history.getTrialCancelled());
+        dto.setTrialCompleted(history.getTrialCompleted());
         
         // 获取教练姓名
         if (history.getTrialCoachId() != null) {
@@ -299,6 +318,17 @@ public class CustomerStatusHistoryService {
             return historyRepository.markTrialAsCancelled(historyId);
         } catch (Exception e) {
             throw new RuntimeException("标记体验课程取消失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 标记体验课程为已完成
+     */
+    public boolean markTrialAsCompleted(Long historyId) {
+        try {
+            return historyRepository.markTrialAsCompleted(historyId);
+        } catch (Exception e) {
+            throw new RuntimeException("标记体验课程完成失败: " + e.getMessage(), e);
         }
     }
     

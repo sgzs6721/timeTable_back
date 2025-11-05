@@ -91,6 +91,16 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                         }
                     }
                     
+                    // 读取体验完成状态字段
+                    Object trialCompletedObj = record.get(field("trial_completed"));
+                    if (trialCompletedObj != null) {
+                        if (trialCompletedObj instanceof Boolean) {
+                            history.setTrialCompleted((Boolean) trialCompletedObj);
+                        } else if (trialCompletedObj instanceof Number) {
+                            history.setTrialCompleted(((Number) trialCompletedObj).intValue() == 1);
+                        }
+                    }
+                    
                     return history;
                 });
     }
@@ -143,6 +153,16 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                         }
                     }
                     
+                    // 读取体验完成状态字段
+                    Object trialCompletedObj = record.get(field("trial_completed"));
+                    if (trialCompletedObj != null) {
+                        if (trialCompletedObj instanceof Boolean) {
+                            history.setTrialCompleted((Boolean) trialCompletedObj);
+                        } else if (trialCompletedObj instanceof Number) {
+                            history.setTrialCompleted(((Number) trialCompletedObj).intValue() == 1);
+                        }
+                    }
+                    
                     return history;
                 });
     }
@@ -182,6 +202,21 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
             return updated > 0;
         } catch (Exception e) {
             throw new RuntimeException("标记体验课程取消失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 标记体验课程为已完成
+     */
+    public boolean markTrialAsCompleted(Long historyId) {
+        try {
+            int updated = dsl.update(table("customer_status_history"))
+                    .set(field("trial_completed"), true)
+                    .where(field("id").eq(historyId))
+                    .execute();
+            return updated > 0;
+        } catch (Exception e) {
+            throw new RuntimeException("标记体验课程完成失败: " + e.getMessage(), e);
         }
     }
     

@@ -21,6 +21,7 @@ public class CustomerStatusHistory {
     private Long trialCoachId;
     private String trialStudentName;
     private Boolean trialCancelled;  // 体验课程是否已取消
+    private Boolean trialCompleted;  // 体验课程是否已完成
     private Long trialScheduleId;    // 体验课程ID
     private Long trialTimetableId;   // 体验课程所属课表ID
     private String trialSourceType;  // 课程来源类型
@@ -138,6 +139,14 @@ public class CustomerStatusHistory {
 
     public void setTrialCancelled(Boolean trialCancelled) {
         this.trialCancelled = trialCancelled;
+    }
+
+    public Boolean getTrialCompleted() {
+        return trialCompleted;
+    }
+
+    public void setTrialCompleted(Boolean trialCompleted) {
+        this.trialCompleted = trialCompleted;
     }
 
     public Long getTrialScheduleId() {

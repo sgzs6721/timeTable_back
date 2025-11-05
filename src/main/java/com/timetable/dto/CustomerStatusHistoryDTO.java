@@ -23,6 +23,7 @@ public class CustomerStatusHistoryDTO {
     private Long trialCoachId;
     private String trialCoachName;  // 体验教练名称
     private Boolean trialCancelled;  // 体验课程是否已取消
+    private Boolean trialCompleted;  // 体验课程是否已完成
 
     public CustomerStatusHistoryDTO() {
     }
@@ -153,6 +154,14 @@ public class CustomerStatusHistoryDTO {
 
     public void setTrialCancelled(Boolean trialCancelled) {
         this.trialCancelled = trialCancelled;
+    }
+
+    public Boolean getTrialCompleted() {
+        return trialCompleted;
+    }
+
+    public void setTrialCompleted(Boolean trialCompleted) {
+        this.trialCompleted = trialCompleted;
     }
 }
 

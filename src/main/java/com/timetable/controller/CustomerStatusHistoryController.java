@@ -100,5 +100,34 @@ public class CustomerStatusHistoryController {
             return ResponseEntity.badRequest().body(ApiResponse.error("取消体验课程失败: " + e.getMessage()));
         }
     }
+    
+    /**
+     * 标记体验课程为已完成
+     */
+    @PostMapping("/{historyId}/complete-trial")
+    public ResponseEntity<ApiResponse<String>> completeTrial(
+            @PathVariable Long customerId,
+            @PathVariable Long historyId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            
+            boolean success = historyService.markTrialAsCompleted(historyId);
+            
+            if (success) {
+                logger.info("体验课程标记完成成功: historyId={}", historyId);
+                return ResponseEntity.ok(ApiResponse.success("体验课程已标记完成", "标记成功"));
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.error("标记失败"));
+            }
+            
+        } catch (Exception e) {
+            logger.error("标记体验课程完成失败: historyId={}", historyId, e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("标记体验课程完成失败: " + e.getMessage()));
+        }
+    }
 }
 
