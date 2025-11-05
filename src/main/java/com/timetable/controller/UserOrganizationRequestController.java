@@ -77,6 +77,7 @@ public class UserOrganizationRequestController {
 
     /**
      * 获取所有待审批的申请（管理员接口）
+     * 包括：1. 微信用户的机构申请 2. 普通注册用户的申请
      */
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<List<UserOrganizationRequestDTO>>> getPendingRequests() {
@@ -90,21 +91,39 @@ public class UserOrganizationRequestController {
                         .body(ApiResponse.error("用户不存在"));
             }
 
-            List<UserOrganizationRequestDTO> requests;
+            List<UserOrganizationRequestDTO> allRequests = new java.util.ArrayList<>();
             
             // 如果是管理员，可以看到所有申请
             if ("ADMIN".equals(currentUser.getRole())) {
-                requests = requestService.getPendingRequests();
+                // 1. 获取微信用户的机构申请
+                List<UserOrganizationRequestDTO> wechatRequests = requestService.getPendingRequests();
+                allRequests.addAll(wechatRequests);
+                
+                // 2. 获取普通注册用户的申请（状态为PENDING且没有对应的UserOrganizationRequest）
+                List<UserOrganizationRequestDTO> normalRequests = requestService.getPendingNormalRegistrations();
+                allRequests.addAll(normalRequests);
             } else {
                 // 普通用户只能看到自己机构的申请（如果有权限的话）
                 if (currentUser.getOrganizationId() == null) {
                     return ResponseEntity.badRequest()
                             .body(ApiResponse.error("无权限查看申请"));
                 }
-                requests = requestService.getPendingRequestsByOrganizationId(currentUser.getOrganizationId());
+                
+                // 1. 获取微信用户的机构申请
+                List<UserOrganizationRequestDTO> wechatRequests = 
+                    requestService.getPendingRequestsByOrganizationId(currentUser.getOrganizationId());
+                allRequests.addAll(wechatRequests);
+                
+                // 2. 获取普通注册用户的申请
+                List<UserOrganizationRequestDTO> normalRequests = 
+                    requestService.getPendingNormalRegistrationsByOrganizationId(currentUser.getOrganizationId());
+                allRequests.addAll(normalRequests);
             }
+            
+            // 按创建时间倒序排序
+            allRequests.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
 
-            return ResponseEntity.ok(ApiResponse.success("获取待审批申请成功", requests));
+            return ResponseEntity.ok(ApiResponse.success("获取待审批申请成功", allRequests));
 
         } catch (Exception e) {
             logger.error("获取待审批申请失败", e);
@@ -115,6 +134,7 @@ public class UserOrganizationRequestController {
 
     /**
      * 审批申请
+     * 支持两种类型：1. 微信用户申请（requestId > 0）2. 普通注册申请（requestId < 0）
      */
     @PostMapping("/approve")
     public ResponseEntity<ApiResponse<UserOrganizationRequestDTO>> approveRequest(
@@ -137,14 +157,29 @@ public class UserOrganizationRequestController {
 
             UserOrganizationRequestDTO result;
             
+            // 判断是微信申请还是普通注册申请
+            boolean isNormalRegistration = approveDTO.getRequestId() < 0;
+            
             if (approveDTO.getApproved()) {
                 // 同意申请
-                result = requestService.approveRequest(
-                    approveDTO.getRequestId(),
-                    currentUser.getId(),
-                    approveDTO.getDefaultRole(),
-                    approveDTO.getDefaultPosition()
-                );
+                if (isNormalRegistration) {
+                    // 普通注册申请：直接更新Users表
+                    Long userId = -approveDTO.getRequestId();
+                    result = requestService.approveNormalRegistration(
+                        userId,
+                        currentUser.getId(),
+                        approveDTO.getDefaultRole(),
+                        approveDTO.getDefaultPosition()
+                    );
+                } else {
+                    // 微信申请：更新UserOrganizationRequest和Users表
+                    result = requestService.approveRequest(
+                        approveDTO.getRequestId(),
+                        currentUser.getId(),
+                        approveDTO.getDefaultRole(),
+                        approveDTO.getDefaultPosition()
+                    );
+                }
                 logger.info("管理员 {} 同意了申请 {}", username, approveDTO.getRequestId());
                 return ResponseEntity.ok(ApiResponse.success("申请已批准", result));
             } else {
@@ -153,11 +188,23 @@ public class UserOrganizationRequestController {
                     return ResponseEntity.badRequest()
                             .body(ApiResponse.error("拒绝申请时必须提供拒绝理由"));
                 }
-                result = requestService.rejectRequest(
-                    approveDTO.getRequestId(),
-                    currentUser.getId(),
-                    approveDTO.getRejectReason()
-                );
+                
+                if (isNormalRegistration) {
+                    // 普通注册申请：直接更新Users表
+                    Long userId = -approveDTO.getRequestId();
+                    result = requestService.rejectNormalRegistration(
+                        userId,
+                        currentUser.getId(),
+                        approveDTO.getRejectReason()
+                    );
+                } else {
+                    // 微信申请：更新UserOrganizationRequest和Users表
+                    result = requestService.rejectRequest(
+                        approveDTO.getRequestId(),
+                        currentUser.getId(),
+                        approveDTO.getRejectReason()
+                    );
+                }
                 logger.info("管理员 {} 拒绝了申请 {}", username, approveDTO.getRequestId());
                 return ResponseEntity.ok(ApiResponse.success("申请已拒绝", result));
             }

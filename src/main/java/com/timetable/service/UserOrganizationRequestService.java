@@ -229,6 +229,60 @@ public class UserOrganizationRequestService {
     }
 
     /**
+     * 获取所有普通注册用户的待审批申请（不包括微信用户）
+     */
+    public List<UserOrganizationRequestDTO> getPendingNormalRegistrations() {
+        // 查询所有PENDING状态且没有wechat_openid的用户
+        List<Users> pendingUsers = userRepository.findByStatus("PENDING");
+        return pendingUsers.stream()
+                .filter(user -> user.getWechatOpenid() == null || user.getWechatOpenid().isEmpty())
+                .map(this::convertUserToRequestDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取某个机构的普通注册用户待审批申请
+     */
+    public List<UserOrganizationRequestDTO> getPendingNormalRegistrationsByOrganizationId(Long organizationId) {
+        // 查询指定机构的所有PENDING状态且没有wechat_openid的用户
+        List<Users> pendingUsers = userRepository.findByStatus("PENDING");
+        return pendingUsers.stream()
+                .filter(user -> (user.getWechatOpenid() == null || user.getWechatOpenid().isEmpty()) 
+                        && organizationId.equals(user.getOrganizationId()))
+                .map(this::convertUserToRequestDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 将Users转换为UserOrganizationRequestDTO
+     */
+    private UserOrganizationRequestDTO convertUserToRequestDTO(Users user) {
+        UserOrganizationRequestDTO dto = new UserOrganizationRequestDTO();
+        // 使用负数ID来区分普通注册申请和微信申请，避免ID冲突
+        dto.setId(-user.getId());
+        dto.setUserId(user.getId());
+        dto.setOrganizationId(user.getOrganizationId());
+        dto.setWechatOpenid(null);
+        dto.setWechatNickname(user.getNickname());
+        dto.setWechatAvatar(null);
+        dto.setWechatSex(null);
+        dto.setApplyReason("通过注册表单申请，用户名：" + user.getUsername());
+        dto.setStatus(user.getStatus());
+        dto.setCreatedAt(user.getCreatedAt());
+        
+        // 设置机构信息
+        if (user.getOrganizationId() != null) {
+            Organization org = organizationRepository.findById(user.getOrganizationId());
+            if (org != null) {
+                dto.setOrganizationName(org.getName());
+                dto.setOrganizationAddress(org.getAddress());
+            }
+        }
+        
+        return dto;
+    }
+
+    /**
      * 审批申请（同意）
      */
     @Transactional
@@ -323,6 +377,68 @@ public class UserOrganizationRequestService {
         logger.info("申请已拒绝：requestId={}, userId={}, reason={}", requestId, request.getUserId(), rejectReason);
         
         return convertToDTO(updatedRequest);
+    }
+
+    /**
+     * 审批普通注册申请（同意）
+     */
+    @Transactional
+    public UserOrganizationRequestDTO approveNormalRegistration(Long userId, Long approverId, 
+                                                                 String defaultRole, String defaultPosition) {
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        if (!"PENDING".equals(user.getStatus())) {
+            throw new RuntimeException("该用户申请已被处理");
+        }
+
+        // 更新用户状态为APPROVED
+        user.setStatus("APPROVED");
+        if (defaultRole != null) {
+            user.setRole(defaultRole);
+        }
+        if (defaultPosition != null) {
+            user.setPosition(defaultPosition);
+        }
+        user.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+        userRepository.update(user);
+        
+        logger.info("普通注册申请已批准：userId={}, username={}, organizationId={}", 
+                    userId, user.getUsername(), user.getOrganizationId());
+        
+        // 转换为DTO返回
+        return convertUserToRequestDTO(user);
+    }
+
+    /**
+     * 审批普通注册申请（拒绝）
+     */
+    @Transactional
+    public UserOrganizationRequestDTO rejectNormalRegistration(Long userId, Long approverId, String rejectReason) {
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        if (!"PENDING".equals(user.getStatus())) {
+            throw new RuntimeException("该用户申请已被处理");
+        }
+
+        // 更新用户状态为REJECTED
+        user.setStatus("REJECTED");
+        user.setUpdatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+        userRepository.update(user);
+        
+        logger.info("普通注册申请已拒绝：userId={}, username={}, reason={}", 
+                    userId, user.getUsername(), rejectReason);
+        
+        // 转换为DTO返回
+        UserOrganizationRequestDTO dto = convertUserToRequestDTO(user);
+        dto.setRejectReason(rejectReason);
+        dto.setStatus("REJECTED");
+        return dto;
     }
 
     /**
