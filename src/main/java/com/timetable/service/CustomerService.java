@@ -354,4 +354,41 @@ public class CustomerService {
         
         return result;
     }
+
+    @Transactional
+    public CustomerDTO assignCustomer(Long customerId, Long assignedUserId, Long currentUserId, boolean isAdmin) {
+        Customer customer = customerRepository.findById(customerId);
+        if (customer == null) {
+            throw new RuntimeException("客户不存在");
+        }
+
+        // 检查权限：只有管理员或当前分配的销售/创建者可以分配客户
+        if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId()) && !currentUserId.equals(customer.getCreatedBy())) {
+            throw new RuntimeException("无权限分配此客户");
+        }
+
+        // 验证被分配的用户存在且属于同一机构
+        Users assignedUser = userRepository.findById(assignedUserId);
+        if (assignedUser == null) {
+            throw new RuntimeException("被分配的用户不存在");
+        }
+
+        Users currentUser = userRepository.findById(currentUserId);
+        if (currentUser != null && customer.getOrganizationId() != null && assignedUser.getOrganizationId() != null) {
+            if (!customer.getOrganizationId().equals(assignedUser.getOrganizationId())) {
+                throw new RuntimeException("只能分配给同一机构的用户");
+            }
+        }
+
+        // 验证被分配的用户是销售或管理员
+        if (!"SALES".equals(assignedUser.getPosition()) && !"ADMIN".equals(assignedUser.getRole())) {
+            throw new RuntimeException("只能分配给销售职位或管理职位的用户");
+        }
+
+        // 更新分配销售ID
+        customer.setAssignedSalesId(assignedUserId);
+        Customer updatedCustomer = customerRepository.update(customer);
+        
+        return convertToDTO(updatedCustomer);
+    }
 }

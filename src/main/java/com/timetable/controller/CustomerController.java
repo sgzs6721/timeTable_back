@@ -170,4 +170,23 @@ public class CustomerController {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取待体验客户列表失败: " + e.getMessage()));
         }
     }
+
+    @PostMapping("/{customerId}/assign")
+    public ResponseEntity<ApiResponse<CustomerDTO>> assignCustomer(
+            @PathVariable Long customerId,
+            @RequestParam Long assignedUserId,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            boolean isAdmin = "ADMIN".equals(user.getRole());
+            CustomerDTO customer = customerService.assignCustomer(customerId, assignedUserId, user.getId(), isAdmin);
+            return ResponseEntity.ok(ApiResponse.success("分配成功", customer));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("分配客户失败: " + e.getMessage()));
+        }
+    }
 }
