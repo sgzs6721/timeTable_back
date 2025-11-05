@@ -237,9 +237,23 @@ public class AdminController {
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables")
-    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getActiveTimetables() {
+    public ResponseEntity<ApiResponse<List<AdminTimetableDTO>>> getActiveTimetables(Authentication authentication) {
         try {
-            List<AdminTimetableDTO> activeTimetables = timetableService.getActiveTimetables();
+            Users currentUser = userService.findByUsername(authentication.getName());
+            if (currentUser == null || currentUser.getOrganizationId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户信息异常或未关联机构"));
+            }
+            
+            List<AdminTimetableDTO> allActiveTimetables = timetableService.getActiveTimetables();
+            // 过滤出当前用户所在机构的课表
+            List<AdminTimetableDTO> activeTimetables = allActiveTimetables.stream()
+                    .filter(t -> {
+                        Users user = userService.findById(t.getUserId());
+                        return user != null && currentUser.getOrganizationId().equals(user.getOrganizationId());
+                    })
+                    .collect(Collectors.toList());
+            
             return ResponseEntity.ok(ApiResponse.success("获取活动课表成功", activeTimetables));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -249,14 +263,21 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的指定日期课程信息
-     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）- 只返回当前机构的课程
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/schedules")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveSchedulesByDate(
+            Authentication authentication,
             @RequestParam String date) {
 
         try {
+            Users currentUser = userService.findByUsername(authentication.getName());
+            if (currentUser == null || currentUser.getOrganizationId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户信息异常或未关联机构"));
+            }
+            
             Map<String, Object> result = timetableService.getActiveSchedulesByDate(date);
             return ResponseEntity.ok(ApiResponse.success("获取活动课表课程成功", result));
         } catch (Exception e) {
@@ -267,12 +288,18 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的本周课程信息（优化版，一次性返回所有数据）
-     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）- 只返回当前机构的课程
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/this-week")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesThisWeek() {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesThisWeek(Authentication authentication) {
         try {
+            Users currentUser = userService.findByUsername(authentication.getName());
+            if (currentUser == null || currentUser.getOrganizationId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户信息异常或未关联机构"));
+            }
+            
             List<Map<String, Object>> result = timetableService.getActiveTimetablesThisWeekSchedules();
             return ResponseEntity.ok(ApiResponse.success("获取活动课表本周课程成功", result));
         } catch (Exception e) {
@@ -283,12 +310,18 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的模板课程信息（优化版，一次性返回所有数据）
-     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）- 只返回当前机构的课程
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/templates")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTemplates() {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTemplates(Authentication authentication) {
         try {
+            Users currentUser = userService.findByUsername(authentication.getName());
+            if (currentUser == null || currentUser.getOrganizationId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户信息异常或未关联机构"));
+            }
+            
             List<Map<String, Object>> result = timetableService.getActiveTimetablesTemplateSchedules();
             return ResponseEntity.ok(ApiResponse.success("获取活动课表模板课程成功", result));
         } catch (Exception e) {
@@ -299,12 +332,18 @@ public class AdminController {
 
     /**
      * 获取所有活动课表的体验课程信息
-     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）
+     * 所有登录用户都可访问（覆盖类级别的ADMIN限制）- 只返回当前机构的课程
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/active-timetables/trial")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTrial() {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getActiveTimetablesTrial(Authentication authentication) {
         try {
+            Users currentUser = userService.findByUsername(authentication.getName());
+            if (currentUser == null || currentUser.getOrganizationId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户信息异常或未关联机构"));
+            }
+            
             List<Map<String, Object>> result = timetableService.getActiveTimetablesTrialSchedules();
             return ResponseEntity.ok(ApiResponse.success("获取体验课程成功", result));
         } catch (Exception e) {

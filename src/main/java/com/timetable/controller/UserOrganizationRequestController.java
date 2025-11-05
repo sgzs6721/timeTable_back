@@ -76,7 +76,7 @@ public class UserOrganizationRequestController {
     }
 
     /**
-     * 获取所有待审批的申请（管理员接口）
+     * 获取所有申请（管理员接口）- 包括待审批、已批准、已拒绝
      * 包括：1. 微信用户的机构申请 2. 普通注册用户的申请
      */
     @GetMapping("/pending")
@@ -95,12 +95,12 @@ public class UserOrganizationRequestController {
             
             // 如果是管理员，可以看到所有申请
             if ("ADMIN".equals(currentUser.getRole())) {
-                // 1. 获取微信用户的机构申请
-                List<UserOrganizationRequestDTO> wechatRequests = requestService.getPendingRequests();
+                // 1. 获取微信用户的所有机构申请（不限状态）
+                List<UserOrganizationRequestDTO> wechatRequests = requestService.getAllRequests();
                 allRequests.addAll(wechatRequests);
                 
-                // 2. 获取普通注册用户的申请（状态为PENDING且没有对应的UserOrganizationRequest）
-                List<UserOrganizationRequestDTO> normalRequests = requestService.getPendingNormalRegistrations();
+                // 2. 获取普通注册用户的所有申请（不限状态）
+                List<UserOrganizationRequestDTO> normalRequests = requestService.getAllNormalRegistrations();
                 allRequests.addAll(normalRequests);
             } else {
                 // 普通用户只能看到自己机构的申请（如果有权限的话）
@@ -111,24 +111,24 @@ public class UserOrganizationRequestController {
                 
                 // 1. 获取微信用户的机构申请
                 List<UserOrganizationRequestDTO> wechatRequests = 
-                    requestService.getPendingRequestsByOrganizationId(currentUser.getOrganizationId());
+                    requestService.getAllRequestsByOrganizationId(currentUser.getOrganizationId());
                 allRequests.addAll(wechatRequests);
                 
                 // 2. 获取普通注册用户的申请
                 List<UserOrganizationRequestDTO> normalRequests = 
-                    requestService.getPendingNormalRegistrationsByOrganizationId(currentUser.getOrganizationId());
+                    requestService.getAllNormalRegistrationsByOrganizationId(currentUser.getOrganizationId());
                 allRequests.addAll(normalRequests);
             }
             
             // 按创建时间倒序排序
             allRequests.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
 
-            return ResponseEntity.ok(ApiResponse.success("获取待审批申请成功", allRequests));
+            return ResponseEntity.ok(ApiResponse.success("获取申请列表成功", allRequests));
 
         } catch (Exception e) {
-            logger.error("获取待审批申请失败", e);
+            logger.error("获取申请列表失败", e);
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("获取待审批申请失败"));
+                    .body(ApiResponse.error("获取申请列表失败"));
         }
     }
 

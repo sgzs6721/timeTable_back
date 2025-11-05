@@ -254,6 +254,62 @@ public class UserOrganizationRequestService {
     }
 
     /**
+     * 获取所有微信用户的机构申请（不限状态）
+     */
+    public List<UserOrganizationRequestDTO> getAllRequests() {
+        List<UserOrganizationRequest> requests = requestRepository.findAll();
+        return requests.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取所有普通注册用户的申请（不限状态）
+     */
+    public List<UserOrganizationRequestDTO> getAllNormalRegistrations() {
+        // 查询所有没有wechat_openid的用户
+        List<Users> allUsers = userRepository.findAllApprovedUsers(); // 获取所有已审批用户
+        List<Users> pendingUsers = userRepository.findByStatus("PENDING");
+        List<Users> rejectedUsers = userRepository.findByStatus("REJECTED");
+        
+        // 合并三种状态的用户
+        List<Users> combinedUsers = new java.util.ArrayList<>();
+        combinedUsers.addAll(allUsers.stream()
+                .filter(u -> "APPROVED".equals(u.getStatus()))
+                .collect(Collectors.toList()));
+        combinedUsers.addAll(pendingUsers);
+        combinedUsers.addAll(rejectedUsers);
+        
+        return combinedUsers.stream()
+                .filter(user -> user.getWechatOpenid() == null || user.getWechatOpenid().isEmpty())
+                .map(this::convertUserToRequestDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取某个机构的所有微信用户申请（不限状态）
+     */
+    public List<UserOrganizationRequestDTO> getAllRequestsByOrganizationId(Long organizationId) {
+        List<UserOrganizationRequest> requests = requestRepository.findByOrganizationId(organizationId);
+        return requests.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取某个机构的所有普通注册用户申请（不限状态）
+     */
+    public List<UserOrganizationRequestDTO> getAllNormalRegistrationsByOrganizationId(Long organizationId) {
+        // 查询所有没有wechat_openid的用户
+        List<Users> allUsers = userRepository.findByOrganizationId(organizationId);
+        
+        return allUsers.stream()
+                .filter(user -> user.getWechatOpenid() == null || user.getWechatOpenid().isEmpty())
+                .map(this::convertUserToRequestDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 将Users转换为UserOrganizationRequestDTO
      */
     private UserOrganizationRequestDTO convertUserToRequestDTO(Users user) {
@@ -267,8 +323,9 @@ public class UserOrganizationRequestService {
         dto.setWechatAvatar(null);
         dto.setWechatSex(null);
         dto.setApplyReason("通过注册表单申请，用户名：" + user.getUsername());
-        dto.setStatus(user.getStatus());
+        dto.setStatus(user.getStatus()); // PENDING, APPROVED, REJECTED
         dto.setCreatedAt(user.getCreatedAt());
+        dto.setApprovedAt(user.getUpdatedAt()); // 使用更新时间作为审批时间
         
         // 设置机构信息
         if (user.getOrganizationId() != null) {
@@ -408,8 +465,9 @@ public class UserOrganizationRequestService {
         logger.info("普通注册申请已批准：userId={}, username={}, organizationId={}", 
                     userId, user.getUsername(), user.getOrganizationId());
         
-        // 转换为DTO返回
-        return convertUserToRequestDTO(user);
+        // 重新查询用户以获取最新状态
+        Users updatedUser = userRepository.findById(userId);
+        return convertUserToRequestDTO(updatedUser);
     }
 
     /**
@@ -434,10 +492,12 @@ public class UserOrganizationRequestService {
         logger.info("普通注册申请已拒绝：userId={}, username={}, reason={}", 
                     userId, user.getUsername(), rejectReason);
         
-        // 转换为DTO返回
-        UserOrganizationRequestDTO dto = convertUserToRequestDTO(user);
+        // 重新查询用户以获取最新状态
+        Users updatedUser = userRepository.findById(userId);
+        UserOrganizationRequestDTO dto = convertUserToRequestDTO(updatedUser);
         dto.setRejectReason(rejectReason);
         dto.setStatus("REJECTED");
+        dto.setApprovedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
         return dto;
     }
 
