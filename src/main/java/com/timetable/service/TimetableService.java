@@ -753,7 +753,7 @@ public class TimetableService {
     /**
      * 获取所有活动课表的指定日期课程信息
      */
-    public Map<String, Object> getActiveSchedulesByDate(String dateStr) {
+    public Map<String, Object> getActiveSchedulesByDate(String dateStr, Long organizationId) {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> timetableSchedules = new ArrayList<>();
 
@@ -761,9 +761,10 @@ public class TimetableService {
             // 解析日期
             LocalDate targetDate = LocalDate.parse(dateStr);
 
-            // 获取所有活动课表
+            // 获取指定机构的所有活动课表
             List<Timetables> activeTimetables = timetableRepository.findAll()
                     .stream()
+                    .filter(t -> t.getOrganizationId() != null && t.getOrganizationId().equals(organizationId))
                     .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
                     .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
                     .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)

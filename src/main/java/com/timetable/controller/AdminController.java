@@ -278,7 +278,7 @@ public class AdminController {
                         .body(ApiResponse.error("用户信息异常或未关联机构"));
             }
             
-            Map<String, Object> result = timetableService.getActiveSchedulesByDate(date);
+            Map<String, Object> result = timetableService.getActiveSchedulesByDate(date, currentUser.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("获取活动课表课程成功", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
