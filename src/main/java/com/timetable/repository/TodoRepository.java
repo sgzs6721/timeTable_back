@@ -180,6 +180,33 @@ public class TodoRepository extends BaseRepository {
                 .limit(1)
                 .fetchOneInto(Todo.class);
     }
+    
+    public List<Todo> findLatestTodosByCustomerIdsAndOrganizationId(List<Long> customerIds, Long organizationId) {
+        if (customerIds == null || customerIds.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        
+        // 查询所有待办
+        List<Todo> allTodos = dsl.selectFrom(TODOS)
+                .where(TODOS.CUSTOMER_ID.in(customerIds))
+                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .and(TODOS.STATUS.ne("COMPLETED"))
+                .and(TODOS.STATUS.ne("CANCELLED"))
+                .orderBy(TODOS.CUSTOMER_ID.asc(), TODOS.CREATED_AT.desc())
+                .fetchInto(Todo.class);
+        
+        // 按客户ID分组，每个客户只保留最新的一条
+        java.util.Map<Long, Todo> latestByCustomer = new java.util.HashMap<>();
+        for (Todo todo : allTodos) {
+            Long customerId = todo.getCustomerId();
+            if (customerId != null && !latestByCustomer.containsKey(customerId)) {
+                latestByCustomer.put(customerId, todo);
+            }
+        }
+        
+        return new java.util.ArrayList<>(latestByCustomer.values());
+    }
 
     public Todo update(Todo todo) {
         dsl.update(TODOS)

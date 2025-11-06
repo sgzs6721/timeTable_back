@@ -208,6 +208,23 @@ public class TodoController {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取失败: " + e.getMessage()));
         }
     }
+    
+    @PostMapping("/customers/latest")
+    public ResponseEntity<ApiResponse<List<TodoDTO>>> getLatestTodosForCustomers(
+            @RequestBody List<Long> customerIds,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null || user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
+            }
+
+            List<TodoDTO> todos = todoService.getLatestTodosForCustomers(customerIds, user.getOrganizationId());
+            return ResponseEntity.ok(ApiResponse.success("获取成功", todos));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
 
     @PutMapping("/{todoId}")
     public ResponseEntity<ApiResponse<TodoDTO>> updateTodo(

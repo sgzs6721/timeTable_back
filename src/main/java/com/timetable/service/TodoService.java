@@ -139,6 +139,13 @@ public class TodoService {
         Todo todo = todoRepository.findLatestTodoByCustomerIdAndOrganizationId(customerId, organizationId);
         return todo != null ? convertToDTO(todo) : null;
     }
+    
+    public List<TodoDTO> getLatestTodosForCustomers(List<Long> customerIds, Long organizationId) {
+        List<Todo> todos = todoRepository.findLatestTodosByCustomerIdsAndOrganizationId(customerIds, organizationId);
+        return todos.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
 
     @Transactional
     public TodoDTO updateTodo(Long todoId, TodoRequest request, Long userId) {
