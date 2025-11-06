@@ -168,8 +168,9 @@ public class CustomerRepository {
 
     public List<Customer> findByUserWithFiltersAndPagination(Long userId, int page, int pageSize, 
                                                               String status, java.time.LocalDate filterDate, String keyword) {
-        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE assigned_sales_id = ?");
+        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?)");
         List<Object> params = new ArrayList<>();
+        params.add(userId);
         params.add(userId);
         
         if (status != null && !status.isEmpty() && !"all".equals(status)) {
