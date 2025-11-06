@@ -54,6 +54,7 @@ public class SalaryCalculationService {
         
         // 解析月份
         YearMonth yearMonth = YearMonth.parse(month);
+        LocalDate now = LocalDate.now();
         
         // 获取所有用户
         List<Users> users = userService.getAllApprovedUsers();
@@ -78,6 +79,11 @@ public class SalaryCalculationService {
             LocalDate[] periodRange = calculateSalaryPeriod(yearMonth, systemSetting);
             LocalDate periodStart = periodRange[0];
             LocalDate periodEnd = periodRange[1];
+            
+            // 如果记薪周期还未结束，跳过该用户
+            if (now.isBefore(periodEnd)) {
+                continue;
+            }
             
             SalaryCalculationDTO dto = calculateUserSalary(user, month, periodStart, periodEnd);
             if (dto != null) {
