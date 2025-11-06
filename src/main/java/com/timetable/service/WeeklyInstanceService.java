@@ -2801,9 +2801,10 @@ public class WeeklyInstanceService {
 
     /**
      * 统计所有学员，按教练分组返回（含教练id/名/组课时总数/分组学员列表）
+     * @param organizationId 机构ID，只返回该机构的教练和学员
      * @return List<CoachStudentSummaryDTO>
      */
-    public List<com.timetable.dto.CoachStudentSummaryDTO> getStudentGroupByCoachSummaryAll() {
+    public List<com.timetable.dto.CoachStudentSummaryDTO> getStudentGroupByCoachSummaryAll(Long organizationId) {
         Map<Long, String> coachNameMap = new HashMap<>();
         Map<Long, List<com.timetable.dto.StudentSummaryDTO>> coachStudents = new HashMap<>();
         Map<Long, Double> coachTotal = new HashMap<>();
@@ -2819,8 +2820,12 @@ public class WeeklyInstanceService {
         Map<Long, Set<String>> coachHiddenStudents = new HashMap<>();
         
         try {
-            // 预加载所有教练的合并和别名设置
-            List<com.timetable.generated.tables.pojos.Users> allCoaches = userService.getAllApprovedUsers();
+            // 预加载指定机构的所有教练的合并和别名设置
+            List<com.timetable.generated.tables.pojos.Users> allCoaches = userService.getUsersByOrganizationId(organizationId)
+                    .stream()
+                    .filter(u -> "APPROVED".equals(u.getStatus()))
+                    .filter(u -> u.getIsDeleted() == null || u.getIsDeleted() == 0)
+                    .collect(java.util.stream.Collectors.toList());
             for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
                 if (coach.getIsDeleted() == null || coach.getIsDeleted() == 0) {
                     coachMerges.put(coach.getId(), studentMergeService.getMergesByCoach(coach.getId()));

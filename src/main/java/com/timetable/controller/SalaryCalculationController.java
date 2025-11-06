@@ -134,7 +134,7 @@ public class SalaryCalculationController {
 
     /**
      * 获取有课时记录的月份列表（管理员获取所有，普通用户获取自己的）
-     * 注意：此接口返回的是当前机构所有用户的月份列表，不需要额外过滤
+     * 注意：此接口返回的是当前机构所有用户的月份列表，需要按机构过滤
      */
     @GetMapping("/available-months")
     public ResponseEntity<ApiResponse<List<String>>> getAvailableMonths(Authentication authentication) {
@@ -150,8 +150,8 @@ public class SalaryCalculationController {
 
             List<String> months;
             if (isManager(user)) {
-                // 管理员获取所有月份（这个方法在Service层已经通过用户列表间接过滤了机构）
-                months = salaryCalculationService.getAvailableMonths();
+                // 管理员获取当前机构的所有月份
+                months = salaryCalculationService.getAvailableMonths(user.getOrganizationId());
             } else {
                 // 普通用户只获取自己有工资记录的月份
                 months = salaryCalculationService.getUserAvailableMonths(user.getId());

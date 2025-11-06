@@ -899,6 +899,9 @@ public class WeeklyInstanceController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
+        if (user.getOrganizationId() == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+        }
         try {
             // 获取被隐藏的学员列表、合并规则和分配课时规则
             List<String> hiddenStudents = getHiddenStudents();
@@ -906,8 +909,8 @@ public class WeeklyInstanceController {
             java.util.Map<String, Integer> assignHoursRules = getAssignHoursRules();
             
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
-                // 分组返回教练列表
-                List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
+                // 分组返回教练列表（只返回当前机构的教练）
+                List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll(user.getOrganizationId());
                 // 应用合并规则
                 grouped = applyMergeRulesToGrouped(grouped, mergeRules);
                 // 应用分配课时规则
@@ -1348,10 +1351,13 @@ public class WeeklyInstanceController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
+        if (user.getOrganizationId() == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+        }
         try {
             // 强制刷新，不使用任何缓存
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
-                List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll();
+                List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll(user.getOrganizationId());
                 return ResponseEntity.ok(ApiResponse.success("强制刷新学员列表成功", grouped));
             } else {
                 List<com.timetable.dto.StudentSummaryDTO> students =

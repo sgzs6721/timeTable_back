@@ -249,12 +249,13 @@ public class SalaryCalculationService {
     /**
      * 获取有课时记录的所有月份列表（只返回记薪周期已结束的月份）
      * 从数据库中查询最早的课时记录，生成从那时到现在的所有月份
+     * @param organizationId 机构ID，只返回该机构的数据
      */
-    public List<String> getAvailableMonths() {
+    public List<String> getAvailableMonths(Long organizationId) {
         List<String> months = new ArrayList<>();
         
         try {
-            // 查询最早的课时记录日期（只统计未删除的课表）
+            // 查询最早的课时记录日期（只统计未删除的课表，且按机构过滤）
             String sql = "SELECT MIN(wis.schedule_date) as earliest_date " +
                         "FROM weekly_instance_schedules wis " +
                         "INNER JOIN weekly_instances wi ON wis.weekly_instance_id = wi.id " +
@@ -262,14 +263,16 @@ public class SalaryCalculationService {
                         "WHERE wis.schedule_date IS NOT NULL " +
                         "AND wis.is_on_leave = FALSE " +
                         "AND (t.is_deleted IS NULL OR t.is_deleted = 0) " +
+                        "AND t.organization_id = ? " +
                         "UNION ALL " +
                         "SELECT MIN(s.schedule_date) as earliest_date " +
                         "FROM schedules s " +
                         "INNER JOIN timetables t ON s.timetable_id = t.id " +
                         "WHERE s.schedule_date IS NOT NULL " +
-                        "AND (t.is_deleted IS NULL OR t.is_deleted = 0)";
+                        "AND (t.is_deleted IS NULL OR t.is_deleted = 0) " +
+                        "AND t.organization_id = ?";
             
-            LocalDate earliestDate = jdbcTemplate.query(sql, rs -> {
+            LocalDate earliestDate = jdbcTemplate.query(sql, new Object[]{organizationId, organizationId}, rs -> {
                 LocalDate earliest = null;
                 while (rs.next()) {
                     LocalDate date = rs.getDate("earliest_date") != null ? 
