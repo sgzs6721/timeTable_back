@@ -48,17 +48,8 @@ public class TodoService {
     }
 
     public List<TodoDTO> getTodosByUser(Long userId, Long organizationId) {
-        // 判断用户职位
-        Users user = userRepository.findById(userId);
-        List<Todo> todos;
-        
-        if (user != null && "MANAGER".equals(user.getPosition())) {
-            // 管理职位可以看所有待办
-            todos = todoRepository.findAllByOrganizationId(organizationId);
-        } else {
-            // 其他职位只能看分配给自己的客户的待办
-            todos = todoRepository.findByCreatedByAndOrganizationId(userId, organizationId);
-        }
+        // 所有人都只能看分配给自己的客户的待办
+        List<Todo> todos = todoRepository.findByCreatedByAndOrganizationId(userId, organizationId);
         
         return todos.stream()
                 .map(this::convertToDTO)
@@ -66,17 +57,8 @@ public class TodoService {
     }
 
     public List<TodoDTO> getTodosByUserAndStatus(Long userId, String status, Long organizationId) {
-        // 判断用户职位
-        Users user = userRepository.findById(userId);
-        List<Todo> todos;
-        
-        if (user != null && "MANAGER".equals(user.getPosition())) {
-            // 管理职位可以看所有待办
-            todos = todoRepository.findAllByStatusAndOrganizationId(status, organizationId);
-        } else {
-            // 其他职位只能看分配给自己的客户的待办
-            todos = todoRepository.findByCreatedByAndStatusAndOrganizationId(userId, status, organizationId);
-        }
+        // 所有人都只能看分配给自己的客户的待办
+        List<Todo> todos = todoRepository.findByCreatedByAndStatusAndOrganizationId(userId, status, organizationId);
         
         return todos.stream()
                 .map(this::convertToDTO)
@@ -84,28 +66,13 @@ public class TodoService {
     }
 
     public int getUnreadCount(Long userId, Long organizationId) {
-        // 判断用户职位
-        Users user = userRepository.findById(userId);
-        
-        if (user != null && "MANAGER".equals(user.getPosition())) {
-            // 管理职位统计所有未读
-            return todoRepository.countUnreadByOrganizationId(organizationId);
-        } else {
-            // 其他职位只统计分配给自己的
-            return todoRepository.countUnreadByCreatedByAndOrganizationId(userId, organizationId);
-        }
+        // 所有人都只统计分配给自己的客户的待办
+        return todoRepository.countUnreadByCreatedByAndOrganizationId(userId, organizationId);
     }
 
     private boolean canAccessTodo(Todo todo, Long userId) {
         if (todo == null) {
             return false;
-        }
-        
-        // 检查用户职位
-        Users user = userRepository.findById(userId);
-        if (user != null && "MANAGER".equals(user.getPosition())) {
-            // 管理职位可以操作所有待办
-            return true;
         }
         
         // 检查是否是客户的负责人
