@@ -407,6 +407,7 @@ public class WeeklyInstanceController {
             String endTimeStr = (String) request.get("endTime");
             String scheduleDateStr = (String) request.get("scheduleDate");
             String note = (String) request.get("note");
+            Boolean isTimeBlock = (Boolean) request.get("isTimeBlock");
 
             if (studentName == null || dayOfWeek == null || startTimeStr == null || endTimeStr == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("缺少必要参数"));
@@ -429,6 +430,7 @@ public class WeeklyInstanceController {
             schedule.setScheduleDate(scheduleDate);
             schedule.setSubject(subject);
             schedule.setNote(note);
+            schedule.setIsTimeBlock(isTimeBlock != null ? isTimeBlock : false);
 
             WeeklyInstanceSchedule createdSchedule = weeklyInstanceService.createInstanceSchedule(instanceId, schedule);
             return ResponseEntity.ok(ApiResponse.success("创建实例课程成功", createdSchedule));
@@ -464,9 +466,11 @@ public class WeeklyInstanceController {
                 String endTimeStr = (String) request.get("endTime");
                 String scheduleDateStr = (String) request.get("scheduleDate");
                 String note = (String) request.get("note");
+                Boolean isTimeBlock = (Boolean) request.get("isTimeBlock");
 
                 WeeklyInstanceSchedule schedule = new WeeklyInstanceSchedule();
                 schedule.setStudentName(studentName);
+                schedule.setIsTimeBlock(isTimeBlock != null ? isTimeBlock : false);
                 schedule.setSubject(subject != null ? subject : "");
                 schedule.setDayOfWeek(dayOfWeek);
                 schedule.setStartTime(LocalTime.parse(startTimeStr));

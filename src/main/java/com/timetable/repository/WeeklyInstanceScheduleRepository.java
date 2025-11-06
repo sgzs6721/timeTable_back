@@ -42,6 +42,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                     .set(field("is_manual_added"), schedule.getIsManualAdded())
                     .set(field("is_modified"), schedule.getIsModified())
                     .set(field("is_trial"), schedule.getIsTrial())
+                    .set(field("is_time_block"), schedule.getIsTimeBlock())
                     .set(field("created_at"), schedule.getCreatedAt())
                     .set(field("updated_at"), schedule.getUpdatedAt())
                     .execute();
@@ -66,6 +67,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                     .set(field("is_manual_added"), schedule.getIsManualAdded())
                     .set(field("is_modified"), schedule.getIsModified())
                     .set(field("is_trial"), schedule.getIsTrial())
+                    .set(field("is_time_block"), schedule.getIsTimeBlock())
                     .set(field("updated_at"), LocalDateTime.now())
                     .where(field("id").eq(schedule.getId()))
                     .execute();
@@ -215,6 +217,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
                 .set(field("leave_reason"), schedule.getLeaveReason())
                 .set(field("leave_requested_at"), schedule.getLeaveRequestedAt())
                 .set(field("is_trial"), schedule.getIsTrial())
+                .set(field("is_time_block"), schedule.getIsTimeBlock())
                 .set(field("updated_at"), LocalDateTime.now())
                 .where(field("id").eq(schedule.getId()))
                 .execute();
@@ -302,6 +305,7 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
         schedule.setIsTrial(record.get("is_trial", Byte.class));
         schedule.setIsCancelled(record.get("is_cancelled", Boolean.class));
         schedule.setCancelledAt(record.get("cancelled_at", LocalDateTime.class));
+        schedule.setIsTimeBlock(record.get("is_time_block", Boolean.class));
         schedule.setCreatedAt(record.get("created_at", LocalDateTime.class));
         schedule.setUpdatedAt(record.get("updated_at", LocalDateTime.class));
         return schedule;

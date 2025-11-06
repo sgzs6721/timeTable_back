@@ -26,6 +26,7 @@ public class WeeklyInstanceSchedule {
     private Byte isTrial;              // 是否为体验课程
     private Boolean isCancelled;       // 是否已取消
     private LocalDateTime cancelledAt; // 取消时间
+    private Boolean isTimeBlock;       // 是否为占用时间段（不排课）
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -224,5 +225,13 @@ public class WeeklyInstanceSchedule {
 
     public void setCancelledAt(LocalDateTime cancelledAt) {
         this.cancelledAt = cancelledAt;
+    }
+
+    public Boolean getIsTimeBlock() {
+        return isTimeBlock;
+    }
+
+    public void setIsTimeBlock(Boolean isTimeBlock) {
+        this.isTimeBlock = isTimeBlock;
     }
 }

@@ -412,7 +412,7 @@ public class SalaryCalculationService {
                         "INNER JOIN timetables t ON wi.template_timetable_id = t.id " +
                         "WHERE wis.schedule_date IS NOT NULL " +
                         "AND wis.is_on_leave = FALSE " +
-                        "AND wis.student_name != '【占用】' " +
+                        "AND (wis.is_time_block IS NULL OR wis.is_time_block = FALSE) " +
                         "AND t.user_id = ? " +
                         "AND (t.is_deleted IS NULL OR t.is_deleted = 0) " +
                         "UNION ALL " +
@@ -420,7 +420,7 @@ public class SalaryCalculationService {
                         "FROM schedules s " +
                         "INNER JOIN timetables t ON s.timetable_id = t.id " +
                         "WHERE s.schedule_date IS NOT NULL " +
-                        "AND s.student_name != '【占用】' " +
+                        "AND (s.is_time_block IS NULL OR s.is_time_block = FALSE) " +
                         "AND t.user_id = ? " +
                         "AND (t.is_deleted IS NULL OR t.is_deleted = 0)";
             

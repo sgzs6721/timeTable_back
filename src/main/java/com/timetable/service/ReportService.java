@@ -28,7 +28,7 @@ public class ReportService {
         // 应用学员操作规则（过滤隐藏的学员等）
         allSchedules = applyStudentOperationRules(allSchedules, userId);
         
-        // 过滤掉占用时间段（studentName为"【占用】"的记录）
+        // 过滤掉占用时间段（studentName为"【占用】"的记录，待数据库迁移完成后使用isTimeBlock字段）
         allSchedules = allSchedules.stream()
             .filter(schedule -> !"【占用】".equals(schedule.getStudentName()))
             .collect(java.util.stream.Collectors.toList());

@@ -939,9 +939,10 @@ public class AdminController {
                                     .filter(schedule -> schedule.getScheduleDate() != null && schedule.getScheduleDate().equals(today))
                                     .collect(Collectors.toList());
 
-                            // 今日请假数
+                            // 今日请假数（排除占用时间段）
                             todayLeaves = (int) todaySchedulesAll.stream()
                                     .filter(s -> s.getIsOnLeave() != null && s.getIsOnLeave())
+                                    .filter(s -> s.getIsTimeBlock() == null || !s.getIsTimeBlock())
                                     .count();
                             
                             // 调试日志：检查上官教练的请假统计
