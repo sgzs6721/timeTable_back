@@ -385,6 +385,7 @@ public class ScheduleService {
             schedule.setScheduleDate(request.getScheduleDate());
         }
         schedule.setNote(request.getNote());
+        schedule.setIsTimeBlock(request.getIsTimeBlock() != null && request.getIsTimeBlock() ? (byte) 1 : (byte) 0);
         // 设置创建和更新时间
         schedule.setCreatedAt(LocalDateTime.now());
         schedule.setUpdatedAt(LocalDateTime.now());
@@ -481,6 +482,9 @@ public class ScheduleService {
         }
         if (request.getIsTrial() != null) {
             schedule.setIsTrial(request.getIsTrial() ? (byte) 1 : (byte) 0);
+        }
+        if (request.getIsTimeBlock() != null) {
+            schedule.setIsTimeBlock(request.getIsTimeBlock() ? (byte) 1 : (byte) 0);
         }
 
         schedule.setUpdatedAt(LocalDateTime.now());

@@ -32,6 +32,8 @@ public class ScheduleRequest {
     
     private String note;
     
+    private Boolean isTimeBlock;
+    
     // 构造函数
     public ScheduleRequest() {
     }
@@ -99,5 +101,13 @@ public class ScheduleRequest {
     
     public void setNote(String note) {
         this.note = note;
+    }
+    
+    public Boolean getIsTimeBlock() {
+        return isTimeBlock;
+    }
+    
+    public void setIsTimeBlock(Boolean isTimeBlock) {
+        this.isTimeBlock = isTimeBlock;
     }
 } 

@@ -19,6 +19,7 @@ public class UpdateScheduleRequest {
     private String note;
     private Boolean isTrial;
     private Boolean isHalfHour;
+    private Boolean isTimeBlock;
 
     public UpdateScheduleRequest() {
     }
@@ -101,5 +102,13 @@ public class UpdateScheduleRequest {
 
     public void setIsHalfHour(Boolean isHalfHour) {
         this.isHalfHour = isHalfHour;
+    }
+
+    public Boolean getIsTimeBlock() {
+        return isTimeBlock;
+    }
+
+    public void setIsTimeBlock(Boolean isTimeBlock) {
+        this.isTimeBlock = isTimeBlock;
     }
 } 
