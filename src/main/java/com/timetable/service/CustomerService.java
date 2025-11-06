@@ -86,8 +86,9 @@ public class CustomerService {
             customer.setAssignedSalesId(currentUserId);
         }
 
-        // 检查权限：只有管理员或分配的销售可以修改
+        // 检查权限：只有管理员、分配的销售或创建者可以修改
         if (!currentUserId.equals(customer.getAssignedSalesId()) && 
+            !currentUserId.equals(customer.getCreatedBy()) &&
             !isAdmin(currentUserId)) {
             throw new RuntimeException("无权限修改此客户");
         }
@@ -150,8 +151,8 @@ public class CustomerService {
             throw new RuntimeException("客户不存在");
         }
 
-        // 检查权限
-        if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId())) {
+        // 检查权限：管理员、分配的销售或创建者可以查看
+        if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId()) && !currentUserId.equals(customer.getCreatedBy())) {
             throw new RuntimeException("无权限查看此客户");
         }
 
@@ -165,8 +166,8 @@ public class CustomerService {
             throw new RuntimeException("客户不存在");
         }
 
-        // 检查权限
-        if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId())) {
+        // 检查权限：管理员、分配的销售或创建者可以删除
+        if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId()) && !currentUserId.equals(customer.getCreatedBy())) {
             throw new RuntimeException("无权限删除此客户");
         }
 

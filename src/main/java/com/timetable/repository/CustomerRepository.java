@@ -113,13 +113,13 @@ public class CustomerRepository {
     }
 
     public List<Customer> findByAssignedSalesId(Long salesId) {
-        String sql = "SELECT * FROM customers WHERE assigned_sales_id = ? ORDER BY created_at DESC";
-        return jdbcTemplate.query(sql, customerRowMapper, salesId);
+        String sql = "SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?) ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, customerRowMapper, salesId, salesId);
     }
 
     public List<Customer> findByAssignedSalesIdWithPagination(Long salesId, int page, int pageSize) {
-        String sql = "SELECT * FROM customers WHERE assigned_sales_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        return jdbcTemplate.query(sql, customerRowMapper, salesId, pageSize, page * pageSize);
+        String sql = "SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?) ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, customerRowMapper, salesId, salesId, pageSize, page * pageSize);
     }
 
     public List<Customer> findAll() {
