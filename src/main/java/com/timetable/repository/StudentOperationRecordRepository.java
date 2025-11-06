@@ -79,6 +79,19 @@ public class StudentOperationRecordRepository extends BaseRepository {
     }
     
     /**
+     * 根据机构ID查找所有操作记录
+     */
+    public List<StudentOperationRecord> findByOrganizationId(Long organizationId) {
+        Result<Record> records = dsl.select()
+                .from(table("student_operation_records"))
+                .where(field("organization_id").eq(organizationId))
+                .orderBy(field("created_at").desc())
+                .fetch();
+        
+        return records.map(this::mapToStudentOperationRecord);
+    }
+    
+    /**
      * 根据教练ID查找所有操作记录（旧方法，保持兼容性）
      */
     public List<StudentOperationRecord> findByCoachId(Long coachId) {
@@ -112,6 +125,20 @@ public class StudentOperationRecordRepository extends BaseRepository {
         Result<Record> records = dsl.select()
                 .from(table("student_operation_records"))
                 .where(field("operation_type").eq(operationType))
+                .orderBy(field("created_at").desc())
+                .fetch();
+        
+        return records.map(this::mapToStudentOperationRecord);
+    }
+    
+    /**
+     * 根据机构ID和操作类型查找操作记录
+     */
+    public List<StudentOperationRecord> findByOrganizationIdAndOperationType(Long organizationId, String operationType) {
+        Result<Record> records = dsl.select()
+                .from(table("student_operation_records"))
+                .where(field("organization_id").eq(organizationId))
+                .and(field("operation_type").eq(operationType))
                 .orderBy(field("created_at").desc())
                 .fetch();
         

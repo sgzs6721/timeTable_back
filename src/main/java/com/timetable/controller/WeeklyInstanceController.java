@@ -903,10 +903,10 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
         }
         try {
-            // 获取被隐藏的学员列表、合并规则和分配课时规则
-            List<String> hiddenStudents = getHiddenStudents();
-            java.util.Map<String, String> mergeRules = getMergeRules();
-            java.util.Map<String, Integer> assignHoursRules = getAssignHoursRules();
+            // 获取被隐藏的学员列表、合并规则和分配课时规则（只查询当前机构的）
+            List<String> hiddenStudents = getHiddenStudents(user.getOrganizationId());
+            java.util.Map<String, String> mergeRules = getMergeRules(user.getOrganizationId());
+            java.util.Map<String, Integer> assignHoursRules = getAssignHoursRules(user.getOrganizationId());
             
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
                 // 分组返回教练列表（只返回当前机构的教练）
@@ -954,19 +954,31 @@ public class WeeklyInstanceController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
             
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+            }
+            
             List<StudentOperationRecord> records;
             
             // 首先根据用户权限和参数获取基础记录集
             List<StudentOperationRecord> baseRecords;
             if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll && coachId == null) {
-                // 管理员查看全部记录且未指定教练ID
-                baseRecords = studentOperationRecordRepository.findAll();
+                // 管理员查看全部记录且未指定教练ID - 只查询当前机构的记录
+                baseRecords = studentOperationRecordRepository.findByOrganizationId(user.getOrganizationId());
             } else if (coachId != null) {
-                // 指定了教练ID，查询该教练的记录
-                baseRecords = studentOperationRecordRepository.findByCoachId(coachId);
+                // 指定了教练ID，需要验证该教练是否属于当前用户的机构
+                Users targetCoach = userService.findById(coachId);
+                if (targetCoach == null) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("指定的教练不存在"));
+                }
+                if (!user.getOrganizationId().equals(targetCoach.getOrganizationId())) {
+                    return ResponseEntity.status(403).body(ApiResponse.error("无权查看其他机构教练的操作记录"));
+                }
+                // 查询该教练的记录（该教练已验证属于当前机构）
+                baseRecords = studentOperationRecordRepository.findByCoachIdAndOrganizationId(coachId, user.getOrganizationId());
             } else {
                 // 默认查询当前用户的记录
-                baseRecords = studentOperationRecordRepository.findByCoachId(user.getId());
+                baseRecords = studentOperationRecordRepository.findByCoachIdAndOrganizationId(user.getId(), user.getOrganizationId());
             }
             
             // 如果指定了学员名称，需要过滤特定学员的记录
@@ -1371,11 +1383,11 @@ public class WeeklyInstanceController {
     }
     
     /**
-     * 获取被隐藏的学员列表
+     * 获取被隐藏的学员列表（只查询指定机构的）
      */
-    private List<String> getHiddenStudents() {
+    private List<String> getHiddenStudents(Long organizationId) {
         try {
-            List<StudentOperationRecord> hideRecords = studentOperationRecordRepository.findAll()
+            List<StudentOperationRecord> hideRecords = studentOperationRecordRepository.findByOrganizationId(organizationId)
                 .stream()
                 .filter(record -> "HIDE".equals(record.getOperationType()))
                 .collect(java.util.stream.Collectors.toList());
@@ -1391,11 +1403,11 @@ public class WeeklyInstanceController {
     }
     
     /**
-     * 获取合并规则映射
+     * 获取合并规则映射（只查询指定机构的）
      */
-    private java.util.Map<String, String> getMergeRules() {
+    private java.util.Map<String, String> getMergeRules(Long organizationId) {
         try {
-            List<StudentOperationRecord> mergeRecords = studentOperationRecordRepository.findAll()
+            List<StudentOperationRecord> mergeRecords = studentOperationRecordRepository.findByOrganizationId(organizationId)
                 .stream()
                 .filter(record -> "MERGE".equals(record.getOperationType()))
                 .collect(java.util.stream.Collectors.toList());
@@ -1422,14 +1434,14 @@ public class WeeklyInstanceController {
     }
     
     /**
-     * 获取分配课时规则
+     * 获取分配课时规则（只查询指定机构的）
      * @return Map<学员名称, 分配的课时数>
      */
-    private java.util.Map<String, Integer> getAssignHoursRules() {
+    private java.util.Map<String, Integer> getAssignHoursRules(Long organizationId) {
         try {
             java.util.Map<String, Integer> hoursMap = new java.util.HashMap<>();
             List<StudentOperationRecord> records = studentOperationRecordRepository
-                .findByOperationType("ASSIGN_HOURS");
+                .findByOrganizationIdAndOperationType(organizationId, "ASSIGN_HOURS");
             
             for (StudentOperationRecord record : records) {
                 String studentName = record.getOldName(); // 学员名称存在oldName
