@@ -381,9 +381,9 @@ public class CustomerService {
             }
         }
 
-        // 验证被分配的用户是销售或管理员
-        if (!"SALES".equals(assignedUser.getPosition()) && !"ADMIN".equals(assignedUser.getRole())) {
-            throw new RuntimeException("只能分配给销售职位或管理职位的用户");
+        // 验证被分配的用户是销售或管理职位
+        if (!"SALES".equals(assignedUser.getPosition()) && !"MANAGER".equals(assignedUser.getPosition())) {
+            throw new RuntimeException("只能分配给销售或管理职位的用户");
         }
 
         // 更新分配销售ID
