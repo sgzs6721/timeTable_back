@@ -238,7 +238,7 @@ public class TodoService {
         dto.setCustomerId(todo.getCustomerId());
         dto.setCustomerName(todo.getCustomerName());
         
-        // 查询客户信息（电话、状态、地点、详情）
+        // 查询客户信息（电话、状态、地点、详情、分配信息）
         if (todo.getCustomerId() != null) {
             Customer customer = customerRepository.findById(todo.getCustomerId());
             if (customer != null) {
@@ -247,6 +247,7 @@ public class TodoService {
                 dto.setCustomerStatusText(getStatusText(customer.getStatus()));
                 dto.setCustomerSource(customer.getSource());
                 dto.setCustomerNotes(customer.getNotes());
+                dto.setCustomerAssignedSalesId(customer.getAssignedSalesId());
             }
         }
         

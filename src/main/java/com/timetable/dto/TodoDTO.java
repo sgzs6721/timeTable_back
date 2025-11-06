@@ -14,6 +14,7 @@ public class TodoDTO {
     private String customerStatusText;
     private String customerSource;
     private String customerNotes;
+    private Long customerAssignedSalesId;
     private String content;
     private LocalDate reminderDate;
     private LocalTime reminderTime;
@@ -91,6 +92,14 @@ public class TodoDTO {
 
     public void setCustomerNotes(String customerNotes) {
         this.customerNotes = customerNotes;
+    }
+
+    public Long getCustomerAssignedSalesId() {
+        return customerAssignedSalesId;
+    }
+
+    public void setCustomerAssignedSalesId(Long customerAssignedSalesId) {
+        this.customerAssignedSalesId = customerAssignedSalesId;
     }
 
     public String getContent() {
