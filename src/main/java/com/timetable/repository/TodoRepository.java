@@ -11,6 +11,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 import static com.timetable.generated.Tables.TODOS;
+import static com.timetable.generated.Tables.CUSTOMERS;
 
 @Repository
 public class TodoRepository extends BaseRepository {
@@ -49,18 +50,39 @@ public class TodoRepository extends BaseRepository {
     }
 
     public List<Todo> findByCreatedByAndOrganizationId(Long userId, Long organizationId) {
+        return dsl.select(TODOS.fields())
+                .from(TODOS)
+                .leftJoin(CUSTOMERS).on(TODOS.CUSTOMER_ID.eq(CUSTOMERS.ID))
+                .where(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .and(CUSTOMERS.ASSIGNED_SALES_ID.eq(userId))
+                .orderBy(TODOS.CREATED_AT.desc())
+                .fetchInto(Todo.class);
+    }
+    
+    public List<Todo> findAllByOrganizationId(Long organizationId) {
         return dsl.selectFrom(TODOS)
-                .where(TODOS.CREATED_BY.eq(userId))
-                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .where(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
 
     public List<Todo> findByCreatedByAndStatusAndOrganizationId(Long userId, String status, Long organizationId) {
+        return dsl.select(TODOS.fields())
+                .from(TODOS)
+                .leftJoin(CUSTOMERS).on(TODOS.CUSTOMER_ID.eq(CUSTOMERS.ID))
+                .where(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .and(TODOS.STATUS.eq(status))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .and(CUSTOMERS.ASSIGNED_SALES_ID.eq(userId))
+                .orderBy(TODOS.CREATED_AT.desc())
+                .fetchInto(Todo.class);
+    }
+    
+    public List<Todo> findAllByStatusAndOrganizationId(String status, Long organizationId) {
         return dsl.selectFrom(TODOS)
-                .where(TODOS.CREATED_BY.eq(userId))
-                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .where(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.STATUS.eq(status))
                 .and(TODOS.DELETED.eq((byte) 0))
                 .orderBy(TODOS.CREATED_AT.desc())
@@ -70,8 +92,19 @@ public class TodoRepository extends BaseRepository {
     public int countUnreadByCreatedByAndOrganizationId(Long userId, Long organizationId) {
         return dsl.selectCount()
                 .from(TODOS)
-                .where(TODOS.CREATED_BY.eq(userId))
-                .and(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .leftJoin(CUSTOMERS).on(TODOS.CUSTOMER_ID.eq(CUSTOMERS.ID))
+                .where(TODOS.ORGANIZATION_ID.eq(organizationId))
+                .and(TODOS.STATUS.ne("COMPLETED"))
+                .and(TODOS.STATUS.ne("CANCELLED"))
+                .and(TODOS.DELETED.eq((byte) 0))
+                .and(CUSTOMERS.ASSIGNED_SALES_ID.eq(userId))
+                .fetchOne(0, int.class);
+    }
+    
+    public int countUnreadByOrganizationId(Long organizationId) {
+        return dsl.selectCount()
+                .from(TODOS)
+                .where(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.STATUS.ne("COMPLETED"))
                 .and(TODOS.STATUS.ne("CANCELLED"))
                 .and(TODOS.DELETED.eq((byte) 0))

@@ -48,27 +48,81 @@ public class TodoService {
     }
 
     public List<TodoDTO> getTodosByUser(Long userId, Long organizationId) {
-        List<Todo> todos = todoRepository.findByCreatedByAndOrganizationId(userId, organizationId);
+        // 判断用户职位
+        Users user = userRepository.findById(userId);
+        List<Todo> todos;
+        
+        if (user != null && "MANAGER".equals(user.getPosition())) {
+            // 管理职位可以看所有待办
+            todos = todoRepository.findAllByOrganizationId(organizationId);
+        } else {
+            // 其他职位只能看分配给自己的客户的待办
+            todos = todoRepository.findByCreatedByAndOrganizationId(userId, organizationId);
+        }
+        
         return todos.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     public List<TodoDTO> getTodosByUserAndStatus(Long userId, String status, Long organizationId) {
-        List<Todo> todos = todoRepository.findByCreatedByAndStatusAndOrganizationId(userId, status, organizationId);
+        // 判断用户职位
+        Users user = userRepository.findById(userId);
+        List<Todo> todos;
+        
+        if (user != null && "MANAGER".equals(user.getPosition())) {
+            // 管理职位可以看所有待办
+            todos = todoRepository.findAllByStatusAndOrganizationId(status, organizationId);
+        } else {
+            // 其他职位只能看分配给自己的客户的待办
+            todos = todoRepository.findByCreatedByAndStatusAndOrganizationId(userId, status, organizationId);
+        }
+        
         return todos.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     public int getUnreadCount(Long userId, Long organizationId) {
-        return todoRepository.countUnreadByCreatedByAndOrganizationId(userId, organizationId);
+        // 判断用户职位
+        Users user = userRepository.findById(userId);
+        
+        if (user != null && "MANAGER".equals(user.getPosition())) {
+            // 管理职位统计所有未读
+            return todoRepository.countUnreadByOrganizationId(organizationId);
+        } else {
+            // 其他职位只统计分配给自己的
+            return todoRepository.countUnreadByCreatedByAndOrganizationId(userId, organizationId);
+        }
+    }
+
+    private boolean canAccessTodo(Todo todo, Long userId) {
+        if (todo == null) {
+            return false;
+        }
+        
+        // 检查用户职位
+        Users user = userRepository.findById(userId);
+        if (user != null && "MANAGER".equals(user.getPosition())) {
+            // 管理职位可以操作所有待办
+            return true;
+        }
+        
+        // 检查是否是客户的负责人
+        if (todo.getCustomerId() != null) {
+            Customer customer = customerRepository.findById(todo.getCustomerId());
+            if (customer != null && userId.equals(customer.getAssignedSalesId())) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     @Transactional
     public boolean markAsRead(Long todoId, Long userId) {
         Todo todo = todoRepository.findById(todoId);
-        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+        if (!canAccessTodo(todo, userId)) {
             throw new RuntimeException("无权限操作此待办");
         }
         return todoRepository.markAsRead(todoId) > 0;
@@ -77,7 +131,7 @@ public class TodoService {
     @Transactional
     public boolean markAsCompleted(Long todoId, Long userId) {
         Todo todo = todoRepository.findById(todoId);
-        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+        if (!canAccessTodo(todo, userId)) {
             throw new RuntimeException("无权限操作此待办");
         }
         return todoRepository.markAsCompleted(todoId) > 0;
@@ -86,7 +140,7 @@ public class TodoService {
     @Transactional
     public boolean markAsCancelled(Long todoId, Long userId) {
         Todo todo = todoRepository.findById(todoId);
-        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+        if (!canAccessTodo(todo, userId)) {
             throw new RuntimeException("无权限操作此待办");
         }
         return todoRepository.markAsCancelled(todoId) > 0;
@@ -95,7 +149,7 @@ public class TodoService {
     @Transactional
     public boolean updateStatus(Long todoId, String status, Long userId) {
         Todo todo = todoRepository.findById(todoId);
-        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+        if (!canAccessTodo(todo, userId)) {
             throw new RuntimeException("无权限操作此待办");
         }
         return todoRepository.updateStatus(todoId, status) > 0;
@@ -104,7 +158,7 @@ public class TodoService {
     @Transactional
     public boolean deleteTodo(Long todoId, Long userId) {
         Todo todo = todoRepository.findById(todoId);
-        if (todo == null || !todo.getCreatedBy().equals(userId)) {
+        if (!canAccessTodo(todo, userId)) {
             throw new RuntimeException("无权限操作此待办");
         }
         return todoRepository.delete(todoId) > 0;
@@ -124,6 +178,10 @@ public class TodoService {
         Todo todo = todoRepository.findById(todoId);
         if (todo == null) {
             throw new RuntimeException("待办不存在");
+        }
+        
+        if (!canAccessTodo(todo, userId)) {
+            throw new RuntimeException("无权限修改此待办");
         }
 
         // 更新待办信息
@@ -160,7 +218,7 @@ public class TodoService {
             throw new RuntimeException("待办不存在");
         }
         
-        if (!todo.getCreatedBy().equals(userId)) {
+        if (!canAccessTodo(todo, userId)) {
             throw new RuntimeException("无权限操作此待办");
         }
 

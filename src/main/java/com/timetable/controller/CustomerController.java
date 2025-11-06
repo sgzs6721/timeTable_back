@@ -51,7 +51,6 @@ public class CustomerController {
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int pageSize,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String statuses,
             @RequestParam(required = false) Long salesId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterDate,
             @RequestParam(required = false) String keyword) {
@@ -67,7 +66,7 @@ public class CustomerController {
 
             boolean isAdmin = "ADMIN".equals(user.getRole());
             List<CustomerDTO> customers = customerService.getCustomersWithFilters(
-                user.getId(), user.getOrganizationId(), isAdmin, page, pageSize, status, statuses, salesId, filterDate, keyword);
+                user.getId(), user.getOrganizationId(), isAdmin, page, pageSize, status, salesId, filterDate, keyword);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("获取客户列表失败: " + e.getMessage()));
