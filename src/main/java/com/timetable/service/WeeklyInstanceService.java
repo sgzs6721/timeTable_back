@@ -1349,21 +1349,8 @@ public class WeeklyInstanceService {
                 .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
                 .collect(Collectors.toList());
 
-        // 预加载所有教练的隐藏学员规则
-        Map<Long, Set<String>> coachHiddenStudents = new HashMap<>();
-        for (Timetables timetable : activeTimetables) {
-            Long coachId = timetable.getUserId();
-            if (!coachHiddenStudents.containsKey(coachId)) {
-                Set<String> hiddenStudents = new HashSet<>();
-                List<StudentOperationRecord> records = studentOperationRecordRepository.findByCoachId(coachId);
-                for (StudentOperationRecord record : records) {
-                    if ("HIDE".equals(record.getOperationType())) {
-                        hiddenStudents.add(record.getOldName()); // HIDE操作使用oldName存储学员名
-                    }
-                }
-                coachHiddenStudents.put(coachId, hiddenStudents);
-            }
-        }
+        // 注意：在"其他教练课程"视图中，不应用隐藏学员规则
+        // 这样可以完整显示所有教练的课程安排，便于查看时间段占用情况
 
         for (Timetables timetable : activeTimetables) {
             List<WeeklyInstanceSchedule> instanceSchedules = new ArrayList<>();
@@ -1398,15 +1385,11 @@ public class WeeklyInstanceService {
 
                 if (instance != null) {
                     List<WeeklyInstanceSchedule> all = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(instance.getId());
-                    Long coachId = timetable.getUserId();
-                    Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
                     
                     instanceSchedules = all.stream()
                             .filter(s -> targetDate.equals(s.getScheduleDate()))
-                            // 过滤掉请假课程，请假学员不显示在今日课程中
-                            .filter(s -> s.getIsOnLeave() == null || !s.getIsOnLeave())
-                            // 过滤掉隐藏的学员
-                            .filter(s -> hiddenStudents == null || !hiddenStudents.contains(s.getStudentName()))
+                            // 在"其他教练课程"视图中，显示所有课程（包括请假和隐藏的学员）
+                            // 这样可以完整地看到时间段的占用情况
                             .collect(Collectors.toList());
                     
                     // 去重：基于学生姓名、开始时间、结束时间的组合
@@ -1426,12 +1409,9 @@ public class WeeklyInstanceService {
             } else {
                 // 日期范围课表：直接取具体日期（日期范围课表没有请假功能）
                 List<Schedules> daySchedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetable.getId(), targetDate);
-                Long coachId = timetable.getUserId();
-                Set<String> hiddenStudents = coachHiddenStudents.get(coachId);
                 
-                // 映射为实例样式，并过滤掉隐藏的学员
+                // 映射为实例样式，在"其他教练课程"中显示所有课程
                 instanceSchedules = daySchedules.stream()
-                        .filter(s -> hiddenStudents == null || !hiddenStudents.contains(s.getStudentName()))
                         .map(s -> {
                             WeeklyInstanceSchedule w = new WeeklyInstanceSchedule();
                             w.setStudentName(s.getStudentName());
