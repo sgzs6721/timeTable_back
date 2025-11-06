@@ -55,7 +55,10 @@ public class TodoRepository extends BaseRepository {
                 .leftJoin(CUSTOMERS).on(TODOS.CUSTOMER_ID.eq(CUSTOMERS.ID))
                 .where(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.DELETED.eq((byte) 0))
-                .and(CUSTOMERS.ASSIGNED_SALES_ID.eq(userId))
+                .and(
+                    CUSTOMERS.ASSIGNED_SALES_ID.eq(userId)  // 客户分配给自己的待办
+                    .or(TODOS.CUSTOMER_ID.isNull().and(TODOS.CREATED_BY.eq(userId)))  // 个人待办
+                )
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
@@ -75,7 +78,10 @@ public class TodoRepository extends BaseRepository {
                 .where(TODOS.ORGANIZATION_ID.eq(organizationId))
                 .and(TODOS.STATUS.eq(status))
                 .and(TODOS.DELETED.eq((byte) 0))
-                .and(CUSTOMERS.ASSIGNED_SALES_ID.eq(userId))
+                .and(
+                    CUSTOMERS.ASSIGNED_SALES_ID.eq(userId)  // 客户分配给自己的待办
+                    .or(TODOS.CUSTOMER_ID.isNull().and(TODOS.CREATED_BY.eq(userId)))  // 个人待办
+                )
                 .orderBy(TODOS.CREATED_AT.desc())
                 .fetchInto(Todo.class);
     }
@@ -97,7 +103,10 @@ public class TodoRepository extends BaseRepository {
                 .and(TODOS.STATUS.ne("COMPLETED"))
                 .and(TODOS.STATUS.ne("CANCELLED"))
                 .and(TODOS.DELETED.eq((byte) 0))
-                .and(CUSTOMERS.ASSIGNED_SALES_ID.eq(userId))
+                .and(
+                    CUSTOMERS.ASSIGNED_SALES_ID.eq(userId)  // 客户分配给自己的待办
+                    .or(TODOS.CUSTOMER_ID.isNull().and(TODOS.CREATED_BY.eq(userId)))  // 个人待办
+                )
                 .fetchOne(0, int.class);
     }
     

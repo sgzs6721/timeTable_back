@@ -75,12 +75,15 @@ public class TodoService {
             return false;
         }
         
-        // 检查是否是客户的负责人
-        if (todo.getCustomerId() != null) {
-            Customer customer = customerRepository.findById(todo.getCustomerId());
-            if (customer != null && userId.equals(customer.getAssignedSalesId())) {
-                return true;
-            }
+        // 如果是个人待办（没有关联客户），只有创建者可以访问
+        if (todo.getCustomerId() == null) {
+            return userId.equals(todo.getCreatedBy());
+        }
+        
+        // 如果是客户相关待办，检查是否是客户的负责人
+        Customer customer = customerRepository.findById(todo.getCustomerId());
+        if (customer != null && userId.equals(customer.getAssignedSalesId())) {
+            return true;
         }
         
         return false;
