@@ -219,4 +219,16 @@ public class TimetableRepository {
                         .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_ARCHIVED.eq((byte) 0)))
                 .fetchOneInto(Timetables.class);
     }
+
+    /**
+     * 根据用户ID和机构ID查找课表列表（过滤已软删除的）
+     */
+    public List<com.timetable.generated.tables.pojos.Timetables> findByUserIdAndOrganizationId(Long userId, Long organizationId) {
+        return dsl.selectFrom(com.timetable.generated.tables.Timetables.TIMETABLES)
+                .where(com.timetable.generated.tables.Timetables.TIMETABLES.USER_ID.eq(userId)
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.ORGANIZATION_ID.eq(organizationId))
+                        .and(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.isNull()
+                                .or(com.timetable.generated.tables.Timetables.TIMETABLES.IS_DELETED.eq((byte) 0))))
+                .fetchInto(com.timetable.generated.tables.pojos.Timetables.class);
+    }
 }

@@ -67,6 +67,16 @@ public class TimetableService {
     }
 
     /**
+     * 获取用户在指定机构的课表列表
+     */
+    public List<Timetables> getUserTimetables(Long userId, Long organizationId) {
+        if (organizationId == null) {
+            return timetableRepository.findByUserId(userId);
+        }
+        return timetableRepository.findByUserIdAndOrganizationId(userId, organizationId);
+    }
+
+    /**
      * 创建新课表
      */
     public Timetables createTimetable(Long userId, TimetableRequest request) {

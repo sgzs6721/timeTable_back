@@ -45,7 +45,7 @@ public class TimetableController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        List<Timetables> timetables = timetableService.getUserTimetables(user.getId());
+        List<Timetables> timetables = timetableService.getUserTimetables(user.getId(), user.getOrganizationId());
         return ResponseEntity.ok(ApiResponse.success("获取课表列表成功", timetables));
     }
 
