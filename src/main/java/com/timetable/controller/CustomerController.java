@@ -166,10 +166,21 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
             }
 
+            // 权限控制：SALES和COACH职位只能查看自己创建的体验记录
+            Long finalCreatedById = createdById;
+            String position = user.getPosition();
+            if (position != null) {
+                String positionUpper = position.toUpperCase();
+                if ("SALES".equals(positionUpper) || "COACH".equals(positionUpper)) {
+                    // 销售和教练职位强制只能查看自己创建的记录
+                    finalCreatedById = user.getId();
+                }
+            }
+
             List<TrialCustomerDTO> trials = customerService.getTrialCustomers(
                 user.getId(), 
                 user.getOrganizationId(), 
-                createdById, 
+                finalCreatedById, 
                 trialDate,
                 includeAll
             );
