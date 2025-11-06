@@ -159,7 +159,7 @@ public class SalaryCalculationService {
         dto.setCommissionRate(setting.getCommissionRate() != null ? setting.getCommissionRate() : BigDecimal.ZERO);
 
         // 计算该时间段内的课时数
-        Double totalHours = calculateTotalHours(user.getId(), periodStart, periodEnd);
+        Double totalHours = calculateTotalHours(user.getId(), user.getOrganizationId(), periodStart, periodEnd);
         
         // 如果课时数为0且没有底薪，则不生成工资记录
         if (totalHours == 0.0 && dto.getBaseSalary().compareTo(BigDecimal.ZERO) == 0) {
@@ -190,10 +190,10 @@ public class SalaryCalculationService {
      * 计算用户在指定时间段内的总课时数
      * 使用与"我的课时"页面相同的逻辑，包括学员操作规则过滤
      */
-    private Double calculateTotalHours(Long userId, LocalDate startDate, LocalDate endDate) {
+    private Double calculateTotalHours(Long userId, Long organizationId, LocalDate startDate, LocalDate endDate) {
         try {
             // 使用ReportService的相同逻辑来计算课时，确保与"我的课时"页面保持一致
-            Map<String, Object> hoursData = reportService.queryHoursPaged(userId, startDate, endDate, 1, Integer.MAX_VALUE, "desc");
+            Map<String, Object> hoursData = reportService.queryHoursPaged(userId, organizationId, startDate, endDate, 1, Integer.MAX_VALUE, "desc");
             
             // 从结果中获取总课时数
             Object grandTotalHours = hoursData.get("grandTotalHours");

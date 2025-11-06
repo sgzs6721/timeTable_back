@@ -21,9 +21,9 @@ public class ReportService {
     @Autowired
     private StudentOperationRecordRepository studentOperationRecordRepository;
 
-    public Map<String, Object> queryHoursPaged(Long userId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
+    public Map<String, Object> queryHoursPaged(Long userId, Long organizationId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
         // 先获取所有记录
-        List<ScheduleWithCoachDTO> allSchedules = reportRepository.querySchedulesByUserPaged(userId, start, end, 1, Integer.MAX_VALUE, sortOrder);
+        List<ScheduleWithCoachDTO> allSchedules = reportRepository.querySchedulesByUserPaged(userId, organizationId, start, end, 1, Integer.MAX_VALUE, sortOrder);
         
         // 应用学员操作规则（过滤隐藏的学员等）
         allSchedules = applyStudentOperationRules(allSchedules, userId);

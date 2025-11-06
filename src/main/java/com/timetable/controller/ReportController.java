@@ -54,7 +54,10 @@ public class ReportController {
         LocalDate start = startDate != null && !startDate.isEmpty() ? LocalDate.parse(startDate) : null;
         LocalDate end = endDate != null && !endDate.isEmpty() ? LocalDate.parse(endDate) : null;
 
-        Map<String, Object> data = reportService.queryHoursPaged(targetUserId, start, end, page, size, sortOrder);
+        // 获取当前用户的机构ID，用于过滤课时记录
+        Long organizationId = current.getOrganizationId();
+
+        Map<String, Object> data = reportService.queryHoursPaged(targetUserId, organizationId, start, end, page, size, sortOrder);
         return ResponseEntity.ok(ApiResponse.success("获取课时记录成功", data));
     }
 }

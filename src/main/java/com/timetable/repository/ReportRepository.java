@@ -27,7 +27,7 @@ public class ReportRepository {
      * 分页查询指定用户（教练）所有课表下的课程记录
      * 包括有具体日期的课程和固定课表模板（需要根据day_of_week推算日期）
      */
-    public List<ScheduleWithCoachDTO> querySchedulesByUserPaged(Long userId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
+    public List<ScheduleWithCoachDTO> querySchedulesByUserPaged(Long userId, Long organizationId, LocalDate start, LocalDate end, int page, int size, String sortOrder) {
         // 1) 固定课表（schedules）中有具体日期的记录
         LocalDate today = LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
@@ -37,6 +37,12 @@ public class ReportRepository {
                 .and(SCHEDULES.SCHEDULE_DATE.isNotNull())
                 .and(SCHEDULES.SCHEDULE_DATE.lt(today) // 昨天及之前的记录
                         .or(SCHEDULES.SCHEDULE_DATE.eq(today).and(SCHEDULES.START_TIME.le(now)))); // 或者今天的已过时间记录
+        
+        // 添加机构ID过滤（如果提供了organizationId）
+        if (organizationId != null) {
+            baseCond = baseCond.and(TIMETABLES.ORGANIZATION_ID.eq(organizationId));
+        }
+        
         if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
         if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
         
@@ -57,6 +63,12 @@ public class ReportRepository {
                 .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
                         .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
                                 .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
+        
+        // 添加机构ID过滤（如果提供了organizationId）
+        if (organizationId != null) {
+            instCond = instCond.and(field(name("timetables", "organization_id"), Long.class).eq(organizationId));
+        }
+        
         if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
         if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
 
@@ -166,7 +178,7 @@ public class ReportRepository {
         return list;
     }
 
-    public long countSchedulesByUser(Long userId, LocalDate start, LocalDate end) {
+    public long countSchedulesByUser(Long userId, Long organizationId, LocalDate start, LocalDate end) {
         LocalDate today = LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
         Condition baseCond = TIMETABLES.USER_ID.eq(userId)
@@ -175,6 +187,12 @@ public class ReportRepository {
                 .and(SCHEDULES.SCHEDULE_DATE.isNotNull())
                 .and(SCHEDULES.SCHEDULE_DATE.lt(today) // 昨天及之前的记录
                         .or(SCHEDULES.SCHEDULE_DATE.eq(today).and(SCHEDULES.START_TIME.le(now)))); // 或者今天的已过时间记录
+        
+        // 添加机构ID过滤（如果提供了organizationId）
+        if (organizationId != null) {
+            baseCond = baseCond.and(TIMETABLES.ORGANIZATION_ID.eq(organizationId));
+        }
+        
         if (start != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.ge(start));
         if (end != null) baseCond = baseCond.and(SCHEDULES.SCHEDULE_DATE.le(end));
         
@@ -193,6 +211,12 @@ public class ReportRepository {
                 .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
                         .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
                                 .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
+        
+        // 添加机构ID过滤（如果提供了organizationId）
+        if (organizationId != null) {
+            instCond = instCond.and(field(name("timetables", "organization_id"), Long.class).eq(organizationId));
+        }
+        
         if (start != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).ge(start));
         if (end != null) instCond = instCond.and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).le(end));
 
