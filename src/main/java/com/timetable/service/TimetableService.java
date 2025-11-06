@@ -856,7 +856,7 @@ public class TimetableService {
     /**
      * 获取所有活动课表的本周课程信息（优化版，一次性返回所有数据）
      */
-    public List<Map<String, Object>> getActiveTimetablesThisWeekSchedules() {
+    public List<Map<String, Object>> getActiveTimetablesThisWeekSchedules(Long organizationId) {
         List<Map<String, Object>> result = new ArrayList<>();
 
         try {
@@ -865,9 +865,10 @@ public class TimetableService {
             LocalDate monday = today.with(DayOfWeek.MONDAY);
             LocalDate sunday = today.with(DayOfWeek.SUNDAY);
 
-            // 获取所有活动课表
+            // 获取指定机构的所有活动课表
             List<Timetables> activeTimetables = timetableRepository.findAll()
                     .stream()
+                    .filter(t -> t.getOrganizationId() != null && t.getOrganizationId().equals(organizationId))
                     .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
                     .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
                     .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
@@ -960,13 +961,14 @@ public class TimetableService {
     /**
      * 获取所有活动课表的模板课程信息（优化版，一次性返回所有数据）
      */
-    public List<Map<String, Object>> getActiveTimetablesTemplateSchedules() {
+    public List<Map<String, Object>> getActiveTimetablesTemplateSchedules(Long organizationId) {
         List<Map<String, Object>> result = new ArrayList<>();
 
         try {
-            // 获取所有活动课表
+            // 获取指定机构的所有活动课表
             List<Timetables> activeTimetables = timetableRepository.findAll()
                     .stream()
+                    .filter(t -> t.getOrganizationId() != null && t.getOrganizationId().equals(organizationId))
                     .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
                     .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
                     .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
@@ -1541,7 +1543,7 @@ public class TimetableService {
     /**
      * 获取所有活动课表的体验课程（本周和模板）
      */
-    public List<Map<String, Object>> getActiveTimetablesTrialSchedules() {
+    public List<Map<String, Object>> getActiveTimetablesTrialSchedules(Long organizationId) {
         List<Map<String, Object>> result = new ArrayList<>();
 
         try {
@@ -1550,9 +1552,10 @@ public class TimetableService {
             LocalDate monday = today.with(DayOfWeek.MONDAY);
             LocalDate sunday = today.with(DayOfWeek.SUNDAY);
 
-            // 获取所有活动课表
+            // 获取指定机构的所有活动课表
             List<Timetables> activeTimetables = timetableRepository.findAll()
                     .stream()
+                    .filter(t -> t.getOrganizationId() != null && t.getOrganizationId().equals(organizationId))
                     .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
                     .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
                     .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)

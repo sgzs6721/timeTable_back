@@ -300,7 +300,7 @@ public class AdminController {
                         .body(ApiResponse.error("用户信息异常或未关联机构"));
             }
             
-            List<Map<String, Object>> result = timetableService.getActiveTimetablesThisWeekSchedules();
+            List<Map<String, Object>> result = timetableService.getActiveTimetablesThisWeekSchedules(currentUser.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("获取活动课表本周课程成功", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -322,7 +322,7 @@ public class AdminController {
                         .body(ApiResponse.error("用户信息异常或未关联机构"));
             }
             
-            List<Map<String, Object>> result = timetableService.getActiveTimetablesTemplateSchedules();
+            List<Map<String, Object>> result = timetableService.getActiveTimetablesTemplateSchedules(currentUser.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("获取活动课表模板课程成功", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -344,7 +344,7 @@ public class AdminController {
                         .body(ApiResponse.error("用户信息异常或未关联机构"));
             }
             
-            List<Map<String, Object>> result = timetableService.getActiveTimetablesTrialSchedules();
+            List<Map<String, Object>> result = timetableService.getActiveTimetablesTrialSchedules(currentUser.getOrganizationId());
             return ResponseEntity.ok(ApiResponse.success("获取体验课程成功", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
