@@ -2819,6 +2819,9 @@ public class WeeklyInstanceService {
         Map<Long, Map<String, String>> coachRenameRules = new HashMap<>();
         Map<Long, Set<String>> coachHiddenStudents = new HashMap<>();
         
+        // 创建该机构的所有有效教练ID集合，用于过滤课程数据
+        Set<Long> validCoachIds = new HashSet<>();
+        
         try {
             // 预加载指定机构的所有教练的合并和别名设置
             List<com.timetable.generated.tables.pojos.Users> allCoaches = userService.getUsersByOrganizationId(organizationId)
@@ -2828,6 +2831,9 @@ public class WeeklyInstanceService {
                     .collect(java.util.stream.Collectors.toList());
             for (com.timetable.generated.tables.pojos.Users coach : allCoaches) {
                 if (coach.getIsDeleted() == null || coach.getIsDeleted() == 0) {
+                    // 将该教练ID添加到有效教练ID集合
+                    validCoachIds.add(coach.getId());
+                    
                     coachMerges.put(coach.getId(), studentMergeService.getMergesByCoach(coach.getId()));
                     coachAliases.put(coach.getId(), studentAliasService.getAliasesByCoach(coach.getId()));
                     
@@ -2907,6 +2913,9 @@ public class WeeklyInstanceService {
                 if (timetable.getIsDeleted() != null && timetable.getIsDeleted() == 1) continue;
                 Long coachId = timetable.getUserId();
                 if (coachId == null) continue;
+                
+                // 只处理当前机构的教练的课程
+                if (!validCoachIds.contains(coachId)) continue;
                 if (!coachNameMap.containsKey(coachId)) {
                     com.timetable.generated.tables.pojos.Users coach = userService.findById(coachId);
                     // 过滤掉已删除教练
@@ -2959,6 +2968,9 @@ public class WeeklyInstanceService {
                 if (timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1) continue;
                 Long coachId = timetable.getUserId();
                 if (coachId == null) continue;
+                
+                // 只处理当前机构的教练的课程
+                if (!validCoachIds.contains(coachId)) continue;
                 if (!coachNameMap.containsKey(coachId)) {
                     com.timetable.generated.tables.pojos.Users coach = userService.findById(coachId);
                     if (coach != null && coach.getIsDeleted() != null && coach.getIsDeleted() == 1) {
