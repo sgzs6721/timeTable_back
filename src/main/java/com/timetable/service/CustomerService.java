@@ -105,12 +105,12 @@ public class CustomerService {
         return convertToDTO(updatedCustomer);
     }
 
-    public List<CustomerDTO> getCustomersForUser(Long userId, boolean isAdmin) {
+    public List<CustomerDTO> getCustomersForUser(Long userId, Long organizationId, boolean isAdmin) {
         List<Customer> customers;
         if (isAdmin) {
             customers = customerRepository.findAll();
         } else {
-            customers = customerRepository.findByAssignedSalesId(userId);
+            customers = customerRepository.findByAssignedSalesId(userId, organizationId);
         }
         
         return customers.stream()
@@ -118,12 +118,12 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
-    public List<CustomerDTO> getCustomersForUser(Long userId, boolean isAdmin, int page, int pageSize) {
+    public List<CustomerDTO> getCustomersForUser(Long userId, Long organizationId, boolean isAdmin, int page, int pageSize) {
         List<Customer> customers;
         if (isAdmin) {
             customers = customerRepository.findAllWithPagination(page, pageSize);
         } else {
-            customers = customerRepository.findByAssignedSalesIdWithPagination(userId, page, pageSize);
+            customers = customerRepository.findByAssignedSalesIdWithPagination(userId, organizationId, page, pageSize);
         }
         
         return customers.stream()
@@ -137,7 +137,7 @@ public class CustomerService {
         if (isAdmin) {
             customers = customerRepository.findAllWithFiltersAndPagination(organizationId, page, pageSize, status, salesId, filterDate, keyword);
         } else {
-            customers = customerRepository.findByUserWithFiltersAndPagination(userId, page, pageSize, status, filterDate, keyword);
+            customers = customerRepository.findByUserWithFiltersAndPagination(userId, organizationId, page, pageSize, status, filterDate, keyword);
         }
         
         return customers.stream()
@@ -179,7 +179,7 @@ public class CustomerService {
         if (isAdmin) {
             customers = customerRepository.findByStatus(organizationId, status);
         } else {
-            List<Customer> allCustomers = customerRepository.findByAssignedSalesId(userId);
+            List<Customer> allCustomers = customerRepository.findByAssignedSalesId(userId, organizationId);
             customers = allCustomers.stream()
                     .filter(c -> status.equals(c.getStatus()))
                     .collect(Collectors.toList());

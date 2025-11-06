@@ -112,14 +112,14 @@ public class CustomerRepository {
         return customers.isEmpty() ? null : customers.get(0);
     }
 
-    public List<Customer> findByAssignedSalesId(Long salesId) {
-        String sql = "SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?) ORDER BY created_at DESC";
-        return jdbcTemplate.query(sql, customerRowMapper, salesId, salesId);
+    public List<Customer> findByAssignedSalesId(Long salesId, Long organizationId) {
+        String sql = "SELECT * FROM customers WHERE organization_id = ? AND (assigned_sales_id = ? OR created_by = ?) ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, customerRowMapper, organizationId, salesId, salesId);
     }
 
-    public List<Customer> findByAssignedSalesIdWithPagination(Long salesId, int page, int pageSize) {
-        String sql = "SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?) ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        return jdbcTemplate.query(sql, customerRowMapper, salesId, salesId, pageSize, page * pageSize);
+    public List<Customer> findByAssignedSalesIdWithPagination(Long salesId, Long organizationId, int page, int pageSize) {
+        String sql = "SELECT * FROM customers WHERE organization_id = ? AND (assigned_sales_id = ? OR created_by = ?) ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        return jdbcTemplate.query(sql, customerRowMapper, organizationId, salesId, salesId, pageSize, page * pageSize);
     }
 
     public List<Customer> findAll() {
@@ -166,10 +166,11 @@ public class CustomerRepository {
         return jdbcTemplate.query(sql.toString(), customerRowMapper, params.toArray());
     }
 
-    public List<Customer> findByUserWithFiltersAndPagination(Long userId, int page, int pageSize, 
+    public List<Customer> findByUserWithFiltersAndPagination(Long userId, Long organizationId, int page, int pageSize, 
                                                               String status, java.time.LocalDate filterDate, String keyword) {
-        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?)");
+        StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE organization_id = ? AND (assigned_sales_id = ? OR created_by = ?)");
         List<Object> params = new ArrayList<>();
+        params.add(organizationId);
         params.add(userId);
         params.add(userId);
         
