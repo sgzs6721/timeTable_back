@@ -132,12 +132,12 @@ public class CustomerService {
     }
 
     public List<CustomerDTO> getCustomersWithFilters(Long userId, Long organizationId, boolean isAdmin, int page, int pageSize,
-                                                       String status, Long salesId, LocalDate filterDate, String keyword) {
+                                                       String status, String statuses, Long salesId, LocalDate filterDate, String keyword) {
         List<Customer> customers;
         if (isAdmin) {
-            customers = customerRepository.findAllWithFiltersAndPagination(organizationId, page, pageSize, status, salesId, filterDate, keyword);
+            customers = customerRepository.findAllWithFiltersAndPagination(organizationId, page, pageSize, status, statuses, salesId, filterDate, keyword);
         } else {
-            customers = customerRepository.findByUserWithFiltersAndPagination(userId, page, pageSize, status, filterDate, keyword);
+            customers = customerRepository.findByUserWithFiltersAndPagination(userId, page, pageSize, status, statuses, filterDate, keyword);
         }
         
         return customers.stream()

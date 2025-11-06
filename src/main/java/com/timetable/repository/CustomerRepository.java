@@ -132,13 +132,23 @@ public class CustomerRepository {
         return jdbcTemplate.query(sql, customerRowMapper, pageSize, page * pageSize);
     }
 
-    public List<Customer> findAllWithFiltersAndPagination(Long organizationId, int page, int pageSize, String status, Long salesId, 
+    public List<Customer> findAllWithFiltersAndPagination(Long organizationId, int page, int pageSize, String status, String statuses, Long salesId, 
                                                            java.time.LocalDate filterDate, String keyword) {
         StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE organization_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(organizationId);
         
-        if (status != null && !status.isEmpty() && !"all".equals(status)) {
+        // 优先使用statuses（多选），其次使用status（单选）
+        if (statuses != null && !statuses.isEmpty()) {
+            String[] statusArray = statuses.split(",");
+            sql.append(" AND status IN (");
+            for (int i = 0; i < statusArray.length; i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+                params.add(statusArray[i].trim());
+            }
+            sql.append(")");
+        } else if (status != null && !status.isEmpty() && !"all".equals(status)) {
             sql.append(" AND status = ?");
             params.add(status);
         }
@@ -167,13 +177,23 @@ public class CustomerRepository {
     }
 
     public List<Customer> findByUserWithFiltersAndPagination(Long userId, int page, int pageSize, 
-                                                              String status, java.time.LocalDate filterDate, String keyword) {
+                                                              String status, String statuses, java.time.LocalDate filterDate, String keyword) {
         StringBuilder sql = new StringBuilder("SELECT * FROM customers WHERE (assigned_sales_id = ? OR created_by = ?)");
         List<Object> params = new ArrayList<>();
         params.add(userId);
         params.add(userId);
         
-        if (status != null && !status.isEmpty() && !"all".equals(status)) {
+        // 优先使用statuses（多选），其次使用status（单选）
+        if (statuses != null && !statuses.isEmpty()) {
+            String[] statusArray = statuses.split(",");
+            sql.append(" AND status IN (");
+            for (int i = 0; i < statusArray.length; i++) {
+                if (i > 0) sql.append(",");
+                sql.append("?");
+                params.add(statusArray[i].trim());
+            }
+            sql.append(")");
+        } else if (status != null && !status.isEmpty() && !"all".equals(status)) {
             sql.append(" AND status = ?");
             params.add(status);
         }
