@@ -55,14 +55,6 @@ public class SalaryCalculationService {
         // 解析月份
         YearMonth yearMonth = YearMonth.parse(month);
         
-        // 获取工资系统设置
-        SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
-        
-        // 计算记薪周期
-        LocalDate[] periodRange = calculateSalaryPeriod(yearMonth, systemSetting);
-        LocalDate periodStart = periodRange[0];
-        LocalDate periodEnd = periodRange[1];
-        
         // 获取所有用户
         List<Users> users = userService.getAllApprovedUsers();
         
@@ -76,6 +68,16 @@ public class SalaryCalculationService {
                 continue;
             }
             processedUserIds.add(user.getId());
+            
+            // 获取该用户所属机构的工资系统设置
+            SalarySystemSetting systemSetting = user.getOrganizationId() != null ?
+                salarySystemSettingService.getSettingByOrganizationId(user.getOrganizationId()) :
+                salarySystemSettingService.getCurrentSetting();
+            
+            // 计算记薪周期
+            LocalDate[] periodRange = calculateSalaryPeriod(yearMonth, systemSetting);
+            LocalDate periodStart = periodRange[0];
+            LocalDate periodEnd = periodRange[1];
             
             SalaryCalculationDTO dto = calculateUserSalary(user, month, periodStart, periodEnd);
             if (dto != null) {
@@ -212,22 +214,12 @@ public class SalaryCalculationService {
         
         LocalDate now = LocalDate.now();
         YearMonth currentMonth = YearMonth.from(now);
-        SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
         
         for (int i = 0; i < months; i++) {
             YearMonth targetMonth = currentMonth.minusMonths(i);
             
             // 只计算当前月份及之前的月份，不计算未来月份
             if (targetMonth.isAfter(currentMonth)) {
-                continue;
-            }
-            
-            // 计算该月份的记薪周期
-            LocalDate[] periodRange = calculateSalaryPeriod(targetMonth, systemSetting);
-            LocalDate periodEnd = periodRange[1];
-            
-            // 如果当前日期小于记薪周期的结束日期，则不显示该月份工资
-            if (now.isBefore(periodEnd)) {
                 continue;
             }
             
@@ -289,8 +281,10 @@ public class SalaryCalculationService {
                 earliestDate = LocalDate.now();
             }
             
-            // 获取工资系统设置
-            SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+            // 获取该机构的工资系统设置
+            SalarySystemSetting systemSetting = organizationId != null ?
+                salarySystemSettingService.getSettingByOrganizationId(organizationId) :
+                salarySystemSettingService.getCurrentSetting();
             LocalDate now = LocalDate.now();
             
             // 从最早日期到当前日期，生成所有月份
@@ -318,7 +312,9 @@ public class SalaryCalculationService {
             System.err.println("获取可用月份列表失败: " + e.getMessage());
             e.printStackTrace();
             // 如果查询失败，返回最近12个月（但仍需过滤记薪周期）
-            SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+            SalarySystemSetting systemSetting = organizationId != null ?
+                salarySystemSettingService.getSettingByOrganizationId(organizationId) :
+                salarySystemSettingService.getCurrentSetting();
             LocalDate now = LocalDate.now();
             YearMonth currentMonth = YearMonth.now();
             for (int i = 0; i < 12; i++) {
@@ -349,8 +345,10 @@ public class SalaryCalculationService {
             return result;
         }
         
-        // 获取工资系统设置
-        SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+        // 获取该用户所属机构的工资系统设置
+        SalarySystemSetting systemSetting = user.getOrganizationId() != null ?
+            salarySystemSettingService.getSettingByOrganizationId(user.getOrganizationId()) :
+            salarySystemSettingService.getCurrentSetting();
         
         LocalDate now = LocalDate.now();
         YearMonth currentMonth = YearMonth.from(now);
@@ -395,6 +393,12 @@ public class SalaryCalculationService {
         List<String> months = new ArrayList<>();
         
         try {
+            // 获取用户信息
+            Users user = userService.findById(userId);
+            if (user == null) {
+                return months;
+            }
+            
             // 查询该用户最早的课时记录日期（只统计未删除的课表）
             String sql = "SELECT MIN(wis.schedule_date) as earliest_date " +
                         "FROM weekly_instance_schedules wis " +
@@ -431,8 +435,10 @@ public class SalaryCalculationService {
                 earliestDate = LocalDate.now();
             }
             
-            // 获取工资系统设置
-            SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+            // 获取该用户所属机构的工资系统设置
+            SalarySystemSetting systemSetting = user.getOrganizationId() != null ?
+                salarySystemSettingService.getSettingByOrganizationId(user.getOrganizationId()) :
+                salarySystemSettingService.getCurrentSetting();
             LocalDate now = LocalDate.now();
             
             // 从最早日期到当前日期，生成所有月份
@@ -460,7 +466,10 @@ public class SalaryCalculationService {
             System.err.println("获取用户可用月份列表失败: " + e.getMessage());
             e.printStackTrace();
             // 如果查询失败，返回最近12个月（但仍需过滤记薪周期）
-            SalarySystemSetting systemSetting = salarySystemSettingService.getCurrentSetting();
+            Users user = userService.findById(userId);
+            SalarySystemSetting systemSetting = (user != null && user.getOrganizationId() != null) ?
+                salarySystemSettingService.getSettingByOrganizationId(user.getOrganizationId()) :
+                salarySystemSettingService.getCurrentSetting();
             LocalDate now = LocalDate.now();
             YearMonth currentMonth = YearMonth.now();
             for (int i = 0; i < 12; i++) {
