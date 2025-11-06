@@ -1335,15 +1335,16 @@ public class WeeklyInstanceService {
     /**
      * 根据日期返回"实例逻辑"的活动课表课程（今日从本周实例；跨周日期取对应周实例）
      */
-    public Map<String, Object> getActiveInstanceSchedulesByDate(String dateStr) {
+    public Map<String, Object> getActiveInstanceSchedulesByDate(String dateStr, Long organizationId) {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> timetableSchedules = new ArrayList<>();
 
         LocalDate targetDate = LocalDate.parse(dateStr);
 
-        // 获取所有活动课表（未删除未归档）
+        // 获取指定机构的所有活动课表（未删除未归档）
         List<Timetables> activeTimetables = timetableRepository.findAll()
                 .stream()
+                .filter(t -> t.getOrganizationId() != null && t.getOrganizationId().equals(organizationId))
                 .filter(t -> t.getIsActive() != null && t.getIsActive() == 1)
                 .filter(t -> t.getIsDeleted() == null || t.getIsDeleted() == 0)
                 .filter(t -> t.getIsArchived() == null || t.getIsArchived() == 0)
