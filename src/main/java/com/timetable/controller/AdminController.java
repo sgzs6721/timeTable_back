@@ -429,12 +429,22 @@ public class AdminController {
 
     
     /**
-     * 获取所有用户列表（只返回APPROVED状态）
+     * 获取所有用户列表（只返回APPROVED状态且与当前用户同机构）
      */
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers() {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers(Authentication authentication) {
+        Users currentUser = userService.findByUsername(authentication.getName());
+        if (currentUser == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+        
+        if (currentUser.getOrganizationId() == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+        }
+        
         List<Users> users = userService.getAllApprovedUsers();
         List<Map<String, Object>> userDTOs = users.stream()
+            .filter(user -> currentUser.getOrganizationId().equals(user.getOrganizationId()))
             .map(user -> {
                 Map<String, Object> dto = new HashMap<>();
                 dto.put("id", user.getId());
