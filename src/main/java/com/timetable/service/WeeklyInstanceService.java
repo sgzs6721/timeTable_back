@@ -68,6 +68,9 @@ public class WeeklyInstanceService {
 
     @Autowired
     private StudentOperationRecordRepository studentOperationRecordRepository;
+    
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     /**
      * 为指定的固定课表生成当前周实例
@@ -1436,18 +1439,48 @@ public class WeeklyInstanceService {
                 item.put("timetableId", timetable.getId());
                 item.put("timetableName", timetable.getName());
                 item.put("isWeekly", timetable.getIsWeekly());
-                // 明细
-                List<Map<String, Object>> schedules = instanceSchedules.stream().map(s -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("studentName", s.getStudentName());
-                    m.put("startTime", s.getStartTime());
-                    m.put("endTime", s.getEndTime());
-                    // 标记是否来自实例（周固定课表的实例数据）
-                    m.put("isFromInstance", timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1);
-                    // 传递请假标记到前端
-                    m.put("isOnLeave", s.getIsOnLeave());
-                    return m;
-                }).collect(Collectors.toList());
+                // 明细 - 过滤掉已取消的体验课
+                List<Map<String, Object>> schedules = instanceSchedules.stream()
+                    .filter(s -> {
+                        // 如果不是体验课，直接保留
+                        if (s.getIsTrial() == null || s.getIsTrial() != 1) {
+                            return true;
+                        }
+                        
+                        // 如果是体验课，检查是否已被取消
+                        try {
+                            String sql = "SELECT COUNT(*) FROM customer_status_history " +
+                                "WHERE trial_student_name = ? " +
+                                "AND trial_schedule_date = ? " +
+                                "AND trial_start_time = ? " +
+                                "AND trial_end_time = ? " +
+                                "AND (trial_cancelled IS NULL OR trial_cancelled = FALSE)";
+                            
+                            Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
+                                s.getStudentName(),
+                                s.getScheduleDate(),
+                                s.getStartTime(),
+                                s.getEndTime());
+                            
+                            // 如果存在未取消的记录，保留；否则过滤掉
+                            return count != null && count > 0;
+                        } catch (Exception e) {
+                            // 查询失败，保守处理：保留该课程
+                            logger.warn("Failed to check trial schedule cancellation status: {}", e.getMessage());
+                            return true;
+                        }
+                    })
+                    .map(s -> {
+                        Map<String, Object> m = new HashMap<>();
+                        m.put("studentName", s.getStudentName());
+                        m.put("startTime", s.getStartTime());
+                        m.put("endTime", s.getEndTime());
+                        // 标记是否来自实例（周固定课表的实例数据）
+                        m.put("isFromInstance", timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1);
+                        // 传递请假标记到前端
+                        m.put("isOnLeave", s.getIsOnLeave());
+                        return m;
+                    }).collect(Collectors.toList());
                 item.put("schedules", schedules);
                 timetableSchedules.add(item);
             }
