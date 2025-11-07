@@ -55,6 +55,9 @@ public class ScheduleService {
 
     private final AIService aiService;
     private final ObjectMapper objectMapper;
+    
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     private static final Map<String, DayOfWeek> weekDayMap = new LinkedHashMap<>();
     static {
@@ -135,6 +138,7 @@ public class ScheduleService {
         }
 
         LocalDate today = LocalDate.now();
+        List<Schedules> schedules;
         
         if (timetable.getIsWeekly() == 1) {
             // 周固定课表：从周实例数据获取今日课程
@@ -143,7 +147,7 @@ public class ScheduleService {
                     weeklyInstanceService.getSchedulesByDate(timetableId, today);
                 
                 // 转换为 Schedules 格式
-                return instanceSchedules.stream()
+                schedules = instanceSchedules.stream()
                     .map(this::convertWeeklyInstanceScheduleToSchedule)
                     .collect(Collectors.toList());
             } catch (Exception e) {
@@ -153,8 +157,11 @@ public class ScheduleService {
             }
         } else {
             // 日期范围课表：获取今日课程
-            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, today);
+            schedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, today);
         }
+        
+        // 过滤掉已取消的体验课
+        return filterCancelledTrialSchedules(schedules);
     }
 
     /**
@@ -168,6 +175,7 @@ public class ScheduleService {
         }
 
         LocalDate tomorrow = LocalDate.now().plusDays(1);
+        List<Schedules> schedules;
         
         if (timetable.getIsWeekly() == 1) {
             // 周固定课表：从周实例数据获取明日课程
@@ -176,7 +184,7 @@ public class ScheduleService {
                     weeklyInstanceService.getSchedulesByDate(timetableId, tomorrow);
                 
                 // 转换为 Schedules 格式
-                return instanceSchedules.stream()
+                schedules = instanceSchedules.stream()
                     .map(this::convertWeeklyInstanceScheduleToSchedule)
                     .collect(Collectors.toList());
             } catch (Exception e) {
@@ -186,8 +194,53 @@ public class ScheduleService {
             }
         } else {
             // 日期范围课表：获取明日课程
-            return scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, tomorrow);
+            schedules = scheduleRepository.findByTimetableIdAndScheduleDate(timetableId, tomorrow);
         }
+        
+        // 过滤掉已取消的体验课
+        return filterCancelledTrialSchedules(schedules);
+    }
+    
+    /**
+     * 过滤掉已取消的体验课
+     */
+    private List<Schedules> filterCancelledTrialSchedules(List<Schedules> schedules) {
+        if (schedules == null || schedules.isEmpty()) {
+            return schedules;
+        }
+        
+        return schedules.stream()
+            .filter(schedule -> {
+                // 如果不是体验课，直接保留
+                if (schedule.getIsTrial() == null || schedule.getIsTrial() != 1) {
+                    return true;
+                }
+                
+                // 如果是体验课，检查是否已被取消
+                try {
+                    // 通过学员姓名、日期和时间查询是否存在未取消的体验记录
+                    String sql = "SELECT COUNT(*) FROM customer_status_history " +
+                        "WHERE trial_student_name = ? " +
+                        "AND trial_schedule_date = ? " +
+                        "AND trial_start_time = ? " +
+                        "AND trial_end_time = ? " +
+                        "AND (trial_cancelled IS NULL OR trial_cancelled = FALSE)";
+                    
+                    Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
+                        schedule.getStudentName(),
+                        schedule.getScheduleDate(),
+                        schedule.getStartTime(),
+                        schedule.getEndTime());
+                    
+                    // 如果存在未取消的记录，保留；否则过滤掉
+                    return count != null && count > 0;
+                } catch (Exception e) {
+                    // 查询失败，保守处理：保留该课程
+                    logger.warn("Failed to check trial schedule cancellation status: {}", e.getMessage());
+                    return true;
+                }
+            })
+            .collect(Collectors.toList());
     }
 
     /**
