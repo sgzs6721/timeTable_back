@@ -1631,29 +1631,11 @@ public class TimetableService {
 
                 // 将体验课程数据添加到结果中
                 for (Schedules schedule : trialSchedules) {
-                    Map<String, Object> scheduleInfo = new HashMap<>();
-                    scheduleInfo.put("id", schedule.getId());
-                    scheduleInfo.put("timetableId", timetable.getId());
-                    scheduleInfo.put("timetableName", timetable.getName());
-                    scheduleInfo.put("ownerNickname", user.getNickname());
-                    scheduleInfo.put("ownerUsername", user.getUsername());
-                    scheduleInfo.put("ownerPosition", user.getPosition());
-                    scheduleInfo.put("ownerRole", user.getRole());
-                    scheduleInfo.put("ownerId", user.getId());
-                    scheduleInfo.put("isWeekly", timetable.getIsWeekly());
-                    scheduleInfo.put("studentName", schedule.getStudentName());
-                    scheduleInfo.put("subject", schedule.getSubject());
-                    scheduleInfo.put("dayOfWeek", schedule.getDayOfWeek());
-                    scheduleInfo.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
-                    scheduleInfo.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
-                    scheduleInfo.put("scheduleDate", schedule.getScheduleDate());
-                    scheduleInfo.put("weekNumber", schedule.getWeekNumber());
-                    scheduleInfo.put("note", schedule.getNote());
-                    scheduleInfo.put("isTrial", 1);
-                    
                     // 查询客户信息 - 优先通过customerId，其次通过studentName
+                    boolean shouldSkip = false;
+                    Customer customer = null;
+                    
                     try {
-                        Customer customer = null;
                         Long customerId = null;
                         
                         // 尝试从数据库中读取customerId（jOOQ可能还未更新，使用原生SQL）
@@ -1693,14 +1675,64 @@ public class TimetableService {
                             }
                         }
                         
+                        // 如果找到了客户，检查体验课是否已被取消
                         if (customer != null) {
-                            scheduleInfo.put("customerId", customer.getId());
-                            scheduleInfo.put("customerPhone", customer.getParentPhone());
-                            scheduleInfo.put("customerStatus", customer.getStatus());
-                            scheduleInfo.put("customerSource", customer.getSource());
+                            try {
+                                String checkCancelledSql = "SELECT COUNT(*) FROM customer_status_history " +
+                                    "WHERE customer_id = ? " +
+                                    "AND trial_schedule_date = ? " +
+                                    "AND trial_start_time = ? " +
+                                    "AND trial_end_time = ? " +
+                                    "AND (trial_cancelled IS NULL OR trial_cancelled = FALSE)";
+                                Integer count = jdbcTemplate.queryForObject(checkCancelledSql, Integer.class,
+                                    customer.getId(), 
+                                    schedule.getScheduleDate(), 
+                                    schedule.getStartTime(), 
+                                    schedule.getEndTime());
+                                
+                                // 如果没有未取消的记录，跳过这个体验课
+                                if (count == null || count == 0) {
+                                    shouldSkip = true;
+                                }
+                            } catch (Exception e) {
+                                // 查询失败，保守处理：继续显示该体验课
+                            }
                         }
                     } catch (Exception e) {
                         // 查询客户信息失败不影响体验课程的显示
+                    }
+                    
+                    // 如果需要跳过，则不添加到结果中
+                    if (shouldSkip) {
+                        continue;
+                    }
+                    
+                    Map<String, Object> scheduleInfo = new HashMap<>();
+                    scheduleInfo.put("id", schedule.getId());
+                    scheduleInfo.put("timetableId", timetable.getId());
+                    scheduleInfo.put("timetableName", timetable.getName());
+                    scheduleInfo.put("ownerNickname", user.getNickname());
+                    scheduleInfo.put("ownerUsername", user.getUsername());
+                    scheduleInfo.put("ownerPosition", user.getPosition());
+                    scheduleInfo.put("ownerRole", user.getRole());
+                    scheduleInfo.put("ownerId", user.getId());
+                    scheduleInfo.put("isWeekly", timetable.getIsWeekly());
+                    scheduleInfo.put("studentName", schedule.getStudentName());
+                    scheduleInfo.put("subject", schedule.getSubject());
+                    scheduleInfo.put("dayOfWeek", schedule.getDayOfWeek());
+                    scheduleInfo.put("startTime", schedule.getStartTime() != null ? schedule.getStartTime().toString() : "");
+                    scheduleInfo.put("endTime", schedule.getEndTime() != null ? schedule.getEndTime().toString() : "");
+                    scheduleInfo.put("scheduleDate", schedule.getScheduleDate());
+                    scheduleInfo.put("weekNumber", schedule.getWeekNumber());
+                    scheduleInfo.put("note", schedule.getNote());
+                    scheduleInfo.put("isTrial", 1);
+                    
+                    // 如果找到了客户，添加客户信息
+                    if (customer != null) {
+                        scheduleInfo.put("customerId", customer.getId());
+                        scheduleInfo.put("customerPhone", customer.getParentPhone());
+                        scheduleInfo.put("customerStatus", customer.getStatus());
+                        scheduleInfo.put("customerSource", customer.getSource());
                     }
                     
                     result.add(scheduleInfo);
