@@ -213,24 +213,27 @@ public class ScheduleService {
             .filter(schedule -> {
                 // 如果不是体验课，直接保留
                 if (schedule.getIsTrial() == null || schedule.getIsTrial() != 1) {
+                    logger.debug("课程 {} 不是体验课，保留", schedule.getStudentName());
                     return true;
                 }
                 
                 // 如果是体验课，检查是否已被取消
                 try {
-                    // 通过学员姓名、日期和时间查询是否存在未取消的体验记录
+                    logger.info("检查体验课是否已取消: scheduleId={}, 学员={}, 日期={}, 时间={}-{}", 
+                        schedule.getId(),
+                        schedule.getStudentName(), 
+                        schedule.getScheduleDate(), 
+                        schedule.getStartTime(), 
+                        schedule.getEndTime());
+                    
+                    // 通过trial_schedule_id精确查询对应的体验记录
                     String sql = "SELECT COUNT(*) FROM customer_status_history " +
-                        "WHERE trial_student_name = ? " +
-                        "AND trial_schedule_date = ? " +
-                        "AND trial_start_time = ? " +
-                        "AND trial_end_time = ? " +
+                        "WHERE trial_schedule_id = ? " +
                         "AND (trial_cancelled IS NULL OR trial_cancelled = FALSE)";
                     
-                    Integer count = jdbcTemplate.queryForObject(sql, Integer.class,
-                        schedule.getStudentName(),
-                        schedule.getScheduleDate(),
-                        schedule.getStartTime(),
-                        schedule.getEndTime());
+                    Integer count = jdbcTemplate.queryForObject(sql, Integer.class, schedule.getId());
+                    
+                    logger.info("查询结果: count={}, {}该体验课", count, (count != null && count > 0) ? "保留" : "过滤掉");
                     
                     // 如果存在未取消的记录，保留；否则过滤掉
                     return count != null && count > 0;
