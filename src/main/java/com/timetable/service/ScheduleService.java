@@ -1533,21 +1533,33 @@ public class ScheduleService {
                         List<Schedules> instanceSchedules = scheduleRepository.findByInstanceAndDateTime(
                             targetInstance.getId(), scheduleDate, startTime, endTime);
                         
+                        logger.info("周实例中查询到的课程数: {}", instanceSchedules.size());
+                        if (!instanceSchedules.isEmpty()) {
+                            for (Schedules schedule : instanceSchedules) {
+                                logger.info("  - 原始课程: ID={}, 学员={}, 时间={}-{}, 日期={}, isTrial={}", 
+                                    schedule.getId(),
+                                    schedule.getStudentName(), 
+                                    schedule.getStartTime(), 
+                                    schedule.getEndTime(),
+                                    schedule.getScheduleDate(),
+                                    schedule.getIsTrial());
+                            }
+                        }
+                        
                         // 过滤掉已取消的体验课
                         List<Schedules> validSchedules = filterCancelledTrialSchedules(instanceSchedules);
                         hasConflict = !validSchedules.isEmpty();
                         
-                        logger.info("周实例中该日期该时间段课程数: {} (过滤前: {})", validSchedules.size(), instanceSchedules.size());
+                        logger.info("过滤后课程数: {}, 有冲突: {}", validSchedules.size(), hasConflict);
                         if (!validSchedules.isEmpty()) {
                             for (Schedules schedule : validSchedules) {
-                                logger.info("  - 课程: 学员={}, 时间={}-{}, 日期={}", 
+                                logger.info("  - 有效课程: 学员={}, 时间={}-{}, 日期={}", 
                                     schedule.getStudentName(), 
                                     schedule.getStartTime(), 
                                     schedule.getEndTime(),
                                     schedule.getScheduleDate());
                             }
                         }
-                        logger.info("有冲突: {}", hasConflict);
                     } else {
                         // 没有该周的实例，说明该周没有排课，有空
                         logger.info("没有找到该周的实例，教练有空");
@@ -1559,12 +1571,24 @@ public class ScheduleService {
                     List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
                         activeTimetable.getId(), scheduleDate, startTime, endTime);
                     
+                    logger.info("日期范围课表，查询到的课程数: {}", existingSchedules.size());
+                    if (!existingSchedules.isEmpty()) {
+                        for (Schedules schedule : existingSchedules) {
+                            logger.info("  - 原始课程: ID={}, 学员={}, 时间={}-{}, 日期={}, isTrial={}", 
+                                schedule.getId(),
+                                schedule.getStudentName(), 
+                                schedule.getStartTime(), 
+                                schedule.getEndTime(),
+                                schedule.getScheduleDate(),
+                                schedule.getIsTrial());
+                        }
+                    }
+                    
                     // 过滤掉已取消的体验课
                     List<Schedules> validSchedules = filterCancelledTrialSchedules(existingSchedules);
                     hasConflict = !validSchedules.isEmpty();
                     
-                    logger.info("日期范围课表，该时间段课程数: {} (过滤前: {}), 有冲突: {}", 
-                        validSchedules.size(), existingSchedules.size(), hasConflict);
+                    logger.info("过滤后课程数: {}, 有冲突: {}", validSchedules.size(), hasConflict);
                 }
                 
                 // 如果没有冲突，说明有空

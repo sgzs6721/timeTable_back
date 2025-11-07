@@ -239,6 +239,8 @@ public class ScheduleRepository {
             s.setScheduleDate(is.getScheduleDate());
             s.setStartTime(is.getStartTime());
             s.setEndTime(is.getEndTime());
+            s.setIsTrial(is.getIsTrial()); // 关键：设置体验课标志
+            s.setCustomerId(is.getCustomerId()); // 设置客户ID
             return s;
         }).collect(java.util.stream.Collectors.toList());
     }
