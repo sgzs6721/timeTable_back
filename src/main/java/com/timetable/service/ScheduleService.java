@@ -1529,10 +1529,14 @@ public class ScheduleService {
                         // 查询该实例在指定日期和时间段的课程
                         List<Schedules> instanceSchedules = scheduleRepository.findByInstanceAndDateTime(
                             targetInstance.getId(), scheduleDate, startTime, endTime);
-                        hasConflict = !instanceSchedules.isEmpty();
-                        logger.info("周实例中该日期该时间段课程数: {}", instanceSchedules.size());
-                        if (!instanceSchedules.isEmpty()) {
-                            for (Schedules schedule : instanceSchedules) {
+                        
+                        // 过滤掉已取消的体验课
+                        List<Schedules> validSchedules = filterCancelledTrialSchedules(instanceSchedules);
+                        hasConflict = !validSchedules.isEmpty();
+                        
+                        logger.info("周实例中该日期该时间段课程数: {} (过滤前: {})", validSchedules.size(), instanceSchedules.size());
+                        if (!validSchedules.isEmpty()) {
+                            for (Schedules schedule : validSchedules) {
                                 logger.info("  - 课程: 学员={}, 时间={}-{}, 日期={}", 
                                     schedule.getStudentName(), 
                                     schedule.getStartTime(), 
@@ -1551,8 +1555,13 @@ public class ScheduleService {
                     // 日期范围课表：直接查询课表的课程
                     List<Schedules> existingSchedules = scheduleRepository.findByTimetableAndDateTime(
                         activeTimetable.getId(), scheduleDate, startTime, endTime);
-                    hasConflict = !existingSchedules.isEmpty();
-                    logger.info("日期范围课表，该时间段课程数: {}, 有冲突: {}", existingSchedules.size(), hasConflict);
+                    
+                    // 过滤掉已取消的体验课
+                    List<Schedules> validSchedules = filterCancelledTrialSchedules(existingSchedules);
+                    hasConflict = !validSchedules.isEmpty();
+                    
+                    logger.info("日期范围课表，该时间段课程数: {} (过滤前: {}), 有冲突: {}", 
+                        validSchedules.size(), existingSchedules.size(), hasConflict);
                 }
                 
                 // 如果没有冲突，说明有空
