@@ -281,6 +281,7 @@ public class TimetableService {
                     Users user = userService.findById(timetable.getUserId());
                     AdminTimetableDTO dto = new AdminTimetableDTO();
                     dto.setId(timetable.getId());
+                    dto.setUserId(timetable.getUserId());
                     dto.setName(timetable.getName());
                     dto.setIsWeekly(timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1);
                     dto.setStartDate(timetable.getStartDate());
