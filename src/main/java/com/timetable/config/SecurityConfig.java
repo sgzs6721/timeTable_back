@@ -61,7 +61,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/auth/wechat/**").permitAll()
                 .antMatchers("/organizations/active").permitAll()
                 .antMatchers("/organizations/auth/verify").permitAll()
-                .antMatchers("/actuator/health", "/actuator/info").permitAll()
+                // 允许访问所有Actuator监控端点
+                .antMatchers("/actuator/**").permitAll()
                 .antMatchers("/test/**").permitAll()
                 .anyRequest().authenticated()
                 .and()

@@ -70,12 +70,70 @@ ai:
     api-key: AIzaSyCkNAm7njKcgS-xChTWu08YVcGHNnf6P5g
     model: gemini-2.5-pro
 
+# Spring Boot Actuator 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露所有监控端点
+        include: health,info,metrics,prometheus,env,beans,configprops,httptrace,threaddump,heapdump
+      # 自定义管理端点路径
+      base-path: /actuator
+      # CORS配置（如果需要跨域访问）
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
+  endpoint:
+    health:
+      # 显示健康检查详情
+      show-details: when-authorized
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    # 启用JVM监控指标
+    export:
+      prometheus:
+        enabled: true
+    # JVM指标配置
+    jvm:
+      enabled: true
+      memory:
+        enabled: true
+      threads:
+        enabled: true
+      gc:
+        enabled: true
+      classes:
+        enabled: true
+    # 系统指标配置
+    system:
+      enabled: true
+      cpu:
+        enabled: true
+      process:
+        enabled: true
+    # HTTP指标配置
+    http:
+      server:
+        requests:
+          enabled: true
+    # 数据库连接池指标
+    datasource:
+      enabled: true
+    # 自定义指标标签
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+
 # 日志配置
 logging:
   level:
     com.timetable: INFO
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
+    org.springframework.boot.actuate: INFO
   charset:
     console: UTF-8
     file: UTF-8
