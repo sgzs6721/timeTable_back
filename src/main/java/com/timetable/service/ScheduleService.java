@@ -1720,9 +1720,12 @@ public class ScheduleService {
 
     public Map<String, Object> findTrialScheduleByStudentName(String studentName) {
         try {
+            logger.info("========== 查询体验课程信息 ==========");
+            logger.info("学员姓名: {}", studentName);
+            
             // 1. 优先从状态流转记录中查询体验时间（包括待体验和待再体验）
-            String sql = "SELECT csh.trial_schedule_date, csh.trial_start_time, csh.trial_end_time, csh.trial_coach_id, " +
-                        "c.id as customer_id " +
+            String sql = "SELECT csh.id, csh.trial_schedule_date, csh.trial_start_time, csh.trial_end_time, csh.trial_coach_id, " +
+                        "csh.to_status, csh.trial_cancelled, csh.created_at, c.id as customer_id, c.child_name " +
                         "FROM customer_status_history csh " +
                         "JOIN customers c ON csh.customer_id = c.id " +
                         "WHERE c.child_name = ? AND (csh.to_status = 'SCHEDULED' OR csh.to_status = 'RE_EXPERIENCE') " +
@@ -1731,8 +1734,39 @@ public class ScheduleService {
                         "ORDER BY csh.created_at DESC " +
                         "LIMIT 1";
             
+            logger.info("执行SQL查询...");
             List<Map<String, Object>> statusRecords = scheduleRepository.queryForMaps(sql, studentName);
+            logger.info("查询结果数量: {}", statusRecords != null ? statusRecords.size() : 0);
+            
+            if (statusRecords == null || statusRecords.isEmpty()) {
+                // 如果没有查到，输出该学员的所有状态流转记录用于调试
+                logger.warn("未找到符合条件的体验记录，查询该学员所有状态流转记录...");
+                String debugSql = "SELECT csh.id, csh.to_status, csh.trial_schedule_date, csh.trial_start_time, " +
+                                 "csh.trial_end_time, csh.trial_cancelled, csh.created_at " +
+                                 "FROM customer_status_history csh " +
+                                 "JOIN customers c ON csh.customer_id = c.id " +
+                                 "WHERE c.child_name = ? " +
+                                 "ORDER BY csh.created_at DESC";
+                List<Map<String, Object>> allRecords = scheduleRepository.queryForMaps(debugSql, studentName);
+                logger.warn("该学员共有 {} 条状态流转记录:", allRecords != null ? allRecords.size() : 0);
+                if (allRecords != null) {
+                    for (int i = 0; i < allRecords.size(); i++) {
+                        Map<String, Object> record = allRecords.get(i);
+                        logger.warn("  [{}] to_status={}, trial_schedule_date={}, trial_cancelled={}, created_at={}", 
+                            i+1, 
+                            record.get("to_status"), 
+                            record.get("trial_schedule_date"),
+                            record.get("trial_cancelled"),
+                            record.get("created_at"));
+                    }
+                }
+            }
+            
             if (statusRecords != null && !statusRecords.isEmpty()) {
+                logger.info("找到体验记录:");
+                for (Map.Entry<String, Object> entry : statusRecords.get(0).entrySet()) {
+                    logger.info("  {}: {}", entry.getKey(), entry.getValue());
+                }
                 Map<String, Object> statusRecord = statusRecords.get(0);
                 
                 // 构造返回结果（从流转记录中获取）
@@ -1746,6 +1780,7 @@ public class ScheduleService {
                 
                 // 如果流转记录中有教练ID，可能课表中也有记录，尝试查询获取更多信息
                 if (statusRecord.get("trial_coach_id") != null) {
+                    logger.info("流转记录中有教练ID，尝试从课表中获取更多信息...");
                     // 从课表中查询，获取scheduleId等信息
                     List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
                     List<Map<String, Object>> instanceTrialSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
@@ -1755,29 +1790,39 @@ public class ScheduleService {
                     allTrials.addAll(instanceTrialSchedules);
                     
                     if (!allTrials.isEmpty()) {
+                        logger.info("从课表中找到记录，补充scheduleId等信息");
                         // 找到课表中的记录，补充id和timetableId信息
                         Map<String, Object> scheduleRecord = allTrials.get(0);
                         result.put("id", scheduleRecord.get("id"));
                         result.put("timetableId", scheduleRecord.get("timetable_id"));
                         result.put("note", scheduleRecord.get("note"));
+                    } else {
+                        logger.info("课表中未找到对应记录");
                     }
                 }
                 
+                logger.info("从流转记录返回结果: {}", result);
+                logger.info("========== 查询结束 ==========");
                 return result;
             }
             
             // 2. 如果流转记录中没有，再从课表中查询
+            logger.info("流转记录中未找到，尝试从课表中查询...");
             List<Map<String, Object>> trialSchedules = scheduleRepository.findTrialSchedulesByStudentName(studentName);
             trialSchedules.forEach(s -> s.put("source_type", "schedule"));
+            logger.info("从schedules表查询到 {} 条体验课", trialSchedules.size());
             
             List<Map<String, Object>> instanceTrialSchedules = scheduleRepository.findTrialSchedulesInInstancesByStudentName(studentName);
             instanceTrialSchedules.forEach(s -> s.put("source_type", "weekly_instance"));
+            logger.info("从weekly_instance_schedules表查询到 {} 条体验课", instanceTrialSchedules.size());
             
             List<Map<String, Object>> allTrials = new ArrayList<>();
             allTrials.addAll(trialSchedules);
             allTrials.addAll(instanceTrialSchedules);
             
             if (allTrials.isEmpty()) {
+                logger.warn("课表中也未找到体验课，返回null");
+                logger.info("========== 查询结束 ==========");
                 return null;
             }
             
@@ -1792,6 +1837,7 @@ public class ScheduleService {
             });
             
             Map<String, Object> latestTrial = allTrials.get(0);
+            logger.info("从课表中找到体验课，返回数据");
             Map<String, Object> result = new HashMap<>();
             result.put("id", latestTrial.get("id"));
             result.put("timetableId", latestTrial.get("timetable_id"));
@@ -1802,9 +1848,11 @@ public class ScheduleService {
             result.put("coachId", latestTrial.get("coach_id"));
             result.put("sourceType", latestTrial.get("source_type"));
             
+            logger.info("========== 查询结束 ==========");
             return result;
         } catch (Exception e) {
             logger.error("查询体验课程失败: studentName={}", studentName, e);
+            logger.info("========== 查询结束（异常） ==========");
             return null;
         }
     }
