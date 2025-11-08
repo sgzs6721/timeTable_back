@@ -1720,12 +1720,12 @@ public class ScheduleService {
 
     public Map<String, Object> findTrialScheduleByStudentName(String studentName) {
         try {
-            // 1. 优先从状态流转记录中查询体验时间
+            // 1. 优先从状态流转记录中查询体验时间（包括待体验和待再体验）
             String sql = "SELECT csh.trial_schedule_date, csh.trial_start_time, csh.trial_end_time, csh.trial_coach_id, " +
                         "c.id as customer_id " +
                         "FROM customer_status_history csh " +
                         "JOIN customers c ON csh.customer_id = c.id " +
-                        "WHERE c.child_name = ? AND csh.to_status = 'SCHEDULED' " +
+                        "WHERE c.child_name = ? AND (csh.to_status = 'SCHEDULED' OR csh.to_status = 'RE_EXPERIENCE') " +
                         "AND csh.trial_schedule_date IS NOT NULL " +
                         "AND (csh.trial_cancelled IS NULL OR csh.trial_cancelled = FALSE) " +
                         "ORDER BY csh.created_at DESC " +
