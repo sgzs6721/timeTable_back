@@ -33,9 +33,13 @@ public class CustomerService {
 
     @Transactional
     public CustomerDTO createCustomer(CustomerRequest request, Long currentUserId) {
+        // 验证电话或微信至少填一个
+        validateContactInfo(request.getParentPhone(), request.getWechat());
+        
         Customer customer = new Customer();
         customer.setChildName(request.getChildName());
         customer.setParentPhone(request.getParentPhone());
+        customer.setWechat(request.getWechat());
         customer.setStatus(request.getStatus() != null ? request.getStatus() : "NEW");
         customer.setNotes(request.getNotes());
         customer.setSource(request.getSource());
@@ -93,8 +97,12 @@ public class CustomerService {
             throw new RuntimeException("无权限修改此客户");
         }
 
+        // 验证电话或微信至少填一个
+        validateContactInfo(request.getParentPhone(), request.getWechat());
+
         customer.setChildName(request.getChildName());
         customer.setParentPhone(request.getParentPhone());
+        customer.setWechat(request.getWechat());
         customer.setStatus(request.getStatus());
         customer.setNotes(request.getNotes());
         customer.setSource(request.getSource());
@@ -391,5 +399,28 @@ public class CustomerService {
         Customer updatedCustomer = customerRepository.update(customer);
         
         return convertToDTO(updatedCustomer);
+    }
+    
+    /**
+     * 验证联系方式：电话或微信至少填一个，且电话格式正确
+     */
+    private void validateContactInfo(String parentPhone, String wechat) {
+        boolean hasPhone = parentPhone != null && !parentPhone.trim().isEmpty();
+        boolean hasWechat = wechat != null && !wechat.trim().isEmpty();
+        
+        // 至少填一个
+        if (!hasPhone && !hasWechat) {
+            throw new RuntimeException("家长电话或微信至少填写一个");
+        }
+        
+        // 如果填了电话，且看起来像手机号（全数字且长度为11），则验证格式
+        if (hasPhone) {
+            String phone = parentPhone.trim();
+            if (phone.matches("^\\d{11}$")) {
+                if (!phone.matches("^1[3-9]\\d{9}$")) {
+                    throw new RuntimeException("手机号码格式不正确");
+                }
+            }
+        }
     }
 }

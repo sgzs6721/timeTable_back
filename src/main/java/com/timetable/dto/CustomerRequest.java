@@ -1,6 +1,7 @@
 package com.timetable.dto;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 
 public class CustomerRequest {
     @NotBlank(message = "孩子姓名不能为空")
@@ -10,7 +11,7 @@ public class CustomerRequest {
     private Integer childAge;
     private String grade;
     
-    @NotBlank(message = "家长电话不能为空")
+    // 电话或微信至少填一个，验证逻辑在Service层处理
     private String parentPhone;
     
     private String wechat;
