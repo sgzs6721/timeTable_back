@@ -22,6 +22,11 @@ public class WechatAccessToken {
     
     private String unionid;
     
+    // 错误字段（当微信API返回错误时）
+    private Integer errcode;
+    
+    private String errmsg;
+    
     public WechatAccessToken() {}
     
     public String getAccessToken() {
@@ -72,6 +77,29 @@ public class WechatAccessToken {
         this.unionid = unionid;
     }
     
+    public Integer getErrcode() {
+        return errcode;
+    }
+    
+    public void setErrcode(Integer errcode) {
+        this.errcode = errcode;
+    }
+    
+    public String getErrmsg() {
+        return errmsg;
+    }
+    
+    public void setErrmsg(String errmsg) {
+        this.errmsg = errmsg;
+    }
+    
+    /**
+     * 检查是否有错误
+     */
+    public boolean hasError() {
+        return errcode != null && errcode != 0;
+    }
+    
     @Override
     public String toString() {
         return "WechatAccessToken{" +
@@ -81,6 +109,8 @@ public class WechatAccessToken {
                 ", openid='" + openid + '\'' +
                 ", scope='" + scope + '\'' +
                 ", unionid='" + unionid + '\'' +
+                ", errcode=" + errcode +
+                ", errmsg='" + errmsg + '\'' +
                 '}';
     }
 }

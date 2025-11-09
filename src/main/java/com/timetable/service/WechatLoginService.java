@@ -84,7 +84,17 @@ public class WechatLoginService {
             String responseBody = response.body().string();
             logger.info("微信访问令牌响应: {}", responseBody);
             
-            return objectMapper.readValue(responseBody, WechatAccessToken.class);
+            WechatAccessToken accessToken = objectMapper.readValue(responseBody, WechatAccessToken.class);
+            
+            // 检查是否有错误
+            if (accessToken.hasError()) {
+                String errorMsg = String.format("微信API返回错误 - errcode: %d, errmsg: %s", 
+                    accessToken.getErrcode(), accessToken.getErrmsg());
+                logger.error(errorMsg);
+                throw new IOException(errorMsg);
+            }
+            
+            return accessToken;
         }
     }
     
@@ -107,7 +117,17 @@ public class WechatLoginService {
             String responseBody = response.body().string();
             logger.info("微信用户信息响应: {}", responseBody);
             
-            return objectMapper.readValue(responseBody, WechatUserInfo.class);
+            WechatUserInfo userInfo = objectMapper.readValue(responseBody, WechatUserInfo.class);
+            
+            // 检查是否有错误
+            if (userInfo.hasError()) {
+                String errorMsg = String.format("微信API返回错误 - errcode: %d, errmsg: %s", 
+                    userInfo.getErrcode(), userInfo.getErrmsg());
+                logger.error(errorMsg);
+                throw new IOException(errorMsg);
+            }
+            
+            return userInfo;
         }
     }
     

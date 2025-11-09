@@ -25,6 +25,11 @@ public class WechatUserInfo {
     
     private String unionid;
     
+    // 错误字段（当微信API返回错误时）
+    private Integer errcode;
+    
+    private String errmsg;
+    
     public WechatUserInfo() {}
     
     public String getOpenid() {
@@ -91,6 +96,29 @@ public class WechatUserInfo {
         this.unionid = unionid;
     }
     
+    public Integer getErrcode() {
+        return errcode;
+    }
+    
+    public void setErrcode(Integer errcode) {
+        this.errcode = errcode;
+    }
+    
+    public String getErrmsg() {
+        return errmsg;
+    }
+    
+    public void setErrmsg(String errmsg) {
+        this.errmsg = errmsg;
+    }
+    
+    /**
+     * 检查是否有错误
+     */
+    public boolean hasError() {
+        return errcode != null && errcode != 0;
+    }
+    
     @Override
     public String toString() {
         return "WechatUserInfo{" +
@@ -102,6 +130,8 @@ public class WechatUserInfo {
                 ", country='" + country + '\'' +
                 ", headimgurl='" + headimgurl + '\'' +
                 ", unionid='" + unionid + '\'' +
+                ", errcode=" + errcode +
+                ", errmsg='" + errmsg + '\'' +
                 '}';
     }
 }
