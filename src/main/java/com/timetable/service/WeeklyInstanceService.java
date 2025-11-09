@@ -1326,19 +1326,26 @@ public class WeeklyInstanceService {
      * 根据周开始日期和星期几计算具体日期
      */
     private LocalDate calculateScheduleDate(LocalDate weekStartDate, String dayOfWeekStr) {
-        DayOfWeek dayOfWeek;
-        switch (dayOfWeekStr.toUpperCase()) {
-            case "MONDAY": dayOfWeek = DayOfWeek.MONDAY; break;
-            case "TUESDAY": dayOfWeek = DayOfWeek.TUESDAY; break;
-            case "WEDNESDAY": dayOfWeek = DayOfWeek.WEDNESDAY; break;
-            case "THURSDAY": dayOfWeek = DayOfWeek.THURSDAY; break;
-            case "FRIDAY": dayOfWeek = DayOfWeek.FRIDAY; break;
-            case "SATURDAY": dayOfWeek = DayOfWeek.SATURDAY; break;
-            case "SUNDAY": dayOfWeek = DayOfWeek.SUNDAY; break;
-            default: throw new IllegalArgumentException("无效的星期几: " + dayOfWeekStr);
+        // 周一(MONDAY)是周的第一天，支持中英文各种写法及数字
+        String k = dayOfWeekStr == null ? "" : dayOfWeekStr.trim().toUpperCase();
+        switch (k) {
+            case "1": case "MONDAY": case "星期一": case "周一": case "一":
+                return weekStartDate.with(DayOfWeek.MONDAY);
+            case "2": case "TUESDAY": case "星期二": case "周二": case "二":
+                return weekStartDate.with(DayOfWeek.TUESDAY);
+            case "3": case "WEDNESDAY": case "星期三": case "周三": case "三":
+                return weekStartDate.with(DayOfWeek.WEDNESDAY);
+            case "4": case "THURSDAY": case "星期四": case "周四": case "四":
+                return weekStartDate.with(DayOfWeek.THURSDAY);
+            case "5": case "FRIDAY": case "星期五": case "周五": case "五":
+                return weekStartDate.with(DayOfWeek.FRIDAY);
+            case "6": case "SATURDAY": case "星期六": case "周六": case "六":
+                return weekStartDate.with(DayOfWeek.SATURDAY);
+            case "7": case "SUNDAY": case "星期日": case "星期天": case "周日": case "日": case "天":
+                return weekStartDate.with(DayOfWeek.SUNDAY);
+            default:
+                throw new IllegalArgumentException("无效的星期几: " + dayOfWeekStr);
         }
-        
-        return weekStartDate.with(dayOfWeek);
     }
 
     /**
