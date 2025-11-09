@@ -248,6 +248,7 @@ public class WeeklyInstanceService {
                 scheduleDate,
                 templateSchedule.getNote()
             );
+            instanceSchedule.setIsTimeBlock(false); // 普通课程必须明确设为false，防止数据库约束冲突
             
             weeklyInstanceScheduleRepository.save(instanceSchedule);
             logger.debug("创建实例课程: {} {} {}-{} 日期: {}", 
