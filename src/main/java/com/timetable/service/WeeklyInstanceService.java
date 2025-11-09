@@ -151,6 +151,12 @@ public class WeeklyInstanceService {
 
         WeeklyInstance existingInstance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(templateTimetableId, yearWeek);
         if (existingInstance != null) {
+            // 检查实例是否有课程数据，如果没有则重新同步
+            List<WeeklyInstanceSchedule> existingSchedules = weeklyInstanceScheduleRepository.findByWeeklyInstanceId(existingInstance.getId());
+            if (existingSchedules == null || existingSchedules.isEmpty()) {
+                logger.info("下周实例存在但没有课程数据，重新同步模板课程，实例ID: {}", existingInstance.getId());
+                syncSchedulesFromTemplate(existingInstance);
+            }
             return existingInstance;
         }
 
