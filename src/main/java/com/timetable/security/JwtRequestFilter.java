@@ -34,6 +34,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                                    HttpServletResponse response, 
                                    FilterChain chain) throws ServletException, IOException {
 
+        // 跳过 Actuator 监控端点，不需要JWT认证
+        String requestPath = request.getRequestURI();
+        if (requestPath != null && (requestPath.contains("/actuator") || requestPath.endsWith("/actuator"))) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         final String requestTokenHeader = request.getHeader("Authorization");
 
         String username = null;
