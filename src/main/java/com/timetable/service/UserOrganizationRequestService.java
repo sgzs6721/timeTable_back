@@ -552,6 +552,14 @@ public class UserOrganizationRequestService {
         dto.setRejectReason(request.getRejectReason());
         dto.setCreatedAt(request.getCreatedAt());
         
+        // 设置用户职位信息
+        if (request.getUserId() != null) {
+            Users user = userRepository.findById(request.getUserId());
+            if (user != null && user.getPosition() != null) {
+                dto.setPosition(user.getPosition());
+            }
+        }
+        
         // 设置机构信息
         if (request.getOrganization() != null) {
             dto.setOrganizationName(request.getOrganization().getName());
