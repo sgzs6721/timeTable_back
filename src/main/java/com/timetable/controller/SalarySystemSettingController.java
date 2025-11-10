@@ -33,9 +33,6 @@ public class SalarySystemSettingController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-                return ResponseEntity.status(403).body(ApiResponse.error("无权限访问"));
-            }
 
             // 确定要使用的机构ID
             Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
@@ -90,9 +87,6 @@ public class SalarySystemSettingController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-                return ResponseEntity.status(403).body(ApiResponse.error("无权限操作"));
-            }
 
             // 确定要使用的机构ID
             Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
