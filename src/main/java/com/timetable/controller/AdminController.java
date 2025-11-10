@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/admin")
 @Validated
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
