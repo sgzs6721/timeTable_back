@@ -175,10 +175,12 @@ public class UserOrganizationRequestRepository {
         String sql = "SELECT r.*, " +
                      "o.id as org_id, o.name as org_name, o.code as org_code, o.address as org_address, " +
                      "o.contact_phone as org_contact_phone, o.status as org_status, " +
-                     "u.username as approved_by_username " +
+                     "u.username as approved_by_username, " +
+                     "user.position as user_position " +
                      "FROM user_organization_requests r " +
                      "LEFT JOIN organizations o ON r.organization_id = o.id " +
                      "LEFT JOIN users u ON r.approved_by = u.id " +
+                     "LEFT JOIN users user ON r.user_id = user.id " +
                      "WHERE r.status = ? " +
                      "ORDER BY r.created_at DESC";
         return jdbcTemplate.query(sql, requestWithOrgRowMapper, status);

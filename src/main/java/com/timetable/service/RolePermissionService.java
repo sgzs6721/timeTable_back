@@ -3,6 +3,7 @@ package com.timetable.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.timetable.dto.OrganizationRoleDTO;
 import com.timetable.dto.RolePermissionDTO;
 import com.timetable.entity.RolePermission;
 import com.timetable.repository.RolePermissionRepository;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -30,21 +32,53 @@ public class RolePermissionService {
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private OrganizationRoleService organizationRoleService;
 
     /**
      * 获取机构的所有角色权限
      */
     public List<RolePermissionDTO> getOrganizationPermissions(Long organizationId) {
-        List<RolePermission> permissions = rolePermissionRepository.findByOrganizationId(organizationId);
-        return permissions.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        // 获取机构的所有角色
+        List<OrganizationRoleDTO> roles = organizationRoleService.getOrganizationRoles(organizationId);
+        
+        // 获取已有的权限配置
+        List<RolePermission> existingPermissions = rolePermissionRepository.findByOrganizationId(organizationId);
+        Map<String, RolePermission> permissionMap = existingPermissions.stream()
+                .collect(Collectors.toMap(RolePermission::getRole, p -> p));
+        
+        // 为每个角色创建权限配置
+        return roles.stream().map(role -> {
+            RolePermission permission = permissionMap.get(role.getRoleCode());
+            if (permission == null) {
+                // 如果没有权限配置，创建默认配置
+                permission = new RolePermission();
+                permission.setOrganizationId(organizationId);
+                permission.setRole(role.getRoleCode());
+                try {
+                    permission.setMenuPermissions(objectMapper.writeValueAsString(getDefaultMenuPermissions()));
+                    permission.setActionPermissions(objectMapper.writeValueAsString(getDefaultActionPermissions(role.getRoleCode())));
+                } catch (JsonProcessingException e) {
+                    logger.error("Error creating default permissions for role: " + role.getRoleCode(), e);
+                }
+            }
+            return convertToDTO(permission);
+        }).collect(Collectors.toList());
     }
 
     /**
      * 获取指定角色的权限
      */
     public RolePermissionDTO getRolePermission(Long organizationId, String role) {
+        // 首先检查该角色是否存在于机构的角色列表中
+        List<OrganizationRoleDTO> roles = organizationRoleService.getOrganizationRoles(organizationId);
+        boolean roleExists = roles.stream().anyMatch(r -> r.getRoleCode().equals(role));
+        
+        if (!roleExists) {
+            throw new RuntimeException("角色 '" + role + "' 在该机构中不存在");
+        }
+        
         return rolePermissionRepository.findByOrganizationIdAndRole(organizationId, role)
                 .map(this::convertToDTO)
                 .orElse(createDefaultPermission(organizationId, role));
@@ -78,8 +112,23 @@ public class RolePermissionService {
      */
     @Transactional
     public List<RolePermissionDTO> saveRolePermissions(Long organizationId, List<RolePermissionDTO> dtos) {
-        return dtos.stream()
+        // 获取机构的所有角色
+        List<OrganizationRoleDTO> validRoles = organizationRoleService.getOrganizationRoles(organizationId);
+        Set<String> validRoleCodes = validRoles.stream()
+                .map(OrganizationRoleDTO::getRoleCode)
+                .collect(Collectors.toSet());
+        
+        // 过滤掉无效的角色
+        List<RolePermissionDTO> validDtos = dtos.stream()
+                .filter(dto -> validRoleCodes.contains(dto.getRole()))
                 .peek(dto -> dto.setOrganizationId(organizationId))
+                .collect(Collectors.toList());
+        
+        if (validDtos.size() < dtos.size()) {
+            logger.warn("Some roles were filtered out as they don't exist in the organization");
+        }
+        
+        return validDtos.stream()
                 .map(this::saveRolePermission)
                 .collect(Collectors.toList());
     }
