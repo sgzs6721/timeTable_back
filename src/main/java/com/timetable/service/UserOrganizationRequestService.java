@@ -506,6 +506,48 @@ public class UserOrganizationRequestService {
     }
 
     /**
+     * 删除微信用户申请记录
+     */
+    @Transactional
+    public void deleteRequest(Long requestId) {
+        UserOrganizationRequest request = requestRepository.findById(requestId);
+        if (request == null) {
+            throw new RuntimeException("申请不存在");
+        }
+
+        if ("PENDING".equals(request.getStatus())) {
+            throw new RuntimeException("不能删除待审批的申请");
+        }
+
+        // 删除申请记录
+        requestRepository.deleteById(requestId);
+        
+        logger.info("删除申请记录：requestId={}, userId={}, organizationId={}",
+                    requestId, request.getUserId(), request.getOrganizationId());
+    }
+
+    /**
+     * 删除普通注册申请记录
+     */
+    @Transactional
+    public void deleteNormalRegistration(Long userId) {
+        Users user = userRepository.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        if ("PENDING".equals(user.getStatus())) {
+            throw new RuntimeException("不能删除待审批的申请");
+        }
+
+        // 删除用户记录
+        userRepository.deleteById(userId);
+        
+        logger.info("删除普通注册申请记录：userId={}, username={}, organizationId={}",
+                    userId, user.getUsername(), user.getOrganizationId());
+    }
+
+    /**
      * 生成唯一用户名
      */
     private String generateUniqueUsername(String wechatNickname, String wechatOpenid) {

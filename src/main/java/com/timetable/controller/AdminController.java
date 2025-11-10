@@ -591,6 +591,16 @@ public class AdminController {
             user.setNickname(nickname);
         }
 
+        // 更新职位（可选）
+        if (request.containsKey("position")) {
+            Object positionValue = request.get("position");
+            if (positionValue == null) {
+                user.setPosition(null);
+            } else {
+                user.setPosition(positionValue.toString());
+            }
+        }
+
         user.setUpdatedAt(java.time.LocalDateTime.now());
         userService.getUserRepository().update(user); // 需要在UserService暴露仓库或封装一个保存方法
 

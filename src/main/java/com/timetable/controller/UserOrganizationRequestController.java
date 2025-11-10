@@ -252,5 +252,53 @@ public class UserOrganizationRequestController {
                     .body(ApiResponse.error("获取申请列表失败"));
         }
     }
+
+    /**
+     * 删除申请记录（仅限已批准或已拒绝的申请）
+     */
+    @DeleteMapping("/{requestId}")
+    public ResponseEntity<ApiResponse<Void>> deleteRequest(
+            @PathVariable Long requestId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            Users currentUser = userRepository.findByUsername(username);
+
+            if (currentUser == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("用户不存在"));
+            }
+
+            // 检查是否是管理员
+            if (!"ADMIN".equals(currentUser.getRole())) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("无权限删除申请"));
+            }
+
+            // 判断是微信申请还是普通注册申请
+            boolean isNormalRegistration = requestId < 0;
+            
+            if (isNormalRegistration) {
+                // 普通注册申请：直接删除Users表记录
+                Long userId = -requestId;
+                requestService.deleteNormalRegistration(userId);
+            } else {
+                // 微信申请：删除UserOrganizationRequest表记录
+                requestService.deleteRequest(requestId);
+            }
+            
+            logger.info("管理员 {} 删除了申请 {}", username, requestId);
+            return ResponseEntity.ok(ApiResponse.success("申请已删除", null));
+
+        } catch (RuntimeException e) {
+            logger.warn("删除申请失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("删除申请失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("删除申请失败"));
+        }
+    }
 }
 
