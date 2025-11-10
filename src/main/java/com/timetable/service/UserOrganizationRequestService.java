@@ -378,7 +378,7 @@ public class UserOrganizationRequestService {
         
         UserOrganizationRequest updatedRequest = requestRepository.update(request);
         
-        logger.info("申请已批准：requestId={}, userId={}, organizationId={}", 
+        logger.info("申请已批准：requestId={}, userId={}, organizationId={}",
                     requestId, user.getId(), request.getOrganizationId());
         
         // 发送微信推送通知
@@ -389,7 +389,9 @@ public class UserOrganizationRequestService {
             // 不影响主流程，继续执行
         }
         
-        return convertToDTO(updatedRequest);
+        UserOrganizationRequestDTO dto = convertToDTO(updatedRequest);
+        dto.setPosition(defaultPosition);
+        return dto;
     }
     
     /**
@@ -467,7 +469,9 @@ public class UserOrganizationRequestService {
         
         // 重新查询用户以获取最新状态
         Users updatedUser = userRepository.findById(userId);
-        return convertUserToRequestDTO(updatedUser);
+        UserOrganizationRequestDTO dto = convertUserToRequestDTO(updatedUser);
+        dto.setPosition(defaultPosition);
+        return dto;
     }
 
     /**

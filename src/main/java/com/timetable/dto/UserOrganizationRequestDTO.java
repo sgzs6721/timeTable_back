@@ -22,6 +22,7 @@ public class UserOrganizationRequestDTO {
     private LocalDateTime approvedAt;
     private String rejectReason;
     private LocalDateTime createdAt;
+    private String position; // 用户在机构中的职位
 
     public UserOrganizationRequestDTO() {
     }
@@ -152,6 +153,14 @@ public class UserOrganizationRequestDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 }
 
