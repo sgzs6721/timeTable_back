@@ -154,7 +154,7 @@ public class RolePermissionService {
         Map<String, Boolean> permissions = new HashMap<>();
         permissions.put("refresh", true);
         permissions.put("admin", "ADMIN".equalsIgnoreCase(role));
-        permissions.put("organization-management", "ADMIN".equalsIgnoreCase(role));
+        permissions.put("organization-management", true);
         permissions.put("archived", true);
         permissions.put("profile", true);
         permissions.put("guide", true);
