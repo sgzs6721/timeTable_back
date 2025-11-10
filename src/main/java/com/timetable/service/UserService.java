@@ -503,4 +503,27 @@ public class UserService implements UserDetailsService {
     public List<Users> getUsersByOrganizationId(Long organizationId) {
         return userRepository.findByOrganizationId(organizationId);
     }
-} 
+    
+    /**
+     * 检查用户是否是机构管理员
+     */
+    public boolean isOrganizationAdmin(String username, Long organizationId) {
+        Users user = userRepository.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+        
+        // 检查用户是否属于该机构
+        if (!organizationId.equals(user.getOrganizationId())) {
+            return false;
+        }
+        
+        // 检查用户是否是ADMIN角色或者是机构管理员
+        if ("ADMIN".equals(user.getRole())) {
+            return true;
+        }
+        
+        // 检查用户是否在机构管理员表中
+        return userRepository.isOrganizationAdmin(user.getId(), organizationId);
+    }
+}

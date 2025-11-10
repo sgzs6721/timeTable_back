@@ -67,9 +67,9 @@ public class RolePermissionController {
      * 获取机构的所有角色权限
      */
     @GetMapping("/organization/{organizationId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userService.isOrganizationAdmin(authentication.name, #organizationId))")
     public ResponseEntity<ApiResponse<List<RolePermissionDTO>>> getOrganizationPermissions(
-            @PathVariable Long organizationId) {
+            @PathVariable Long organizationId, Authentication authentication) {
         try {
             List<RolePermissionDTO> permissions = rolePermissionService.getOrganizationPermissions(organizationId);
             return ResponseEntity.ok(ApiResponse.success("获取机构权限成功", permissions));
@@ -83,10 +83,11 @@ public class RolePermissionController {
      * 获取指定角色的权限
      */
     @GetMapping("/organization/{organizationId}/role/{role}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userService.isOrganizationAdmin(authentication.name, #organizationId))")
     public ResponseEntity<ApiResponse<RolePermissionDTO>> getRolePermission(
             @PathVariable Long organizationId,
-            @PathVariable String role) {
+            @PathVariable String role,
+            Authentication authentication) {
         try {
             RolePermissionDTO permission = rolePermissionService.getRolePermission(organizationId, role);
             return ResponseEntity.ok(ApiResponse.success("获取角色权限成功", permission));
@@ -116,10 +117,11 @@ public class RolePermissionController {
      * 批量保存机构的角色权限
      */
     @PostMapping("/organization/{organizationId}/batch")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userService.isOrganizationAdmin(authentication.name, #organizationId))")
     public ResponseEntity<ApiResponse<List<RolePermissionDTO>>> saveRolePermissions(
             @PathVariable Long organizationId,
-            @RequestBody List<RolePermissionDTO> dtos) {
+            @RequestBody List<RolePermissionDTO> dtos,
+            Authentication authentication) {
         try {
             List<RolePermissionDTO> saved = rolePermissionService.saveRolePermissions(organizationId, dtos);
             return ResponseEntity.ok(ApiResponse.success("批量保存权限成功", saved));

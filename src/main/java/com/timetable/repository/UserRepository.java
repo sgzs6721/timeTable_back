@@ -311,4 +311,20 @@ public class UserRepository {
                 .fetchOne(0, int.class);
         return count != null ? count : 0;
     }
-} 
+    
+    /**
+     * 检查用户是否是机构管理员
+     */
+    public boolean isOrganizationAdmin(Long userId, Long organizationId) {
+        // 检查用户是否属于该机构并且是ADMIN角色
+        Users user = dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.ID.eq(userId))
+                .and(com.timetable.generated.tables.Users.USERS.ORGANIZATION_ID.eq(organizationId))
+                .and(com.timetable.generated.tables.Users.USERS.ROLE.eq("ADMIN"))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .fetchOneInto(Users.class);
+        
+        return user != null;
+    }
+}
