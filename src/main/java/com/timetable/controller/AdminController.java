@@ -428,10 +428,12 @@ public class AdminController {
 
     
     /**
-     * 获取所有用户列表（只返回APPROVED状态且与当前用户同机构）
+     * 获取所有用户列表（只返回APPROVED状态且与指定机构同机构）
      */
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers(
+            Authentication authentication,
+            @RequestParam(value = "organizationId", required = false) Long organizationId) {
         Users currentUser = userService.findByUsername(authentication.getName());
         if (currentUser == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
@@ -441,9 +443,17 @@ public class AdminController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
         }
         
-        List<Users> users = userService.getAllApprovedUsers();
+        // 如果没有指定organizationId参数，则使用当前用户的机构ID
+        Long targetOrganizationId = organizationId != null ? organizationId : currentUser.getOrganizationId();
+        
+        // 验证当前用户是否有权限查看指定机构的用户
+        if (!targetOrganizationId.equals(currentUser.getOrganizationId()) && !"ADMIN".equals(currentUser.getRole())) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("没有权限查看其他机构的用户"));
+        }
+        
+        List<Users> users = userService.getUsersByOrganizationId(targetOrganizationId);
         List<Map<String, Object>> userDTOs = users.stream()
-            .filter(user -> currentUser.getOrganizationId().equals(user.getOrganizationId()))
+            .filter(user -> "APPROVED".equals(user.getStatus()))
             .map(user -> {
                 Map<String, Object> dto = new HashMap<>();
                 dto.put("id", user.getId());
