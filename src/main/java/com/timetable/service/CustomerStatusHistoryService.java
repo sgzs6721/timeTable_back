@@ -53,7 +53,7 @@ public class CustomerStatusHistoryService {
 
         // 检查权限
         Users user = userRepository.findById(currentUserId);
-        boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
+        boolean isAdmin = user != null && "MANAGER".equals(user.getPosition());
         if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId())) {
             throw new RuntimeException("无权限修改此客户状态");
         }
@@ -180,7 +180,7 @@ public class CustomerStatusHistoryService {
 
         // 检查权限
         Users user = userRepository.findById(currentUserId);
-        boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
+        boolean isAdmin = user != null && "MANAGER".equals(user.getPosition());
         // 如果assignedSalesId为null，允许当前用户查看（历史遗留数据）
         if (!isAdmin && customer.getAssignedSalesId() != null && !currentUserId.equals(customer.getAssignedSalesId())) {
             throw new RuntimeException("无权限查看此客户记录");
@@ -201,7 +201,7 @@ public class CustomerStatusHistoryService {
 
         // 检查权限 - 只能修改自己创建的记录或管理员可以修改
         Users user = userRepository.findById(currentUserId);
-        boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
+        boolean isAdmin = user != null && "MANAGER".equals(user.getPosition());
         if (!isAdmin && !currentUserId.equals(history.getCreatedBy())) {
             throw new RuntimeException("无权限修改此历史记录");
         }
@@ -221,7 +221,7 @@ public class CustomerStatusHistoryService {
 
         // 检查权限 - 只能删除自己创建的记录或管理员可以删除
         Users user = userRepository.findById(currentUserId);
-        boolean isAdmin = user != null && "ADMIN".equals(user.getRole());
+        boolean isAdmin = user != null && "MANAGER".equals(user.getPosition());
         if (!isAdmin && !currentUserId.equals(history.getCreatedBy())) {
             throw new RuntimeException("无权限删除此历史记录");
         }

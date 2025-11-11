@@ -71,7 +71,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -95,7 +95,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -119,7 +119,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -143,7 +143,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -167,7 +167,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -191,7 +191,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -217,7 +217,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -242,7 +242,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -291,7 +291,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -331,7 +331,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -366,7 +366,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -401,7 +401,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -431,7 +431,7 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -464,7 +464,7 @@ public class ScheduleController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -509,7 +509,7 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -547,7 +547,7 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -572,7 +572,7 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -597,7 +597,7 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -623,7 +623,7 @@ public class ScheduleController {
         if (user == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }
@@ -669,7 +669,7 @@ public class ScheduleController {
                     .body(ApiResponse.error("用户不存在"));
         }
 
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             if (!timetableService.isUserTimetable(timetableId, user.getId())) {
                 return ResponseEntity.notFound().build();
             }

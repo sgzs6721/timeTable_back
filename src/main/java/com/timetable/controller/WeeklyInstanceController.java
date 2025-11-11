@@ -63,7 +63,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -107,7 +107,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -143,7 +143,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -179,7 +179,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -207,7 +207,7 @@ public class WeeklyInstanceController {
             WeeklyInstance instance = weeklyInstanceService.switchToWeekInstance(instanceId);
             
             // 验证用户权限
-            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!"MANAGER".equals(user.getPosition())) {
                 Timetables timetable = timetableService.getTimetable(instance.getTemplateTimetableId(), user.getId());
                 if (timetable == null) {
                     return ResponseEntity.notFound().build();
@@ -240,7 +240,7 @@ public class WeeklyInstanceController {
         }
 
         // 验证用户权限
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(instance.getTemplateTimetableId(), user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -286,7 +286,7 @@ public class WeeklyInstanceController {
         }
 
         // 只有管理员可以执行批量操作
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.status(403).body(ApiResponse.error("权限不足，只有管理员可以执行批量操作"));
         }
 
@@ -311,7 +311,7 @@ public class WeeklyInstanceController {
         }
 
         // 只有管理员可以执行修复操作
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.status(403).body(ApiResponse.error("权限不足，只有管理员可以执行修复操作"));
         }
 
@@ -336,7 +336,7 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         // 非管理员需要验证课表归属
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -366,7 +366,7 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         // 非管理员需要验证课表归属
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -595,7 +595,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -624,7 +624,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -651,7 +651,7 @@ public class WeeklyInstanceController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
         // 权限校验：非管理员需是自己课表
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -679,7 +679,7 @@ public class WeeklyInstanceController {
         }
 
         // 检查课表是否属于当前用户或用户是否为管理员
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             Timetables timetable = timetableService.getTimetable(timetableId, user.getId());
             if (timetable == null) {
                 return ResponseEntity.notFound().build();
@@ -789,7 +789,7 @@ public class WeeklyInstanceController {
         }
 
         // 只有管理员可以查看所有请假记录
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
         }
 
@@ -816,7 +816,7 @@ public class WeeklyInstanceController {
         }
 
         // 只有管理员可以删除请假记录
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
         }
 
@@ -847,7 +847,7 @@ public class WeeklyInstanceController {
         }
 
         // 只有管理员可以批量删除请假记录
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.status(403).body(ApiResponse.error("权限不足"));
         }
 
@@ -876,7 +876,7 @@ public class WeeklyInstanceController {
 
         try {
             Map<String, Object> studentRecords;
-            if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            if ("MANAGER".equals(user.getPosition())) {
                 // 管理员可以查看所有学员记录
                 studentRecords = weeklyInstanceService.getStudentRecords(studentName, coachName);
             } else {
@@ -912,7 +912,7 @@ public class WeeklyInstanceController {
             java.util.Map<String, String> mergeRules = getMergeRules(user.getOrganizationId());
             java.util.Map<String, Integer> assignHoursRules = getAssignHoursRules(user.getOrganizationId());
             
-            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+            if ("MANAGER".equals(user.getPosition()) && showAll) {
                 // 分组返回教练列表（只返回当前机构的教练）
                 List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll(user.getOrganizationId());
                 // 应用合并规则
@@ -966,7 +966,7 @@ public class WeeklyInstanceController {
             
             // 首先根据用户权限和参数获取基础记录集
             List<StudentOperationRecord> baseRecords;
-            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll && coachId == null) {
+            if ("MANAGER".equals(user.getPosition()) && showAll && coachId == null) {
                 // 管理员查看全部记录且未指定教练ID - 只查询当前机构的记录
                 baseRecords = studentOperationRecordRepository.findByOrganizationId(user.getOrganizationId());
             } else if (coachId != null) {
@@ -1321,7 +1321,7 @@ public class WeeklyInstanceController {
         }
 
         // 只有管理员可以执行测试操作
-        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (!"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.status(403).body(ApiResponse.error("权限不足，只有管理员可以执行测试操作"));
         }
 
@@ -1372,7 +1372,7 @@ public class WeeklyInstanceController {
         }
         try {
             // 强制刷新，不使用任何缓存
-            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+            if ("MANAGER".equals(user.getPosition()) && showAll) {
                 List<com.timetable.dto.CoachStudentSummaryDTO> grouped = weeklyInstanceService.getStudentGroupByCoachSummaryAll(user.getOrganizationId());
                 return ResponseEntity.ok(ApiResponse.success("强制刷新学员列表成功", grouped));
             } else {

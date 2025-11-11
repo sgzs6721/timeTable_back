@@ -63,7 +63,7 @@ public class TimetableController {
         }
 
         Timetables timetable;
-        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+        if ("MANAGER".equals(user.getPosition())) {
             timetable = timetableService.getTimetableById(id);
         } else {
             timetable = timetableService.getTimetable(id, user.getId());
@@ -123,7 +123,7 @@ public class TimetableController {
         }
 
         Timetables timetable;
-        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+        if ("MANAGER".equals(user.getPosition())) {
             timetable = timetableService.getTimetableById(id);
         } else {
             timetable = timetableService.getTimetable(id, user.getId());
@@ -283,7 +283,7 @@ public class TimetableController {
             list = timetableService.findArchivedByUserId(user.getId());
         } else {
             // 默认行为：管理员查看所有，普通用户查看自己的
-            if (user.getRole() != null && user.getRole().toUpperCase().equals("ADMIN")) {
+            if (user.getPosition() != null && user.getPosition().equals("MANAGER")) {
                 list = timetableService.findAllArchivedTimetables();
             } else {
                 list = timetableService.findArchivedByUserId(user.getId());

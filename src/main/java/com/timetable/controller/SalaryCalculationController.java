@@ -29,7 +29,7 @@ public class SalaryCalculationController {
         if (user == null) {
             return false;
         }
-        return "ADMIN".equalsIgnoreCase(user.getRole()) || "MANAGER".equalsIgnoreCase(user.getPosition());
+        return "MANAGER".equalsIgnoreCase(user.getPosition());
     }
 
     /**

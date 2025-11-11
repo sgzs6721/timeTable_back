@@ -64,7 +64,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
             }
 
-            boolean isAdmin = "ADMIN".equals(user.getRole());
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
             List<CustomerDTO> customers = customerService.getCustomersWithFilters(
                 user.getId(), user.getOrganizationId(), isAdmin, page, pageSize, status, salesId, filterDate, keyword);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
@@ -83,7 +83,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            boolean isAdmin = "ADMIN".equals(user.getRole());
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
             CustomerDTO customer = customerService.getCustomerById(id, user.getId(), isAdmin);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customer));
         } catch (Exception e) {
@@ -102,7 +102,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            boolean isAdmin = "ADMIN".equals(user.getRole());
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
             CustomerDTO customer = customerService.updateCustomer(id, request, user.getId());
             return ResponseEntity.ok(ApiResponse.success("更新成功", customer));
         } catch (Exception e) {
@@ -120,7 +120,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            boolean isAdmin = "ADMIN".equals(user.getRole());
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
             customerService.deleteCustomer(id, user.getId(), isAdmin);
             return ResponseEntity.ok(ApiResponse.success("删除成功"));
         } catch (Exception e) {
@@ -142,7 +142,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
             }
 
-            boolean isAdmin = "ADMIN".equals(user.getRole());
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
             List<CustomerDTO> customers = customerService.getCustomersByStatus(status, user.getId(), user.getOrganizationId(), isAdmin);
             return ResponseEntity.ok(ApiResponse.success("获取成功", customers));
         } catch (Exception e) {
@@ -166,7 +166,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户未分配机构"));
             }
 
-            // 权限控制：SALES和COACH职位只能查看自己创建的体验记录
+            // 权限控制：SALES和COACH职位只能查看自己创建的体验记录，MANAGER职位可以查看所有
             Long finalCreatedById = createdById;
             String position = user.getPosition();
             if (position != null) {
@@ -175,6 +175,7 @@ public class CustomerController {
                     // 销售和教练职位强制只能查看自己创建的记录
                     finalCreatedById = user.getId();
                 }
+                // MANAGER职位不需要限制，可以查看所有记录
             }
 
             List<TrialCustomerDTO> trials = customerService.getTrialCustomers(
@@ -201,7 +202,7 @@ public class CustomerController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
             }
 
-            boolean isAdmin = "ADMIN".equals(user.getRole());
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
             CustomerDTO customer = customerService.assignCustomer(customerId, assignedUserId, user.getId(), isAdmin);
             return ResponseEntity.ok(ApiResponse.success("分配成功", customer));
         } catch (Exception e) {

@@ -45,7 +45,7 @@ public class ReportController {
 
         // 非管理员强制使用自己的ID
         Long targetUserId;
-        if (current.getRole() != null && current.getRole().equalsIgnoreCase("ADMIN")) {
+        if (current.getPosition() != null && current.getPosition().equals("MANAGER")) {
             targetUserId = coachId != null ? coachId : current.getId();
         } else {
             targetUserId = current.getId();

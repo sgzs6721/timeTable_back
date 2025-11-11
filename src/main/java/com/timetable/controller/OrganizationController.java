@@ -407,7 +407,7 @@ public class OrganizationController {
 
         String username = authentication.getName();
         Users user = userRepository.findByUsername(username);
-        return user != null && "ADMIN".equals(user.getRole());
+        return user != null && "MANAGER".equals(user.getPosition());
     }
 }
 

@@ -770,7 +770,7 @@ public class AdminController {
     @PostMapping("/tasks/generate-weekly-instances")
     public ResponseEntity<ApiResponse<String>> manualGenerateWeeklyInstances(Authentication authentication) {
         Users user = userService.findByUsername(authentication.getName());
-        if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+        if (user == null || !"MANAGER".equals(user.getPosition())) {
             return ResponseEntity.badRequest().body(ApiResponse.error("权限不足"));
         }
 

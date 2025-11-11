@@ -125,7 +125,7 @@ public class OrganizationService {
         List<Map<String, Object>> admins = new ArrayList<>();
 
         for (Users user : users) {
-            if ("ADMIN".equals(user.getRole())) {
+            if ("MANAGER".equals(user.getPosition())) {
                 Map<String, Object> adminInfo = new HashMap<>();
                 adminInfo.put("id", user.getId());
                 adminInfo.put("username", user.getUsername());

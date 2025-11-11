@@ -1873,7 +1873,7 @@ public class WeeklyInstanceService {
                 if (coachName != null && !coachName.equals(scheduleCoachName)) {
                     // 检查当前用户是否为管理员，如果是管理员，则允许查看所有记录
                     Users currentUser = userService.findByUsername(coachName);
-                    if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+                    if (currentUser == null || !"MANAGER".equals(currentUser.getPosition())) {
                         continue;
                     }
                 }
@@ -1926,7 +1926,7 @@ public class WeeklyInstanceService {
                     if (coachName != null && !coachName.equals(scheduleCoachName)) {
                         // 检查当前用户是否为管理员，如果是管理员，则允许查看所有记录
                         Users currentUser = userService.findByUsername(coachName);
-                        if (currentUser == null || !"ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+                        if (currentUser == null || !"MANAGER".equals(currentUser.getPosition())) {
                             continue;
                         }
                     }

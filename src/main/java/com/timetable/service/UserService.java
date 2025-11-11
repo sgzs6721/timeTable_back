@@ -300,8 +300,8 @@ public class UserService implements UserDetailsService {
             throw new IllegalArgumentException("不能删除自己的账户");
         }
 
-        // 检查是否在尝试删除另一个ADMIN
-        if ("ADMIN".equals(userToDelete.getRole())) {
+        // 检查是否在尝试删除另一个MANAGER
+        if ("MANAGER".equals(userToDelete.getPosition())) {
             throw new IllegalArgumentException("不能删除管理员账户");
         }
 
@@ -518,8 +518,8 @@ public class UserService implements UserDetailsService {
             return false;
         }
         
-        // 检查用户是否是ADMIN角色或者是机构管理员
-        if ("ADMIN".equals(user.getRole())) {
+        // 检查用户是否是MANAGER职位
+        if ("MANAGER".equals(user.getPosition())) {
             return true;
         }
         

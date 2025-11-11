@@ -94,7 +94,7 @@ public class UserOrganizationRequestController {
             List<UserOrganizationRequestDTO> allRequests = new java.util.ArrayList<>();
             
             // 如果是管理员，可以看到所有申请
-            if ("ADMIN".equals(currentUser.getRole())) {
+            if ("MANAGER".equals(currentUser.getPosition())) {
                 // 1. 获取微信用户的所有机构申请（不限状态）
                 List<UserOrganizationRequestDTO> wechatRequests = requestService.getAllRequests();
                 allRequests.addAll(wechatRequests);
@@ -150,7 +150,7 @@ public class UserOrganizationRequestController {
             }
 
             // 检查是否是管理员
-            if (!"ADMIN".equals(currentUser.getRole())) {
+            if (!"MANAGER".equals(currentUser.getPosition())) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.error("无权限审批申请"));
             }
@@ -237,7 +237,7 @@ public class UserOrganizationRequestController {
             }
 
             // 检查权限：管理员或者该机构的用户
-            if (!"ADMIN".equals(currentUser.getRole()) && 
+            if (!"MANAGER".equals(currentUser.getPosition()) &&
                 !organizationId.equals(currentUser.getOrganizationId())) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.error("无权限查看该机构的申请"));
@@ -270,7 +270,7 @@ public class UserOrganizationRequestController {
             }
 
             // 检查是否是管理员
-            if (!"ADMIN".equals(currentUser.getRole())) {
+            if (!"MANAGER".equals(currentUser.getPosition())) {
                 return ResponseEntity.badRequest()
                         .body(ApiResponse.error("无权限删除申请"));
             }

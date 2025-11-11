@@ -90,8 +90,8 @@ public class CustomerService {
             customer.setAssignedSalesId(currentUserId);
         }
 
-        // 检查权限：只有管理员、分配的销售或创建者可以修改
-        if (!currentUserId.equals(customer.getAssignedSalesId()) && 
+        // 检查权限：只有管理员、管理职位、分配的销售或创建者可以修改
+        if (!currentUserId.equals(customer.getAssignedSalesId()) &&
             !currentUserId.equals(customer.getCreatedBy()) &&
             !isAdmin(currentUserId)) {
             throw new RuntimeException("无权限修改此客户");
@@ -159,7 +159,7 @@ public class CustomerService {
             throw new RuntimeException("客户不存在");
         }
 
-        // 检查权限：管理员、分配的销售或创建者可以查看
+        // 检查权限：管理员、管理职位、分配的销售或创建者可以查看
         if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId()) && !currentUserId.equals(customer.getCreatedBy())) {
             throw new RuntimeException("无权限查看此客户");
         }
@@ -174,7 +174,7 @@ public class CustomerService {
             throw new RuntimeException("客户不存在");
         }
 
-        // 检查权限：管理员、分配的销售或创建者可以删除
+        // 检查权限：管理员、管理职位、分配的销售或创建者可以删除
         if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId()) && !currentUserId.equals(customer.getCreatedBy())) {
             throw new RuntimeException("无权限删除此客户");
         }
@@ -274,7 +274,7 @@ public class CustomerService {
 
     private boolean isAdmin(Long userId) {
         Users user = userRepository.findById(userId);
-        return user != null && "ADMIN".equals(user.getRole());
+        return user != null && "MANAGER".equals(user.getPosition());
     }
 
     public List<TrialCustomerDTO> getTrialCustomers(Long userId, Long organizationId, Long createdByIdFilter, LocalDate trialDateFilter, boolean includeAll) {
@@ -371,7 +371,7 @@ public class CustomerService {
             throw new RuntimeException("客户不存在");
         }
 
-        // 检查权限：只有管理员或当前分配的销售/创建者可以分配客户
+        // 检查权限：只有管理员、管理职位或当前分配的销售/创建者可以分配客户
         if (!isAdmin && !currentUserId.equals(customer.getAssignedSalesId()) && !currentUserId.equals(customer.getCreatedBy())) {
             throw new RuntimeException("无权限分配此客户");
         }

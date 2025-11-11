@@ -43,7 +43,7 @@ public class StudentOperationRecordController {
             List<StudentOperationRecord> records;
             
             // 如果是管理员且请求查看所有记录
-            if ("ADMIN".equalsIgnoreCase(user.getRole()) && showAll) {
+            if ("MANAGER".equals(user.getPosition()) && showAll) {
                 records = operationRecordService.getAllRecords();
             } else {
                 // 普通用户或管理员不查看全部时，只返回自己的记录
@@ -76,7 +76,7 @@ public class StudentOperationRecordController {
             }
             
             // 检查是否是当前用户的记录或者是管理员
-            if (!record.getCoachId().equals(user.getId()) && !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!record.getCoachId().equals(user.getId()) && !"MANAGER".equals(user.getPosition())) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限修改此记录"));
             }
             
@@ -120,7 +120,7 @@ public class StudentOperationRecordController {
             }
             
             // 检查是否是当前用户的记录或者是管理员
-            if (!record.getCoachId().equals(user.getId()) && !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            if (!record.getCoachId().equals(user.getId()) && !"MANAGER".equals(user.getPosition())) {
                 return ResponseEntity.status(403).body(ApiResponse.error("无权限删除此记录"));
             }
             
