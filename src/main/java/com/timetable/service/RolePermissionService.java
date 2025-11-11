@@ -202,7 +202,8 @@ public class RolePermissionService {
     private Map<String, Boolean> getDefaultActionPermissions(String role) {
         Map<String, Boolean> permissions = new HashMap<>();
         permissions.put("refresh", true);
-        permissions.put("admin", "ADMIN".equalsIgnoreCase(role));
+        // 管理员权限：ADMIN角色或MANAGER职位都有管理员权限
+        permissions.put("admin", "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role));
         permissions.put("organization-management", true);
         permissions.put("archived", true);
         permissions.put("profile", true);
