@@ -1,6 +1,7 @@
 package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
+import com.timetable.dto.NotificationSettingsDTO;
 import com.timetable.dto.OrgManagementAuthRequest;
 import com.timetable.dto.OrganizationDTO;
 import com.timetable.dto.UserOrganizationRequestDTO;
@@ -397,6 +398,61 @@ public class OrganizationController {
     }
 
     /**
+     * 获取机构通知设置
+     */
+    @GetMapping("/{id}/notifications")
+    public ResponseEntity<ApiResponse<NotificationSettingsDTO>> getNotificationSettings(@PathVariable Long id) {
+        try {
+            // 检查权限
+            if (!hasOrganizationAccess(id)) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("无权限访问该机构的通知设置"));
+            }
+
+            NotificationSettingsDTO notificationSettings = organizationService.getNotificationSettings(id);
+            return ResponseEntity.ok(ApiResponse.success("获取通知设置成功", notificationSettings));
+
+        } catch (RuntimeException e) {
+            logger.warn("获取通知设置失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("获取通知设置失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("获取通知设置失败"));
+        }
+    }
+
+    /**
+     * 更新机构通知设置
+     */
+    @PutMapping("/{id}/notifications")
+    public ResponseEntity<ApiResponse<Void>> updateNotificationSettings(
+            @PathVariable Long id,
+            @RequestBody NotificationSettingsDTO notificationSettings) {
+        try {
+            // 检查权限
+            if (!hasOrganizationAccess(id)) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("无权限修改该机构的通知设置"));
+            }
+
+            organizationService.updateNotificationSettings(id, notificationSettings);
+            logger.info("更新机构通知设置成功: organizationId={}", id);
+            return ResponseEntity.ok(ApiResponse.success("更新通知设置成功"));
+
+        } catch (RuntimeException e) {
+            logger.warn("更新通知设置失败: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("更新通知设置失败", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("更新通知设置失败"));
+        }
+    }
+
+    /**
      * 检查当前用户是否是管理员
      */
     private boolean isAdmin() {
@@ -408,6 +464,30 @@ public class OrganizationController {
         String username = authentication.getName();
         Users user = userRepository.findByUsername(username);
         return user != null && "MANAGER".equals(user.getPosition());
+    }
+
+    /**
+     * 检查当前用户是否有机构访问权限
+     */
+    private boolean hasOrganizationAccess(Long organizationId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+
+        // 管理员可以访问所有机构
+        if ("MANAGER".equals(user.getPosition())) {
+            return true;
+        }
+
+        // 普通用户只能访问自己的机构
+        return organizationId.equals(user.getOrganizationId());
     }
 }
 

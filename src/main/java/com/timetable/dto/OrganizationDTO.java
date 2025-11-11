@@ -14,6 +14,7 @@ public class OrganizationDTO {
     private String contactPerson;
     private String status;
     private LocalDateTime createdAt;
+    private NotificationSettingsDTO notificationSettings;
 
     public OrganizationDTO() {
     }
@@ -80,6 +81,14 @@ public class OrganizationDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public NotificationSettingsDTO getNotificationSettings() {
+        return notificationSettings;
+    }
+
+    public void setNotificationSettings(NotificationSettingsDTO notificationSettings) {
+        this.notificationSettings = notificationSettings;
     }
 }
 

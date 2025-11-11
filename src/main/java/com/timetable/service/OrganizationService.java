@@ -1,5 +1,8 @@
 package com.timetable.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.timetable.dto.NotificationSettingsDTO;
 import com.timetable.dto.OrganizationDTO;
 import com.timetable.entity.Organization;
 import com.timetable.generated.tables.pojos.Users;
@@ -26,6 +29,9 @@ public class OrganizationService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * 获取所有活跃机构
