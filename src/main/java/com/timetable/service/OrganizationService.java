@@ -8,6 +8,8 @@ import com.timetable.entity.Organization;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.OrganizationRepository;
 import com.timetable.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class OrganizationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrganizationService.class);
 
     @Autowired
     private OrganizationRepository organizationRepository;
@@ -199,6 +203,63 @@ public class OrganizationService {
         // 降为普通用户
         user.setRole("USER");
         userRepository.update(user);
+    }
+
+    /**
+     * 获取机构通知设置
+     */
+    public NotificationSettingsDTO getNotificationSettings(Long organizationId) {
+        Organization organization = organizationRepository.findById(organizationId);
+        if (organization == null) {
+            throw new RuntimeException("机构不存在");
+        }
+
+        // 如果机构没有设置，返回默认设置
+        if (organization.getSettings() == null || organization.getSettings().isEmpty()) {
+            return getDefaultNotificationSettings();
+        }
+
+        try {
+            // 从JSON字符串解析设置
+            return objectMapper.readValue(organization.getSettings(), NotificationSettingsDTO.class);
+        } catch (JsonProcessingException e) {
+            logger.error("解析通知设置失败", e);
+            return getDefaultNotificationSettings();
+        }
+    }
+
+    /**
+     * 更新机构通知设置
+     */
+    @Transactional
+    public void updateNotificationSettings(Long organizationId, NotificationSettingsDTO notificationSettings) {
+        Organization organization = organizationRepository.findById(organizationId);
+        if (organization == null) {
+            throw new RuntimeException("机构不存在");
+        }
+
+        try {
+            // 将通知设置转换为JSON字符串
+            String notificationSettingsJson = objectMapper.writeValueAsString(notificationSettings);
+            organization.setSettings(notificationSettingsJson);
+            organizationRepository.update(organization);
+        } catch (JsonProcessingException e) {
+            logger.error("序列化通知设置失败", e);
+            throw new RuntimeException("保存通知设置失败");
+        }
+    }
+
+    /**
+     * 获取默认通知设置
+     */
+    private NotificationSettingsDTO getDefaultNotificationSettings() {
+        NotificationSettingsDTO defaultSettings = new NotificationSettingsDTO();
+        defaultSettings.setWechatEnabled(false);
+        defaultSettings.setScheduleChangeEnabled(true);
+        defaultSettings.setCustomerNewEnabled(true);
+        defaultSettings.setTodoEnabled(true);
+        defaultSettings.setPaymentPendingEnabled(true);
+        return defaultSettings;
     }
 
     /**
