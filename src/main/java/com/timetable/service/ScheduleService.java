@@ -1642,19 +1642,39 @@ public class ScheduleService {
             String sourceType = null; // 来源类型
             
             if (activeTimetable.getIsWeekly() != null && activeTimetable.getIsWeekly() == 1) {
-                // 周固定课表：需要保存到当前周实例
-                WeeklyInstance currentInstance = weeklyInstanceService.getCurrentWeekInstance(activeTimetable.getId());
+                // 周固定课表：需要保存到对应周的实例
+                // 首先判断体验日期属于哪一周
+                LocalDate now = LocalDate.now();
+                LocalDate currentWeekStart = now.with(DayOfWeek.MONDAY);
+                LocalDate currentWeekEnd = now.with(DayOfWeek.SUNDAY);
+                LocalDate nextWeekStart = currentWeekStart.plusWeeks(1);
+                LocalDate nextWeekEnd = nextWeekStart.plusDays(6);
                 
-                if (currentInstance == null) {
-                    // 如果没有当前周实例，创建一个
-                    currentInstance = weeklyInstanceService.generateCurrentWeekInstance(activeTimetable.getId());
+                WeeklyInstance targetInstance = null;
+                
+                // 判断体验日期是否在当前周
+                if (!scheduleDate.isBefore(currentWeekStart) && !scheduleDate.isAfter(currentWeekEnd)) {
+                    // 当前周：获取或创建当前周实例
+                    System.out.println("体验日期在当前周，获取当前周实例");
+                    targetInstance = weeklyInstanceService.getCurrentWeekInstance(activeTimetable.getId());
+                    if (targetInstance == null) {
+                        System.out.println("当前周实例不存在，创建新实例");
+                        targetInstance = weeklyInstanceService.generateCurrentWeekInstance(activeTimetable.getId());
+                    }
+                } else if (!scheduleDate.isBefore(nextWeekStart) && !scheduleDate.isAfter(nextWeekEnd)) {
+                    // 下一周：获取或创建下周实例
+                    System.out.println("体验日期在下一周，获取或创建下周实例");
+                    targetInstance = weeklyInstanceService.generateNextWeekInstance(activeTimetable.getId());
+                } else {
+                    // 其他周期：暂不支持，抛出异常
+                    throw new RuntimeException("暂不支持安排超过一周的体验课程");
                 }
                 
-                if (currentInstance != null) {
-                    targetId = currentInstance.getId();
+                if (targetInstance != null) {
+                    targetId = targetInstance.getId();
                     sourceType = "weekly_instance";
                     List<Schedules> existingSchedules = scheduleRepository.findByInstanceAndDateTime(
-                        currentInstance.getId(), scheduleDate, startTime, endTime);
+                        targetInstance.getId(), scheduleDate, startTime, endTime);
                     hasConflict = !existingSchedules.isEmpty();
                 }
             } else {
