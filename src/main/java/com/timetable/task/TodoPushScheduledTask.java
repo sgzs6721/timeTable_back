@@ -1,12 +1,14 @@
 package com.timetable.task;
 
 import com.timetable.config.WechatMpConfig;
+import com.timetable.dto.NotificationSettingsDTO;
 import com.timetable.dto.wechat.WechatTemplateMessage;
 import com.timetable.dto.wechat.WechatTemplateMessageResponse;
 import com.timetable.entity.Todo;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.repository.TodoRepository;
 import com.timetable.repository.UserRepository;
+import com.timetable.service.OrganizationService;
 import com.timetable.service.WechatMpService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,9 @@ public class TodoPushScheduledTask {
 
     @Autowired
     private com.timetable.repository.CustomerRepository customerRepository;
+
+    @Autowired
+    private OrganizationService organizationService;
 
     /**
      * 每5分钟扫描一次需要推送的待办
@@ -80,6 +85,22 @@ public class TodoPushScheduledTask {
                         todoRepository.updatePushFailed(todo.getId(), "用户不存在");
                         failCount++;
                         continue;
+                    }
+
+                    // 检查用户所在机构的待办事项提醒设置
+                    if (user.getOrganizationId() != null) {
+                        try {
+                            NotificationSettingsDTO notificationSettings = organizationService.getNotificationSettings(user.getOrganizationId());
+                            if (!notificationSettings.isTodoEnabled()) {
+                                logger.debug("用户 {} 所在机构的待办事项提醒已关闭，跳过推送待办 ID: {}", user.getUsername(), todo.getId());
+                                todoRepository.updatePushFailed(todo.getId(), "机构已关闭待办事项提醒");
+                                failCount++;
+                                continue;
+                            }
+                        } catch (Exception e) {
+                            logger.warn("检查机构通知设置失败: {}", e.getMessage());
+                            // 如果检查设置失败，继续推送
+                        }
                     }
 
                     // 检查用户是否绑定了微信
