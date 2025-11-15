@@ -265,6 +265,7 @@ public class ScheduleRepository {
      * @return 插入的课程ID
      */
     public Long insertInstanceSchedule(com.timetable.generated.tables.pojos.WeeklyInstanceSchedules schedule, boolean isTrial, Long customerId) {
+        // 在插入时直接设置is_trial和customer_id字段
         dsl.insertInto(WEEKLY_INSTANCE_SCHEDULES)
                 .set(WEEKLY_INSTANCE_SCHEDULES.WEEKLY_INSTANCE_ID, schedule.getWeeklyInstanceId())
                 .set(WEEKLY_INSTANCE_SCHEDULES.STUDENT_NAME, schedule.getStudentName())
@@ -275,18 +276,14 @@ public class ScheduleRepository {
                 .set(WEEKLY_INSTANCE_SCHEDULES.NOTE, schedule.getNote())
                 .set(WEEKLY_INSTANCE_SCHEDULES.CREATED_AT, schedule.getCreatedAt())
                 .set(WEEKLY_INSTANCE_SCHEDULES.UPDATED_AT, schedule.getUpdatedAt())
+                .set(WEEKLY_INSTANCE_SCHEDULES.IS_TRIAL, isTrial ? (byte) 1 : null)
+                .set(WEEKLY_INSTANCE_SCHEDULES.CUSTOMER_ID, customerId)
                 .execute();
         
         // 获取插入的ID
         Long scheduleId = dsl.select(field("LAST_INSERT_ID()", Long.class)).fetchOne(0, Long.class);
         
-        // 使用原生SQL添加is_trial和customer_id字段（jooq代码未更新）
-        if (isTrial) {
-            dsl.execute("UPDATE weekly_instance_schedules SET is_trial = 1 WHERE id = " + scheduleId);
-        }
-        if (customerId != null) {
-            dsl.execute("UPDATE weekly_instance_schedules SET customer_id = " + customerId + " WHERE id = " + scheduleId);
-        }
+        System.out.println("插入周实例课程成功，ID: " + scheduleId + ", isTrial: " + isTrial + ", customerId: " + customerId);
         
         return scheduleId;
     }
@@ -296,6 +293,7 @@ public class ScheduleRepository {
      * @return 插入的课程ID
      */
     public Long insertSchedule(Schedules schedule, boolean isTrial, Long customerId) {
+        // 在插入时直接设置is_trial和customer_id字段
         dsl.insertInto(SCHEDULES)
                 .set(SCHEDULES.TIMETABLE_ID, schedule.getTimetableId())
                 .set(SCHEDULES.STUDENT_NAME, schedule.getStudentName())
@@ -306,18 +304,14 @@ public class ScheduleRepository {
                 .set(SCHEDULES.NOTE, schedule.getNote())
                 .set(SCHEDULES.CREATED_AT, schedule.getCreatedAt())
                 .set(SCHEDULES.UPDATED_AT, schedule.getUpdatedAt())
+                .set(SCHEDULES.IS_TRIAL, isTrial ? (byte) 1 : null)
+                .set(SCHEDULES.CUSTOMER_ID, customerId)
                 .execute();
         
         // 获取插入的ID
         Long scheduleId = dsl.select(field("LAST_INSERT_ID()", Long.class)).fetchOne(0, Long.class);
         
-        // 使用原生SQL添加is_trial和customer_id字段（jooq代码未更新）
-        if (isTrial) {
-            dsl.execute("UPDATE schedules SET is_trial = 1 WHERE id = " + scheduleId);
-        }
-        if (customerId != null) {
-            dsl.execute("UPDATE schedules SET customer_id = " + customerId + " WHERE id = " + scheduleId);
-        }
+        System.out.println("插入课表课程成功，ID: " + scheduleId + ", isTrial: " + isTrial + ", customerId: " + customerId);
         
         return scheduleId;
     }
