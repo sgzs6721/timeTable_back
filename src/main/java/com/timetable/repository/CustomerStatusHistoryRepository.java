@@ -169,9 +169,36 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
 
     public CustomerStatusHistory update(CustomerStatusHistory history) {
         try {
-            dsl.update(table("customer_status_history"))
-                    .set(field("notes"), history.getNotes())
-                    .where(field("id").eq(history.getId()))
+            var updateStep = dsl.update(table("customer_status_history"))
+                    .set(field("notes"), history.getNotes());
+            
+            // 更新体验课程相关字段
+            if (history.getTrialScheduleDate() != null) {
+                updateStep = updateStep.set(field("trial_schedule_date"), history.getTrialScheduleDate());
+            }
+            if (history.getTrialStartTime() != null) {
+                updateStep = updateStep.set(field("trial_start_time"), history.getTrialStartTime());
+            }
+            if (history.getTrialEndTime() != null) {
+                updateStep = updateStep.set(field("trial_end_time"), history.getTrialEndTime());
+            }
+            if (history.getTrialCoachId() != null) {
+                updateStep = updateStep.set(field("trial_coach_id"), history.getTrialCoachId());
+            }
+            if (history.getTrialStudentName() != null) {
+                updateStep = updateStep.set(field("trial_student_name"), history.getTrialStudentName());
+            }
+            if (history.getTrialScheduleId() != null) {
+                updateStep = updateStep.set(field("trial_schedule_id"), history.getTrialScheduleId());
+            }
+            if (history.getTrialTimetableId() != null) {
+                updateStep = updateStep.set(field("trial_timetable_id"), history.getTrialTimetableId());
+            }
+            if (history.getTrialSourceType() != null) {
+                updateStep = updateStep.set(field("trial_source_type"), history.getTrialSourceType());
+            }
+            
+            updateStep.where(field("id").eq(history.getId()))
                     .execute();
             
             return findById(history.getId());
