@@ -19,6 +19,7 @@ public class CustomerStatusHistory {
     private LocalTime trialStartTime;
     private LocalTime trialEndTime;
     private Long trialCoachId;
+    private String trialCoachName;   // 体验教练名称
     private String trialStudentName;
     private Boolean trialCancelled;  // 体验课程是否已取消
     private Boolean trialCompleted;  // 体验课程是否已完成
@@ -123,6 +124,14 @@ public class CustomerStatusHistory {
 
     public void setTrialCoachId(Long trialCoachId) {
         this.trialCoachId = trialCoachId;
+    }
+
+    public String getTrialCoachName() {
+        return trialCoachName;
+    }
+
+    public void setTrialCoachName(String trialCoachName) {
+        this.trialCoachName = trialCoachName;
     }
 
     public String getTrialStudentName() {

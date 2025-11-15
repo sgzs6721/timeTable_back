@@ -32,6 +32,19 @@ public class UserRepository {
     }
     
     /**
+     * 根据昵称或用户名查找用户（只查找未删除且已批准的用户）
+     */
+    public Users findByNicknameOrUsername(String name) {
+        return dsl.selectFrom(com.timetable.generated.tables.Users.USERS)
+                .where(com.timetable.generated.tables.Users.USERS.NICKNAME.eq(name)
+                        .or(com.timetable.generated.tables.Users.USERS.USERNAME.eq(name)))
+                .and(com.timetable.generated.tables.Users.USERS.IS_DELETED.isNull()
+                        .or(com.timetable.generated.tables.Users.USERS.IS_DELETED.eq((byte) 0)))
+                .and(com.timetable.generated.tables.Users.USERS.STATUS.eq("APPROVED"))
+                .fetchOneInto(Users.class);
+    }
+    
+    /**
      * 根据ID查找用户
      */
     public Users findById(Long id) {

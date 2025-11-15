@@ -30,6 +30,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     .set(field("trial_start_time"), history.getTrialStartTime())
                     .set(field("trial_end_time"), history.getTrialEndTime())
                     .set(field("trial_coach_id"), history.getTrialCoachId())
+                    .set(field("trial_coach_name"), history.getTrialCoachName())
                     .set(field("trial_student_name"), history.getTrialStudentName())
                     .execute();
 
@@ -74,6 +75,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
+                    history.setTrialCoachName(record.get(field("trial_coach_name", String.class)));
                     history.setTrialStudentName(record.get(field("trial_student_name", String.class)));
                     
                     // 读取体验课表信息字段
@@ -136,6 +138,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
                     history.setTrialEndTime(record.get(field("trial_end_time", java.sql.Time.class)) != null ?
                         record.get(field("trial_end_time", java.sql.Time.class)).toLocalTime() : null);
                     history.setTrialCoachId(record.get(field("trial_coach_id", Long.class)));
+                    history.setTrialCoachName(record.get(field("trial_coach_name", String.class)));
                     history.setTrialStudentName(record.get(field("trial_student_name", String.class)));
                     
                     // 读取体验课表信息字段
@@ -184,6 +187,9 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
             }
             if (history.getTrialCoachId() != null) {
                 updateStep = updateStep.set(field("trial_coach_id"), history.getTrialCoachId());
+            }
+            if (history.getTrialCoachName() != null) {
+                updateStep = updateStep.set(field("trial_coach_name"), history.getTrialCoachName());
             }
             if (history.getTrialStudentName() != null) {
                 updateStep = updateStep.set(field("trial_student_name"), history.getTrialStudentName());
