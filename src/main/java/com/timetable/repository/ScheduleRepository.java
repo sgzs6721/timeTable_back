@@ -179,6 +179,20 @@ public class ScheduleRepository {
     }
 
     /**
+     * 根据课表ID和星期几（整数）查找模板排课
+     */
+    public List<Schedules> findByTimetableAndDayOfWeek(Long timetableId, int dayOfWeek) {
+        // 将整数转换为字符串 (1-7 对应周一到周日)
+        String dayOfWeekStr = String.valueOf(dayOfWeek);
+        return dsl.selectFrom(SCHEDULES)
+                .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
+                .and(SCHEDULES.DAY_OF_WEEK.eq(dayOfWeekStr))
+                .and(SCHEDULES.SCHEDULE_DATE.isNull()) // 只查询模板课程
+                .orderBy(SCHEDULES.START_TIME)
+                .fetchInto(Schedules.class);
+    }
+
+    /**
      * 根据课表ID和具体日期查找排课
      */
     public List<Schedules> findByTimetableIdAndScheduleDate(Long timetableId, LocalDate scheduleDate) {

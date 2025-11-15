@@ -1561,9 +1561,33 @@ public class ScheduleService {
                             }
                         }
                     } else {
-                        // 没有该周的实例，说明该周没有排课，有空
-                        logger.info("没有找到该周的实例，教练有空");
-                        hasConflict = false;
+                        // 没有该周的实例，需要检查固定课表中该星期几的该时间段是否有课
+                        logger.info("没有找到该周的实例，检查固定课表");
+                        
+                        // 获取星期几 (1=周一, 7=周日)
+                        int dayOfWeek = scheduleDate.getDayOfWeek().getValue();
+                        
+                        // 查询固定课表中该星期几的课程
+                        List<Schedules> fixedSchedules = scheduleRepository.findByTimetableAndDayOfWeek(
+                            activeTimetable.getId(), dayOfWeek);
+                        
+                        logger.info("固定课表中星期{}的课程数: {}", dayOfWeek, fixedSchedules.size());
+                        
+                        // 检查时间是否冲突
+                        for (Schedules schedule : fixedSchedules) {
+                            if (isTimeOverlap(schedule.getStartTime(), schedule.getEndTime(), startTime, endTime)) {
+                                logger.info("  - 固定课程冲突: 学员={}, 时间={}-{}", 
+                                    schedule.getStudentName(), 
+                                    schedule.getStartTime(), 
+                                    schedule.getEndTime());
+                                hasConflict = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasConflict) {
+                            logger.info("固定课表中无冲突，教练有空");
+                        }
                     }
                     
                 } else {
