@@ -91,8 +91,6 @@ public class UserSalarySettingRepository {
             }
             
             int rowsAffected = dsl.update(table(TABLE_NAME))
-                    .set(field("user_id"), setting.getUserId())
-                    .set(field("organization_id"), setting.getOrganizationId())
                     .set(field("base_salary"), setting.getBaseSalary() != null ? setting.getBaseSalary() : java.math.BigDecimal.ZERO)
                     .set(field("social_security"), setting.getSocialSecurity() != null ? setting.getSocialSecurity() : java.math.BigDecimal.ZERO)
                     .set(field("hourly_rate"), setting.getHourlyRate() != null ? setting.getHourlyRate() : java.math.BigDecimal.ZERO)
