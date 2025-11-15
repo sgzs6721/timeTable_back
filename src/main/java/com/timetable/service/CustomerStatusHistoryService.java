@@ -507,7 +507,8 @@ public class CustomerStatusHistoryService {
     public CustomerStatusHistoryDTO updateTrialTime(Long customerId, Long historyId, 
                                                      String trialScheduleDate, 
                                                      String trialStartTime, 
-                                                     String trialEndTime, 
+                                                     String trialEndTime,
+                                                     String trialCoachName,
                                                      Long currentUserId) {
         // 获取历史记录
         CustomerStatusHistory history = historyRepository.findById(historyId);
@@ -541,6 +542,18 @@ public class CustomerStatusHistoryService {
             java.time.LocalTime newStartTime = java.time.LocalTime.parse(trialStartTime);
             java.time.LocalTime newEndTime = java.time.LocalTime.parse(trialEndTime);
 
+            // 如果提供了教练名称，查找教练ID并更新
+            Long newCoachId = history.getTrialCoachId();
+            String newCoachName = history.getTrialCoachName();
+            if (trialCoachName != null && !trialCoachName.isEmpty()) {
+                // 根据教练名称查找教练
+                Users coach = userRepository.findByNicknameOrUsername(trialCoachName);
+                if (coach != null) {
+                    newCoachId = coach.getId();
+                    newCoachName = coach.getNickname() != null ? coach.getNickname() : coach.getUsername();
+                }
+            }
+
             // 如果之前有关联的课表课程，需要删除旧的课程
             if (history.getTrialScheduleId() != null) {
                 try {
@@ -559,11 +572,11 @@ public class CustomerStatusHistoryService {
             }
 
             // 创建新的体验课程
-            if (history.getTrialCoachId() != null && history.getTrialStudentName() != null) {
+            if (newCoachId != null && history.getTrialStudentName() != null) {
                 try {
                     // 构建体验课程请求
                     com.timetable.dto.TrialScheduleRequest trialRequest = new com.timetable.dto.TrialScheduleRequest();
-                    trialRequest.setCoachId(history.getTrialCoachId());
+                    trialRequest.setCoachId(newCoachId);
                     trialRequest.setScheduleDate(trialScheduleDate);
                     trialRequest.setStartTime(trialStartTime);
                     trialRequest.setEndTime(trialEndTime);
@@ -580,10 +593,12 @@ public class CustomerStatusHistoryService {
                     // 创建新的课表课程
                     com.timetable.dto.TrialScheduleInfo scheduleInfo = scheduleService.createTrialSchedule(trialRequest, user);
 
-                    // 更新历史记录中的时间和课程信息
+                    // 更新历史记录中的时间、教练和课程信息
                     history.setTrialScheduleDate(newScheduleDate);
                     history.setTrialStartTime(newStartTime);
                     history.setTrialEndTime(newEndTime);
+                    history.setTrialCoachId(newCoachId);
+                    history.setTrialCoachName(newCoachName);
                     history.setTrialScheduleId(scheduleInfo.getScheduleId());
                     history.setTrialTimetableId(scheduleInfo.getTimetableId());
                     history.setTrialSourceType(scheduleInfo.getSourceType());
@@ -593,10 +608,14 @@ public class CustomerStatusHistoryService {
                     throw new RuntimeException("创建新体验课程失败: " + e.getMessage());
                 }
             } else {
-                // 只更新时间，不创建课程
+                // 只更新时间和教练，不创建课程
                 history.setTrialScheduleDate(newScheduleDate);
                 history.setTrialStartTime(newStartTime);
                 history.setTrialEndTime(newEndTime);
+                if (newCoachId != null) {
+                    history.setTrialCoachId(newCoachId);
+                    history.setTrialCoachName(newCoachName);
+                }
             }
 
             // 保存更新

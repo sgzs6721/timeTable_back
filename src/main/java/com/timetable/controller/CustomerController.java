@@ -234,14 +234,15 @@ public class CustomerController {
             String trialScheduleDate = request.get("trialScheduleDate");
             String trialStartTime = request.get("trialStartTime");
             String trialEndTime = request.get("trialEndTime");
+            String trialCoachName = request.get("trialCoachName");
 
             if (trialScheduleDate == null || trialStartTime == null || trialEndTime == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("缺少必要参数"));
             }
 
             CustomerStatusHistoryDTO result = customerStatusHistoryService.updateTrialTime(
-                customerId, historyId, trialScheduleDate, trialStartTime, trialEndTime, user.getId());
-            return ResponseEntity.ok(ApiResponse.success("体验时间已更新", result));
+                customerId, historyId, trialScheduleDate, trialStartTime, trialEndTime, trialCoachName, user.getId());
+            return ResponseEntity.ok(ApiResponse.success("体验时间和教练已更新", result));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
