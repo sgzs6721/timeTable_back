@@ -82,17 +82,30 @@ public class UserSalarySettingRepository {
                 throw new RuntimeException("更新工资设置失败：记录ID不能为空");
             }
             
+            if (setting.getUserId() == null) {
+                throw new RuntimeException("更新工资设置失败：用户ID不能为空");
+            }
+            
+            if (setting.getOrganizationId() == null) {
+                throw new RuntimeException("更新工资设置失败：机构ID不能为空");
+            }
+            
             int rowsAffected = dsl.update(table(TABLE_NAME))
+                    .set(field("user_id"), setting.getUserId())
+                    .set(field("organization_id"), setting.getOrganizationId())
                     .set(field("base_salary"), setting.getBaseSalary() != null ? setting.getBaseSalary() : java.math.BigDecimal.ZERO)
                     .set(field("social_security"), setting.getSocialSecurity() != null ? setting.getSocialSecurity() : java.math.BigDecimal.ZERO)
                     .set(field("hourly_rate"), setting.getHourlyRate() != null ? setting.getHourlyRate() : java.math.BigDecimal.ZERO)
                     .set(field("commission_rate"), setting.getCommissionRate() != null ? setting.getCommissionRate() : java.math.BigDecimal.ZERO)
                     .set(field("updated_at"), java.time.LocalDateTime.now())
-                    .where(field("id").eq(setting.getId()))
+                    .where(field("id").eq(setting.getId())
+                            .and(field("user_id").eq(setting.getUserId()))
+                            .and(field("organization_id").eq(setting.getOrganizationId())))
                     .execute();
                     
             if (rowsAffected == 0) {
-                throw new RuntimeException("更新工资设置失败：未找到ID为 " + setting.getId() + " 的记录");
+                throw new RuntimeException("更新工资设置失败：未找到匹配的记录（ID=" + setting.getId() + 
+                        ", userId=" + setting.getUserId() + ", organizationId=" + setting.getOrganizationId() + "）");
             }
         } catch (Exception e) {
             throw new RuntimeException("更新工资设置到数据库失败: " + e.getMessage(), e);
