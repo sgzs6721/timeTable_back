@@ -3,9 +3,11 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.CustomerDTO;
 import com.timetable.dto.CustomerRequest;
+import com.timetable.dto.CustomerStatusHistoryDTO;
 import com.timetable.dto.TrialCustomerDTO;
 import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.CustomerService;
+import com.timetable.service.CustomerStatusHistoryService;
 import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/customers")
@@ -27,6 +30,9 @@ public class CustomerController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private CustomerStatusHistoryService customerStatusHistoryService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<CustomerDTO>> createCustomer(
@@ -207,6 +213,39 @@ public class CustomerController {
             return ResponseEntity.ok(ApiResponse.success("分配成功", customer));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("分配客户失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 更新体验时间
+     */
+    @PutMapping("/{customerId}/status-history/{historyId}/update-trial-time")
+    public ResponseEntity<ApiResponse<CustomerStatusHistoryDTO>> updateTrialTime(
+            @PathVariable Long customerId,
+            @PathVariable Long historyId,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+
+            String trialScheduleDate = request.get("trialScheduleDate");
+            String trialStartTime = request.get("trialStartTime");
+            String trialEndTime = request.get("trialEndTime");
+
+            if (trialScheduleDate == null || trialStartTime == null || trialEndTime == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("缺少必要参数"));
+            }
+
+            CustomerStatusHistoryDTO result = customerStatusHistoryService.updateTrialTime(
+                customerId, historyId, trialScheduleDate, trialStartTime, trialEndTime, user.getId());
+            return ResponseEntity.ok(ApiResponse.success("体验时间已更新", result));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponse.error("更新失败: " + e.getMessage()));
         }
     }
 }

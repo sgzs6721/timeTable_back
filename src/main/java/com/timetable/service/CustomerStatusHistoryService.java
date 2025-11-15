@@ -499,5 +499,116 @@ public class CustomerStatusHistoryService {
         
         return true;
     }
+
+    /**
+     * 更新体验时间
+     */
+    @Transactional
+    public CustomerStatusHistoryDTO updateTrialTime(Long customerId, Long historyId, 
+                                                     String trialScheduleDate, 
+                                                     String trialStartTime, 
+                                                     String trialEndTime, 
+                                                     Long currentUserId) {
+        // 获取历史记录
+        CustomerStatusHistory history = historyRepository.findById(historyId);
+        if (history == null) {
+            throw new RuntimeException("历史记录不存在");
+        }
+
+        // 检查权限
+        Users user = userRepository.findById(currentUserId);
+        boolean isAdmin = user != null && "MANAGER".equals(user.getPosition());
+        if (!isAdmin && !currentUserId.equals(history.getCreatedBy())) {
+            throw new RuntimeException("无权限修改此历史记录");
+        }
+
+        // 检查客户ID是否匹配
+        if (!customerId.equals(history.getCustomerId())) {
+            throw new RuntimeException("客户ID不匹配");
+        }
+
+        // 检查体验课程是否已取消或已完成
+        if (history.getTrialCancelled() != null && history.getTrialCancelled()) {
+            throw new RuntimeException("体验课程已取消，无法修改时间");
+        }
+        if (history.getTrialCompleted() != null && history.getTrialCompleted()) {
+            throw new RuntimeException("体验课程已完成，无法修改时间");
+        }
+
+        try {
+            // 解析新的时间
+            java.time.LocalDate newScheduleDate = java.time.LocalDate.parse(trialScheduleDate);
+            java.time.LocalTime newStartTime = java.time.LocalTime.parse(trialStartTime);
+            java.time.LocalTime newEndTime = java.time.LocalTime.parse(trialEndTime);
+
+            // 如果之前有关联的课表课程，需要删除旧的课程
+            if (history.getTrialScheduleId() != null) {
+                try {
+                    // 根据来源类型删除课程
+                    if ("weekly_instance".equals(history.getTrialSourceType())) {
+                        // 删除周实例课程
+                        weeklyInstanceScheduleRepository.delete(history.getTrialScheduleId());
+                    } else if ("schedule".equals(history.getTrialSourceType())) {
+                        // 删除普通课表课程
+                        scheduleRepository.delete(history.getTrialScheduleId());
+                    }
+                } catch (Exception e) {
+                    System.err.println("删除旧课程失败: " + e.getMessage());
+                    // 继续执行，不影响主流程
+                }
+            }
+
+            // 创建新的体验课程
+            if (history.getTrialCoachId() != null && history.getTrialStudentName() != null) {
+                try {
+                    // 构建体验课程请求
+                    com.timetable.dto.TrialScheduleRequest trialRequest = new com.timetable.dto.TrialScheduleRequest();
+                    trialRequest.setCoachId(history.getTrialCoachId());
+                    trialRequest.setScheduleDate(trialScheduleDate);
+                    trialRequest.setStartTime(trialStartTime);
+                    trialRequest.setEndTime(trialEndTime);
+                    trialRequest.setStudentName(history.getTrialStudentName());
+                    trialRequest.setIsTrial(true);
+                    trialRequest.setCustomerId(customerId);
+
+                    // 获取客户电话
+                    Customer customer = customerRepository.findById(customerId);
+                    if (customer != null && customer.getParentPhone() != null) {
+                        trialRequest.setCustomerPhone(customer.getParentPhone());
+                    }
+
+                    // 创建新的课表课程
+                    com.timetable.dto.TrialScheduleInfo scheduleInfo = scheduleService.createTrialSchedule(trialRequest, user);
+
+                    // 更新历史记录中的时间和课程信息
+                    history.setTrialScheduleDate(newScheduleDate);
+                    history.setTrialStartTime(newStartTime);
+                    history.setTrialEndTime(newEndTime);
+                    history.setTrialScheduleId(scheduleInfo.getScheduleId());
+                    history.setTrialTimetableId(scheduleInfo.getTimetableId());
+                    history.setTrialSourceType(scheduleInfo.getSourceType());
+
+                } catch (Exception e) {
+                    System.err.println("创建新体验课程失败: " + e.getMessage());
+                    throw new RuntimeException("创建新体验课程失败: " + e.getMessage());
+                }
+            } else {
+                // 只更新时间，不创建课程
+                history.setTrialScheduleDate(newScheduleDate);
+                history.setTrialStartTime(newStartTime);
+                history.setTrialEndTime(newEndTime);
+            }
+
+            // 保存更新
+            CustomerStatusHistory updatedHistory = historyRepository.update(history);
+            return convertToDTO(updatedHistory);
+
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new RuntimeException("时间格式错误: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("更新体验时间失败: " + e.getMessage());
+            throw new RuntimeException("更新体验时间失败: " + e.getMessage());
+        }
+    }
 }
 
