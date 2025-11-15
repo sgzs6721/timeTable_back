@@ -91,7 +91,7 @@ public class TodoPushScheduledTask {
                     if (user.getOrganizationId() != null) {
                         try {
                             NotificationSettingsDTO notificationSettings = organizationService.getNotificationSettings(user.getOrganizationId());
-                            if (!notificationSettings.isTodoEnabled()) {
+                            if (notificationSettings.getTodoEnabled() == null || !notificationSettings.getTodoEnabled()) {
                                 logger.debug("用户 {} 所在机构的待办事项提醒已关闭，跳过推送待办 ID: {}", user.getUsername(), todo.getId());
                                 todoRepository.updatePushFailed(todo.getId(), "机构已关闭待办事项提醒");
                                 failCount++;

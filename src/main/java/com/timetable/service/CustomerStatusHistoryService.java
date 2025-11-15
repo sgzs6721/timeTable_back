@@ -547,10 +547,10 @@ public class CustomerStatusHistoryService {
                     // 根据来源类型删除课程
                     if ("weekly_instance".equals(history.getTrialSourceType())) {
                         // 删除周实例课程
-                        weeklyInstanceScheduleRepository.delete(history.getTrialScheduleId());
+                        weeklyInstanceScheduleRepository.deleteById(history.getTrialScheduleId());
                     } else if ("schedule".equals(history.getTrialSourceType())) {
                         // 删除普通课表课程
-                        scheduleRepository.delete(history.getTrialScheduleId());
+                        scheduleRepository.deleteById(history.getTrialScheduleId());
                     }
                 } catch (Exception e) {
                     System.err.println("删除旧课程失败: " + e.getMessage());
