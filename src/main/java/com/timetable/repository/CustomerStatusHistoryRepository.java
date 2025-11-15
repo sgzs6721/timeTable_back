@@ -169,7 +169,7 @@ public class CustomerStatusHistoryRepository extends BaseRepository {
 
     public CustomerStatusHistory update(CustomerStatusHistory history) {
         try {
-            var updateStep = dsl.update(table("customer_status_history"))
+            org.jooq.UpdateSetMoreStep<org.jooq.Record> updateStep = dsl.update(table("customer_status_history"))
                     .set(field("notes"), history.getNotes());
             
             // 更新体验课程相关字段
