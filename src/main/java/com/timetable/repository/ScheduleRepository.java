@@ -182,8 +182,8 @@ public class ScheduleRepository {
      * 根据课表ID和星期几（整数）查找模板排课
      */
     public List<Schedules> findByTimetableAndDayOfWeek(Long timetableId, int dayOfWeek) {
-        // 将整数转换为字符串 (1-7 对应周一到周日)
-        String dayOfWeekStr = String.valueOf(dayOfWeek);
+        // 将整数转换为DayOfWeek枚举名称 (1=MONDAY, 2=TUESDAY, ..., 7=SUNDAY)
+        String dayOfWeekStr = java.time.DayOfWeek.of(dayOfWeek).name();
         return dsl.selectFrom(SCHEDULES)
                 .where(SCHEDULES.TIMETABLE_ID.eq(timetableId))
                 .and(SCHEDULES.DAY_OF_WEEK.eq(dayOfWeekStr))
