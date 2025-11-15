@@ -3,8 +3,13 @@ package com.timetable.repository;
 import com.timetable.entity.UserSalarySetting;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 
 import static org.jooq.impl.DSL.*;
@@ -14,6 +19,9 @@ public class UserSalarySettingRepository {
 
     @Autowired
     private DSLContext dsl;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private static final String TABLE_NAME = "user_salary_settings";
 
@@ -49,28 +57,29 @@ public class UserSalarySettingRepository {
 
     public Long save(UserSalarySetting setting) {
         try {
-            org.jooq.Record1<Long> result = dsl.insertInto(table(TABLE_NAME))
-                    .set(field("user_id"), setting.getUserId())
-                    .set(field("organization_id"), setting.getOrganizationId())
-                    .set(field("base_salary"), setting.getBaseSalary() != null ? setting.getBaseSalary() : java.math.BigDecimal.ZERO)
-                    .set(field("social_security"), setting.getSocialSecurity() != null ? setting.getSocialSecurity() : java.math.BigDecimal.ZERO)
-                    .set(field("hourly_rate"), setting.getHourlyRate() != null ? setting.getHourlyRate() : java.math.BigDecimal.ZERO)
-                    .set(field("commission_rate"), setting.getCommissionRate() != null ? setting.getCommissionRate() : java.math.BigDecimal.ZERO)
-                    .set(field("created_at"), java.time.LocalDateTime.now())
-                    .set(field("updated_at"), java.time.LocalDateTime.now())
-                    .returningResult(field("id", Long.class))
-                    .fetchOne();
+            String sql = "INSERT INTO user_salary_settings (user_id, organization_id, base_salary, social_security, hourly_rate, commission_rate, created_at, updated_at) " +
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             
-            if (result == null) {
-                throw new RuntimeException("插入工资设置记录失败，未返回结果");
-            }
+            KeyHolder keyHolder = new GeneratedKeyHolder();
             
-            Long id = result.value1();
-            if (id == null) {
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setLong(1, setting.getUserId());
+                ps.setLong(2, setting.getOrganizationId());
+                ps.setBigDecimal(3, setting.getBaseSalary() != null ? setting.getBaseSalary() : java.math.BigDecimal.ZERO);
+                ps.setBigDecimal(4, setting.getSocialSecurity() != null ? setting.getSocialSecurity() : java.math.BigDecimal.ZERO);
+                ps.setBigDecimal(5, setting.getHourlyRate() != null ? setting.getHourlyRate() : java.math.BigDecimal.ZERO);
+                ps.setBigDecimal(6, setting.getCommissionRate() != null ? setting.getCommissionRate() : java.math.BigDecimal.ZERO);
+                ps.setObject(7, setting.getCreatedAt());
+                ps.setObject(8, setting.getUpdatedAt());
+                return ps;
+            }, keyHolder);
+            
+            if (keyHolder.getKey() == null) {
                 throw new RuntimeException("插入工资设置记录失败，未获取到ID");
             }
             
-            return id;
+            return keyHolder.getKey().longValue();
         } catch (Exception e) {
             throw new RuntimeException("保存工资设置到数据库失败: " + e.getMessage(), e);
         }
