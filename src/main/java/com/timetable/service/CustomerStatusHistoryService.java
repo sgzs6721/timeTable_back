@@ -547,7 +547,7 @@ public class CustomerStatusHistoryService {
                     // 根据来源类型删除课程
                     if ("weekly_instance".equals(history.getTrialSourceType())) {
                         // 删除周实例课程
-                        weeklyInstanceScheduleRepository.deleteById(history.getTrialScheduleId());
+                        weeklyInstanceScheduleRepository.delete(history.getTrialScheduleId());
                     } else if ("schedule".equals(history.getTrialSourceType())) {
                         // 删除普通课表课程
                         scheduleRepository.deleteById(history.getTrialScheduleId());
