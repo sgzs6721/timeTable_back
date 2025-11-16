@@ -147,20 +147,35 @@ public class CustomerStatusHistoryService {
             System.out.println("未提供完整的体验课程信息，不创建课表课程");
         }
         
-        // 如果状态变更为VISITED（已体验），自动将该客户之前的待体验历史记录标记为已完成
-        if ("VISITED".equals(toStatus) && ("SCHEDULED".equals(fromStatus) || "RE_EXPERIENCE".equals(fromStatus))) {
+        // 自动标记体验课程为已完成的逻辑
+        // 1. 待体验(SCHEDULED) → 已体验(VISITED)/待成交(PENDING_SOLD)/已结束(CLOSED)：标记待体验为完成
+        // 2. 待再体验(RE_EXPERIENCE) → 待成交(PENDING_SOLD)/已结束(CLOSED)：标记待再体验为完成
+        boolean shouldAutoComplete = false;
+        String statusToComplete = null;
+        
+        if ("SCHEDULED".equals(fromStatus) && 
+            ("VISITED".equals(toStatus) || "PENDING_SOLD".equals(toStatus) || "CLOSED".equals(toStatus))) {
+            shouldAutoComplete = true;
+            statusToComplete = "SCHEDULED";
+        } else if ("RE_EXPERIENCE".equals(fromStatus) && 
+                   ("PENDING_SOLD".equals(toStatus) || "CLOSED".equals(toStatus))) {
+            shouldAutoComplete = true;
+            statusToComplete = "RE_EXPERIENCE";
+        }
+        
+        if (shouldAutoComplete && statusToComplete != null) {
             try {
-                // 查找该客户最近的待体验历史记录
+                // 查找该客户的历史记录
                 List<CustomerStatusHistory> histories = historyRepository.findByCustomerId(customerId);
                 for (CustomerStatusHistory h : histories) {
-                    // 找到待体验或待再体验状态的历史记录，且有体验时间信息，且未完成且未取消
-                    if (("SCHEDULED".equals(h.getToStatus()) || "RE_EXPERIENCE".equals(h.getToStatus())) &&
+                    // 找到对应状态的历史记录，且有体验时间信息，且未完成且未取消
+                    if (statusToComplete.equals(h.getToStatus()) &&
                         h.getTrialScheduleDate() != null &&
                         (h.getTrialCompleted() == null || !h.getTrialCompleted()) &&
                         (h.getTrialCancelled() == null || !h.getTrialCancelled())) {
                         // 标记为已完成
                         historyRepository.markTrialAsCompleted(h.getId());
-                        System.out.println("自动标记体验课程为已完成: historyId=" + h.getId());
+                        System.out.println("自动标记体验课程为已完成: historyId=" + h.getId() + ", 状态=" + statusToComplete);
                     }
                 }
             } catch (Exception e) {
