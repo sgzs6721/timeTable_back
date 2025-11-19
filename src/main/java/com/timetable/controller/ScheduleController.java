@@ -256,20 +256,16 @@ public class ScheduleController {
 
         Schedules schedule = scheduleService.createSchedule(timetableId, request);
 
-        // 固定模板的修改：首先在固定模板中体现，然后根据时间判断是否同步到实例
+        // 注意：createSchedule 内部已经同步到当前周实例，这里只需要同步到未来实例
         try {
             com.timetable.generated.tables.pojos.Timetables t = timetableService.getTimetableById(timetableId);
             if (t != null && t.getIsWeekly() != null && t.getIsWeekly() == 1) {
-                // 根据课程时间判断是否同步到当前周实例
-                java.util.List<com.timetable.generated.tables.pojos.Schedules> list = new java.util.ArrayList<>();
-                list.add(schedule);
-                weeklyInstanceService.syncSpecificTemplateSchedulesToCurrentInstanceByTime(timetableId, list);
-                
-                // 同时同步到未来的实例
+                // 同步到未来的实例（下周及以后）
+                logger.info("开始同步到未来实例，课表ID: {}", timetableId);
                 weeklyInstanceService.syncTemplateChangesToFutureInstances(timetableId);
             }
         } catch (Exception e) {
-            logger.warn("同步模板到实例失败，课表ID: {}, 错误: {}", timetableId, e.getMessage());
+            logger.error("同步模板到未来实例失败，课表ID: {}, 错误: {}", timetableId, e.getMessage(), e);
         }
         
         return ResponseEntity.ok(ApiResponse.success("创建排课成功", schedule));

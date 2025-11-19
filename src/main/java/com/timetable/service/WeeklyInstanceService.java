@@ -776,28 +776,44 @@ public class WeeklyInstanceService {
     @Transactional
     public void syncSpecificTemplateSchedulesToCurrentInstanceByTime(Long templateTimetableId, java.util.List<Schedules> templateSchedules) {
         if (templateSchedules == null || templateSchedules.isEmpty()) {
+            logger.info("没有需要同步的模板课程");
             return;
         }
+        
+        logger.info("====== 开始同步模板课程到当前周实例 ======");
+        logger.info("课表ID: {}, 待同步课程数: {}", templateTimetableId, templateSchedules.size());
+        
         WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
         if (currentInstance == null) {
             logger.info("当前周没有实例，自动生成当前周实例");
             try {
                 currentInstance = generateCurrentWeekInstance(templateTimetableId);
+                logger.info("成功生成当前周实例，ID: {}, 周: {} 至 {}", 
+                    currentInstance.getId(), currentInstance.getWeekStartDate(), currentInstance.getWeekEndDate());
             } catch (Exception e) {
                 logger.error("生成当前周实例失败: {}", e.getMessage(), e);
                 return;
             }
+        } else {
+            logger.info("找到当前周实例，ID: {}, 周: {} 至 {}", 
+                currentInstance.getId(), currentInstance.getWeekStartDate(), currentInstance.getWeekEndDate());
         }
 
         LocalDateTime now = LocalDateTime.now();
         logger.info("当前时间: {}", now);
 
         for (Schedules templateSchedule : templateSchedules) {
+            logger.info("--- 处理模板课程: 学员={}, 星期={}, 时间={}-{}", 
+                templateSchedule.getStudentName(), 
+                templateSchedule.getDayOfWeek(),
+                templateSchedule.getStartTime(), 
+                templateSchedule.getEndTime());
+            
             // 计算课程在当前周的具体时间
             LocalDate scheduleDate = calculateScheduleDate(currentInstance.getWeekStartDate(), templateSchedule.getDayOfWeek());
             LocalDateTime scheduleDateTime = LocalDateTime.of(scheduleDate, templateSchedule.getStartTime());
             
-            logger.info("课程时间: {} {}, 是否未来: {}", 
+            logger.info("计算得到的课程时间: {} {}, 是否未来: {}", 
                 scheduleDate, templateSchedule.getStartTime(), scheduleDateTime.isAfter(now));
 
             // 只有未来时间的课程才同步到当前周实例
@@ -847,16 +863,17 @@ public class WeeklyInstanceService {
                     newSchedule.setIsModified(false);
                     newSchedule.setIsTrial(templateSchedule.getIsTrial());
                     weeklyInstanceScheduleRepository.save(newSchedule);
-                    logger.info("在实例中新增课程: {} {}", templateSchedule.getStudentName(), key);
+                    logger.info("✓ 在实例中新增课程: {} {}", templateSchedule.getStudentName(), key);
                 }
             } else {
-                logger.info("跳过过去时间的课程: {} {} {}", 
+                logger.info("✗ 跳过过去时间的课程: {} {} {}", 
                     templateSchedule.getStudentName(), scheduleDate, templateSchedule.getStartTime());
             }
         }
 
         // 更新同步时间
         weeklyInstanceRepository.updateLastSyncedAt(currentInstance.getId(), LocalDateTime.now());
+        logger.info("====== 同步完成 ======");
     }
     
     /**

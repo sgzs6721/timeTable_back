@@ -451,12 +451,15 @@ public class ScheduleService {
         try {
             if (timetable != null && timetable.getIsWeekly() != null && timetable.getIsWeekly() == 1
                     && schedule.getScheduleDate() == null) {
+                logger.info("保存固定课表课程成功，开始同步到当前周实例，课程ID: {}, 学员: {}, 星期: {}, 时间: {}-{}", 
+                    schedule.getId(), schedule.getStudentName(), schedule.getDayOfWeek(), 
+                    schedule.getStartTime(), schedule.getEndTime());
                 weeklyInstanceService.syncSpecificTemplateSchedulesToCurrentInstanceByTime(timetableId,
                         java.util.Collections.singletonList(schedule));
             }
         } catch (Exception e) {
-            logger.warn("Selective sync to current week instance failed after create. timetableId={}, scheduleId={}",
-                    timetableId, schedule.getId());
+            logger.error("同步到当前周实例失败！课表ID={}, 课程ID={}, 错误: {}", 
+                    timetableId, schedule.getId(), e.getMessage(), e);
         }
         return schedule;
     }
