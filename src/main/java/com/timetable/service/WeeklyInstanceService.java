@@ -780,8 +780,13 @@ public class WeeklyInstanceService {
         }
         WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
         if (currentInstance == null) {
-            logger.info("当前周没有实例，不需要同步");
-            return;
+            logger.info("当前周没有实例，自动生成当前周实例");
+            try {
+                currentInstance = generateCurrentWeekInstance(templateTimetableId);
+            } catch (Exception e) {
+                logger.error("生成当前周实例失败: {}", e.getMessage(), e);
+                return;
+            }
         }
 
         LocalDateTime now = LocalDateTime.now();
