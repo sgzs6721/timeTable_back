@@ -862,6 +862,8 @@ public class WeeklyInstanceService {
                     newSchedule.setIsManualAdded(false);
                     newSchedule.setIsModified(false);
                     newSchedule.setIsTrial(templateSchedule.getIsTrial());
+                    // 设置 is_time_block 字段，防止数据库约束冲突
+                    newSchedule.setIsTimeBlock(templateSchedule.getIsTimeBlock() != null && templateSchedule.getIsTimeBlock() == 1);
                     weeklyInstanceScheduleRepository.save(newSchedule);
                     logger.info("✓ 在实例中新增课程: {} {}", templateSchedule.getStudentName(), key);
                 }
