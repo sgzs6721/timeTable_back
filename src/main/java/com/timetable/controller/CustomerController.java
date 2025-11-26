@@ -249,4 +249,32 @@ public class CustomerController {
             return ResponseEntity.internalServerError().body(ApiResponse.error("更新失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 获取客户状态统计
+     */
+    @GetMapping("/status-counts")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getStatusCounts(
+            Authentication authentication,
+            @RequestParam(required = false) Long salesId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterDate,
+            @RequestParam(required = false) String keyword) {
+        try {
+            Users user = userService.findByUsername(authentication.getName());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+            }
+            
+            if (user.getOrganizationId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
+            }
+
+            boolean isAdmin = "MANAGER".equals(user.getPosition());
+            Map<String, Long> counts = customerService.getStatusCounts(
+                user.getId(), user.getOrganizationId(), isAdmin, salesId, filterDate, keyword);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", counts));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取状态统计失败: " + e.getMessage()));
+        }
+    }
 }

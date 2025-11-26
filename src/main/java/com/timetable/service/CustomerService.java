@@ -17,6 +17,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -399,6 +401,71 @@ public class CustomerService {
         Customer updatedCustomer = customerRepository.update(customer);
         
         return convertToDTO(updatedCustomer);
+    }
+    
+    /**
+     * 获取客户状态统计
+     */
+    public Map<String, Long> getStatusCounts(Long currentUserId, Long organizationId, boolean isAdmin, 
+                                             Long salesId, LocalDate filterDate, String keyword) {
+        // 获取所有客户（不分页）
+        List<Customer> allCustomers = customerRepository.findByOrganizationId(organizationId);
+        
+        // 应用过滤条件
+        List<Customer> filteredCustomers = allCustomers.stream()
+            .filter(customer -> {
+                // 权限过滤
+                if (!isAdmin) {
+                    if (!currentUserId.equals(customer.getCreatedBy()) && 
+                        !currentUserId.equals(customer.getAssignedSalesId())) {
+                        return false;
+                    }
+                }
+                
+                // 销售人员过滤
+                if (salesId != null) {
+                    if (!salesId.equals(customer.getCreatedBy()) && 
+                        !salesId.equals(customer.getAssignedSalesId())) {
+                        return false;
+                    }
+                }
+                
+                // 日期过滤
+                if (filterDate != null) {
+                    LocalDate customerDate = customer.getCreatedAt().toLocalDate();
+                    if (!customerDate.equals(filterDate)) {
+                        return false;
+                    }
+                }
+                
+                // 关键词搜索
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    String lowerKeyword = keyword.trim().toLowerCase();
+                    String childName = customer.getChildName() != null ? customer.getChildName().toLowerCase() : "";
+                    String parentPhone = customer.getParentPhone() != null ? customer.getParentPhone().toLowerCase() : "";
+                    if (!childName.contains(lowerKeyword) && !parentPhone.contains(lowerKeyword)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            })
+            .collect(Collectors.toList());
+        
+        // 统计各状态数量
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("total", (long) filteredCustomers.size());
+        counts.put("NEW", filteredCustomers.stream().filter(c -> "NEW".equals(c.getStatus())).count());
+        counts.put("CONTACTED", filteredCustomers.stream().filter(c -> "CONTACTED".equals(c.getStatus())).count());
+        counts.put("PENDING_CONFIRM", filteredCustomers.stream().filter(c -> "PENDING_CONFIRM".equals(c.getStatus())).count());
+        counts.put("SCHEDULED", filteredCustomers.stream().filter(c -> "SCHEDULED".equals(c.getStatus())).count());
+        counts.put("VISITED", filteredCustomers.stream().filter(c -> "VISITED".equals(c.getStatus())).count());
+        counts.put("RE_EXPERIENCE", filteredCustomers.stream().filter(c -> "RE_EXPERIENCE".equals(c.getStatus())).count());
+        counts.put("PENDING_SOLD", filteredCustomers.stream().filter(c -> "PENDING_SOLD".equals(c.getStatus())).count());
+        counts.put("SOLD", filteredCustomers.stream().filter(c -> "SOLD".equals(c.getStatus())).count());
+        counts.put("CLOSED", filteredCustomers.stream().filter(c -> "CLOSED".equals(c.getStatus())).count());
+        
+        return counts;
     }
     
     /**
