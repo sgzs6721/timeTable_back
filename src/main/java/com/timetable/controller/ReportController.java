@@ -43,13 +43,16 @@ public class ReportController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
         }
 
-        // 非管理员强制使用自己的ID
-        Long targetUserId;
-        if (current.getPosition() != null && current.getPosition().equals("MANAGER")) {
-            targetUserId = coachId != null ? coachId : current.getId();
-        } else {
+        // For managers, respect the coachId parameter (which could be null for "All Coaches")
+        Long targetUserId = null;  // Default to null (no filtering by user)
+        if (current.getPosition() == null || !current.getPosition().equals("MANAGER")) {
+            // Non-managers can only see their own hours
             targetUserId = current.getId();
+        } else if (coachId != null) {
+            // Manager has selected a specific coach
+            targetUserId = coachId;
         }
+        // If targetUserId remains null, it means show all coaches (no filtering by user)
 
         LocalDate start = startDate != null && !startDate.isEmpty() ? LocalDate.parse(startDate) : null;
         LocalDate end = endDate != null && !endDate.isEmpty() ? LocalDate.parse(endDate) : null;
