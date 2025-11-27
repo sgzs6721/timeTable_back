@@ -86,6 +86,11 @@ public class ReportService {
             return schedules;
         }
         
+        // 如果coachId为null（管理员查看所有教练），不应用学员操作规则
+        if (coachId == null) {
+            return schedules;
+        }
+        
         // 获取该教练的学员操作规则
         List<com.timetable.entity.StudentOperationRecord> records = 
             studentOperationRecordRepository.findByCoachId(coachId);

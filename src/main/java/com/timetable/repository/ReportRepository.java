@@ -31,12 +31,18 @@ public class ReportRepository {
         // 1) 固定课表（schedules）中有具体日期的记录
         LocalDate today = LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
-        Condition baseCond = TIMETABLES.USER_ID.eq(userId)
-                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
+        
+        // 构建基础条件，如果userId为null则不添加用户ID过滤（用于管理员查看所有教练）
+        Condition baseCond = SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)
                 .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
                 .and(SCHEDULES.SCHEDULE_DATE.isNotNull())
                 .and(SCHEDULES.SCHEDULE_DATE.lt(today) // 昨天及之前的记录
                         .or(SCHEDULES.SCHEDULE_DATE.eq(today).and(SCHEDULES.START_TIME.le(now)))); // 或者今天的已过时间记录
+        
+        // 添加用户ID过滤（如果提供了userId）
+        if (userId != null) {
+            baseCond = baseCond.and(TIMETABLES.USER_ID.eq(userId));
+        }
         
         // 添加机构ID过滤（如果提供了organizationId）
         if (organizationId != null) {
@@ -53,9 +59,10 @@ public class ReportRepository {
         // 表结构：
         // weekly_instance_schedules.weekly_instance_id -> weekly_instances.id
         // weekly_instances.template_timetable_id -> timetables.id
-        Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
-                .and(field(name("timetables", "is_deleted"), Byte.class).isNull()
-                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
+        
+        // 构建周实例条件，如果userId为null则不添加用户ID过滤
+        Condition instCond = field(name("timetables", "is_deleted"), Byte.class).isNull()
+                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0))
                 .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
                         .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)))
                 .and(field(name("weekly_instance_schedules", "is_cancelled"), Boolean.class).isNull()
@@ -63,6 +70,11 @@ public class ReportRepository {
                 .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
                         .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
                                 .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
+        
+        // 添加用户ID过滤（如果提供了userId）
+        if (userId != null) {
+            instCond = instCond.and(field(name("timetables", "user_id"), Long.class).eq(userId));
+        }
         
         // 添加机构ID过滤（如果提供了organizationId）
         if (organizationId != null) {
@@ -181,12 +193,18 @@ public class ReportRepository {
     public long countSchedulesByUser(Long userId, Long organizationId, LocalDate start, LocalDate end) {
         LocalDate today = LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
-        Condition baseCond = TIMETABLES.USER_ID.eq(userId)
-                .and(SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID))
+        
+        // 构建基础条件，如果userId为null则不添加用户ID过滤
+        Condition baseCond = SCHEDULES.TIMETABLE_ID.eq(TIMETABLES.ID)
                 .and(TIMETABLES.IS_DELETED.isNull().or(TIMETABLES.IS_DELETED.eq((byte)0)))
                 .and(SCHEDULES.SCHEDULE_DATE.isNotNull())
                 .and(SCHEDULES.SCHEDULE_DATE.lt(today) // 昨天及之前的记录
                         .or(SCHEDULES.SCHEDULE_DATE.eq(today).and(SCHEDULES.START_TIME.le(now)))); // 或者今天的已过时间记录
+        
+        // 添加用户ID过滤（如果提供了userId）
+        if (userId != null) {
+            baseCond = baseCond.and(TIMETABLES.USER_ID.eq(userId));
+        }
         
         // 添加机构ID过滤（如果提供了organizationId）
         if (organizationId != null) {
@@ -201,9 +219,9 @@ public class ReportRepository {
                 .where(baseCond)
                 .fetchOne(0, Long.class);
 
-        Condition instCond = field(name("timetables", "user_id"), Long.class).eq(userId)
-                .and(field(name("timetables", "is_deleted"), Byte.class).isNull()
-                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0)))
+        // 构建周实例条件，如果userId为null则不添加用户ID过滤
+        Condition instCond = field(name("timetables", "is_deleted"), Byte.class).isNull()
+                        .or(field(name("timetables", "is_deleted"), Byte.class).eq((byte)0))
                 .and(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).isNull()
                         .or(field(name("weekly_instance_schedules", "is_on_leave"), Boolean.class).eq(false)))
                 .and(field(name("weekly_instance_schedules", "is_cancelled"), Boolean.class).isNull()
@@ -211,6 +229,11 @@ public class ReportRepository {
                 .and(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).lt(today) // 昨天及之前的记录
                         .or(field(name("weekly_instance_schedules", "schedule_date"), LocalDate.class).eq(today)
                                 .and(field(name("weekly_instance_schedules", "start_time"), java.time.LocalTime.class).le(now)))); // 或者今天的已过时间记录
+        
+        // 添加用户ID过滤（如果提供了userId）
+        if (userId != null) {
+            instCond = instCond.and(field(name("timetables", "user_id"), Long.class).eq(userId));
+        }
         
         // 添加机构ID过滤（如果提供了organizationId）
         if (organizationId != null) {
