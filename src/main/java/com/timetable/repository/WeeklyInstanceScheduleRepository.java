@@ -2,11 +2,16 @@ package com.timetable.repository;
 
 import com.timetable.entity.WeeklyInstanceSchedule;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -23,34 +28,46 @@ public class WeeklyInstanceScheduleRepository extends BaseRepository {
     @Autowired
     private DSLContext dsl;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     /**
      * 保存周实例课程
      */
     public WeeklyInstanceSchedule save(WeeklyInstanceSchedule schedule) {
         if (schedule.getId() == null) {
-            // 创建新记录
-            int affectedRows = dsl.insertInto(table("weekly_instance_schedules"))
-                    .set(field("weekly_instance_id"), schedule.getWeeklyInstanceId())
-                    .set(field("template_schedule_id"), schedule.getTemplateScheduleId())
-                    .set(field("student_name"), schedule.getStudentName())
-                    .set(field("subject"), schedule.getSubject())
-                    .set(field("day_of_week"), schedule.getDayOfWeek())
-                    .set(field("start_time"), schedule.getStartTime())
-                    .set(field("end_time"), schedule.getEndTime())
-                    .set(field("schedule_date"), schedule.getScheduleDate())
-                    .set(field("note"), schedule.getNote())
-                    .set(field("is_manual_added"), schedule.getIsManualAdded())
-                    .set(field("is_modified"), schedule.getIsModified())
-                    .set(field("is_trial"), schedule.getIsTrial())
-                    .set(field("is_time_block"), schedule.getIsTimeBlock())
-                    .set(field("created_at"), schedule.getCreatedAt())
-                    .set(field("updated_at"), schedule.getUpdatedAt())
-                    .execute();
+            // 创建新记录，使用 JdbcTemplate 获取自增ID
+            String sql = "INSERT INTO weekly_instance_schedules (" +
+                    "weekly_instance_id, template_schedule_id, student_name, subject, " +
+                    "day_of_week, start_time, end_time, schedule_date, note, " +
+                    "is_manual_added, is_modified, is_trial, is_time_block, " +
+                    "created_at, updated_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
-            if (affectedRows > 0) {
-                // 查询获取ID (对于实例课程，通常不需要ID，但为了保持一致性)
-                // 这里可以选择不查询ID，直接返回
-                // 或者使用其他唯一条件查询
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setObject(1, schedule.getWeeklyInstanceId());
+                ps.setObject(2, schedule.getTemplateScheduleId());
+                ps.setString(3, schedule.getStudentName());
+                ps.setString(4, schedule.getSubject());
+                ps.setString(5, schedule.getDayOfWeek());
+                ps.setObject(6, schedule.getStartTime());
+                ps.setObject(7, schedule.getEndTime());
+                ps.setObject(8, schedule.getScheduleDate());
+                ps.setString(9, schedule.getNote());
+                ps.setObject(10, schedule.getIsManualAdded());
+                ps.setObject(11, schedule.getIsModified());
+                ps.setObject(12, schedule.getIsTrial());
+                ps.setObject(13, schedule.getIsTimeBlock());
+                ps.setObject(14, schedule.getCreatedAt());
+                ps.setObject(15, schedule.getUpdatedAt());
+                return ps;
+            }, keyHolder);
+            
+            // 设置自增ID
+            if (keyHolder.getKey() != null) {
+                schedule.setId(keyHolder.getKey().longValue());
             }
         } else {
             // 更新现有记录
