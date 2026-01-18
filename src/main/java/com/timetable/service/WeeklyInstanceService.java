@@ -80,20 +80,43 @@ public class WeeklyInstanceService {
      */
     @Transactional
     public WeeklyInstance generateCurrentWeekInstance(Long templateTimetableId) {
-        System.out.println("开始生成周实例，课表ID: " + templateTimetableId);
+        return generateCurrentWeekInstance(templateTimetableId, false);
+    }
+
+    /**
+     * 为指定的固定课表生成当前周实例
+     * @param ignoreAutoGenerateSetting 是否忽略自动生成设置（用于手动强制生成）
+     */
+    @Transactional
+    public WeeklyInstance generateCurrentWeekInstance(Long templateTimetableId, boolean ignoreAutoGenerateSetting) {
+        logger.info("开始生成周实例，课表ID: {}, 强制生成: {}", templateTimetableId, ignoreAutoGenerateSetting);
         
         // 检查模板课表是否存在且为周课表
         Timetables templateTimetable = timetableRepository.findById(templateTimetableId);
         if (templateTimetable == null) {
-            System.err.println("模板课表不存在，ID: " + templateTimetableId);
+            logger.error("模板课表不存在，ID: {}", templateTimetableId);
             throw new IllegalArgumentException("模板课表不存在");
         }
         
-        System.out.println("课表名称: " + templateTimetable.getName() + ", isWeekly: " + templateTimetable.getIsWeekly());
+        logger.debug("课表名称: {}, isWeekly: {}", templateTimetable.getName(), templateTimetable.getIsWeekly());
         
         if (templateTimetable.getIsWeekly() == null || templateTimetable.getIsWeekly() != 1) {
-            System.err.println("课表不是周固定课表，isWeekly: " + templateTimetable.getIsWeekly());
+            logger.error("课表不是周固定课表，isWeekly: {}", templateTimetable.getIsWeekly());
             throw new IllegalArgumentException("只能为周固定课表生成实例");
+        }
+
+        // 检查机构的自动生成设置
+        if (!ignoreAutoGenerateSetting && templateTimetable.getOrganizationId() != null) {
+            try {
+                com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(templateTimetable.getOrganizationId());
+                if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                    logger.info("机构 {} 已关闭周实例自动生成，跳过生成当前周实例，课表: {}", 
+                        templateTimetable.getOrganizationId(), templateTimetable.getName());
+                    return null;
+                }
+            } catch (Exception e) {
+                logger.warn("获取机构设置失败，将继续尝试生成: {}", e.getMessage());
+            }
         }
 
         // 计算当前周的开始和结束日期
@@ -114,26 +137,26 @@ public class WeeklyInstanceService {
         }
 
         // 创建新的周实例
-        System.out.println("创建新周实例，周开始: " + weekStart + ", 周结束: " + weekEnd + ", 年周: " + yearWeek);
+        logger.info("创建新周实例，周开始: {}, 周结束: {}, 年周: {}", weekStart, weekEnd, yearWeek);
         WeeklyInstance instance = new WeeklyInstance(templateTimetableId, weekStart, weekEnd, yearWeek);
         // 设置机构ID（从模板课表中获取）
         instance.setOrganizationId(templateTimetable.getOrganizationId());
         
-        System.out.println("保存周实例到数据库...");
+        logger.debug("保存周实例到数据库...");
         instance = weeklyInstanceRepository.save(instance);
 
         // 确保实例保存成功并获得了ID
         if (instance.getId() == null) {
-            System.err.println("周实例保存失败，ID为null");
+            logger.error("周实例保存失败，ID为null");
             throw new RuntimeException("保存周实例失败，无法获取实例ID");
         }
         
-        System.out.println("周实例保存成功，ID: " + instance.getId());
+        logger.info("周实例保存成功，ID: {}", instance.getId());
 
         // 从模板课表复制课程到实例
-        System.out.println("开始同步模板课程到实例...");
+        logger.debug("开始同步模板课程到实例...");
         syncSchedulesFromTemplate(instance);
-        System.out.println("周实例生成完成");
+        logger.info("周实例生成完成");
 
         // 清除同一模板课表的其他当前周标记，设置新实例为当前周
         weeklyInstanceRepository.clearCurrentWeekFlagByTemplateId(templateTimetableId);
@@ -148,6 +171,15 @@ public class WeeklyInstanceService {
      */
     @Transactional
     public WeeklyInstance generateNextWeekInstance(Long templateTimetableId) {
+        return generateNextWeekInstance(templateTimetableId, false);
+    }
+
+    /**
+     * 为指定模板课表生成"下周"的周实例并同步模板课程
+     * @param ignoreAutoGenerateSetting 是否忽略自动生成设置（用于手动强制生成）
+     */
+    @Transactional
+    public WeeklyInstance generateNextWeekInstance(Long templateTimetableId, boolean ignoreAutoGenerateSetting) {
         LocalDate nextWeekStart = LocalDate.now().with(java.time.DayOfWeek.MONDAY).plusWeeks(1);
         LocalDate nextWeekEnd = nextWeekStart.plusDays(6);
         String yearWeek = generateYearWeekString(nextWeekStart);
@@ -167,6 +199,26 @@ public class WeeklyInstanceService {
         Timetables templateTimetable = timetableRepository.findById(templateTimetableId);
         if (templateTimetable == null) {
             throw new IllegalArgumentException("模板课表不存在");
+        }
+
+        // 检查机构的自动生成设置
+        if (!ignoreAutoGenerateSetting && templateTimetable.getOrganizationId() != null) {
+            try {
+                com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(templateTimetable.getOrganizationId());
+                if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                    logger.info("机构 {} 已关闭周实例自动生成，跳过生成下周实例，课表: {}", 
+                        templateTimetable.getOrganizationId(), templateTimetable.getName());
+                    // 如果是因为设置关闭而跳过，这里应该抛出一个特定的异常或者返回null
+                    // 为了让调用方知道是因为设置关闭，我们抛出一个包含特定信息的异常
+                    throw new IllegalStateException("机构已关闭周实例自动生成功能");
+                }
+            } catch (Exception e) {
+                // 如果是上面抛出的IllegalStateException，直接重新抛出
+                if (e instanceof IllegalStateException && "机构已关闭周实例自动生成功能".equals(e.getMessage())) {
+                    throw e;
+                }
+                logger.warn("获取机构设置失败，将继续尝试生成: {}", e.getMessage());
+            }
         }
 
         WeeklyInstance instance = new WeeklyInstance(templateTimetableId, nextWeekStart, nextWeekEnd, yearWeek);
@@ -819,9 +871,23 @@ public class WeeklyInstanceService {
         
         WeeklyInstance currentInstance = getCurrentWeekInstance(templateTimetableId);
         if (currentInstance == null) {
-            logger.info("当前周没有实例，自动生成当前周实例");
+            logger.info("当前周没有实例，尝试自动生成当前周实例");
             try {
+                // 检查是否允许自动生成
+                Timetables templateTimetable = timetableRepository.findById(templateTimetableId);
+                if (templateTimetable != null && templateTimetable.getOrganizationId() != null) {
+                    com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(templateTimetable.getOrganizationId());
+                    if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                        logger.info("机构 {} 已关闭周实例自动生成，跳过同步时的自动生成", templateTimetable.getOrganizationId());
+                        return;
+                    }
+                }
+                
                 currentInstance = generateCurrentWeekInstance(templateTimetableId);
+                if (currentInstance == null) {
+                    logger.info("生成当前周实例返回null（可能因设置关闭），停止同步");
+                    return;
+                }
                 logger.info("成功生成当前周实例，ID: {}, 周: {} 至 {}", 
                     currentInstance.getId(), currentInstance.getWeekStartDate(), currentInstance.getWeekEndDate());
             } catch (Exception e) {
@@ -1416,6 +1482,17 @@ public class WeeklyInstanceService {
 
         LocalDate targetDate = LocalDate.parse(dateStr);
 
+        // Check organization settings for auto-generation
+        boolean autoGenerate = true;
+        try {
+            com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(organizationId);
+            if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                autoGenerate = false;
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to get organization settings: {}", e.getMessage());
+        }
+
         // 获取指定机构的所有活动课表（未删除未归档）
         List<Timetables> activeTimetables = timetableRepository.findAll()
                 .stream()
@@ -1437,7 +1514,8 @@ public class WeeklyInstanceService {
                 LocalDate targetMonday = targetDate.with(java.time.DayOfWeek.MONDAY);
                 String yearWeek = generateYearWeekString(targetMonday);
                 instance = weeklyInstanceRepository.findByTemplateIdAndYearWeek(timetable.getId(), yearWeek);
-                if (instance == null) {
+                
+                if (instance == null && autoGenerate) {
                     // 按周生成：若目标周是当前周，则生成当前周；若是下周，则生成下周
                     LocalDate thisMonday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
                     if (targetMonday.isAfter(thisMonday)) {
@@ -1662,6 +1740,21 @@ public class WeeklyInstanceService {
         
         for (Timetables timetable : weeklyTimetables) {
             try {
+                // 检查机构的自动生成设置
+                if (timetable.getOrganizationId() != null) {
+                    try {
+                        com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(timetable.getOrganizationId());
+                        if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                            logger.info("机构 {} 已关闭周实例自动生成，跳过批量生成当前周实例，课表: {}", 
+                                timetable.getOrganizationId(), timetable.getName());
+                            skippedCount++;
+                            continue;
+                        }
+                    } catch (Exception e) {
+                        logger.warn("获取机构 {} 设置失败，将继续尝试生成: {}", timetable.getOrganizationId(), e.getMessage());
+                    }
+                }
+
                 // 检查是否已经存在当前周实例
                 WeeklyInstance existingInstance = getCurrentWeekInstance(timetable.getId());
                 if (existingInstance != null) {
@@ -1718,6 +1811,20 @@ public class WeeklyInstanceService {
         
         for (Timetables timetable : weeklyTimetables) {
             try {
+                // 检查机构的自动生成设置
+                if (timetable.getOrganizationId() != null) {
+                    try {
+                        com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(timetable.getOrganizationId());
+                        if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                            logger.info("机构 {} 已关闭周实例自动生成，跳过自动修复当前周实例，课表: {}", 
+                                timetable.getOrganizationId(), timetable.getName());
+                            continue;
+                        }
+                    } catch (Exception e) {
+                        logger.warn("获取机构 {} 设置失败，将继续尝试修复: {}", timetable.getOrganizationId(), e.getMessage());
+                    }
+                }
+
                 WeeklyInstance existingInstance = getCurrentWeekInstance(timetable.getId());
                 if (existingInstance == null) {
                     generateCurrentWeekInstance(timetable.getId());

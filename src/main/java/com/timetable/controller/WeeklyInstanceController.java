@@ -72,6 +72,9 @@ public class WeeklyInstanceController {
 
         try {
             WeeklyInstance instance = weeklyInstanceService.generateCurrentWeekInstance(timetableId);
+            if (instance == null) {
+                return ResponseEntity.ok(ApiResponse.error("机构已关闭周实例自动生成"));
+            }
             return ResponseEntity.ok(ApiResponse.success("当前周实例生成成功", instance));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -369,7 +372,7 @@ public class WeeklyInstanceController {
             }
         }
         try {
-            WeeklyInstance instance = weeklyInstanceService.generateNextWeekInstance(timetableId);
+            WeeklyInstance instance = weeklyInstanceService.generateNextWeekInstance(timetableId, true);
             Map<String, Object> data = new HashMap<>();
             data.put("id", instance.getId());
             data.put("weekStartDate", instance.getWeekStartDate());

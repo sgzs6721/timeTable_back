@@ -1683,12 +1683,14 @@ public class ScheduleService {
                     targetInstance = weeklyInstanceService.getCurrentWeekInstance(activeTimetable.getId());
                     if (targetInstance == null) {
                         System.out.println("当前周实例不存在，创建新实例");
-                        targetInstance = weeklyInstanceService.generateCurrentWeekInstance(activeTimetable.getId());
+                        // 强制生成当前周实例，忽略自动生成设置，因为这是用户手动添加体验课的操作
+                        targetInstance = weeklyInstanceService.generateCurrentWeekInstance(activeTimetable.getId(), true);
                     }
                 } else if (!scheduleDate.isBefore(nextWeekStart) && !scheduleDate.isAfter(nextWeekEnd)) {
                     // 下一周：获取或创建下周实例
                     System.out.println("体验日期在下一周，获取或创建下周实例");
-                    targetInstance = weeklyInstanceService.generateNextWeekInstance(activeTimetable.getId());
+                    // 强制生成下周实例，忽略自动生成设置
+                    targetInstance = weeklyInstanceService.generateNextWeekInstance(activeTimetable.getId(), true);
                 } else {
                     // 其他周期：暂不支持，抛出异常
                     throw new RuntimeException("暂不支持安排超过一周的体验课程");
