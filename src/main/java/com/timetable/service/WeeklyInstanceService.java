@@ -197,6 +197,23 @@ public class WeeklyInstanceService {
         weeklyInstanceRepository.delete(instance.getId());
         return true;
     }
+    
+    /**
+     * 根据实例ID删除周实例（管理员功能）
+     */
+    @Transactional
+    public boolean deleteWeeklyInstanceById(Long instanceId) {
+        WeeklyInstance instance = weeklyInstanceRepository.findById(instanceId);
+        if (instance == null) {
+            return false;
+        }
+        // 先删课程
+        weeklyInstanceScheduleRepository.deleteByWeeklyInstanceId(instance.getId());
+        // 再删实例
+        weeklyInstanceRepository.delete(instance.getId());
+        logger.info("删除周实例成功，实例ID: {}, yearWeek: {}", instanceId, instance.getYearWeek());
+        return true;
+    }
 
     /**
      * 为所有活动课表生成"下周"的周实例

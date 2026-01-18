@@ -251,6 +251,32 @@ public class WeeklyInstanceController {
         List<WeeklyInstanceSchedule> schedules = weeklyInstanceService.getInstanceSchedules(instanceId);
         return ResponseEntity.ok(ApiResponse.success("获取实例课程成功", schedules));
     }
+    
+    /**
+     * 删除指定的周实例（管理员功能）
+     */
+    @DeleteMapping("/{instanceId}")
+    public ResponseEntity<ApiResponse<Void>> deleteWeeklyInstance(
+            @PathVariable Long instanceId,
+            Authentication authentication) {
+        
+        Users user = userService.findByUsername(authentication.getName());
+        if (user == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
+        }
+
+        // 只有管理员可以删除周实例
+        if (!"MANAGER".equals(user.getPosition())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("只有管理员可以删除周实例"));
+        }
+
+        boolean success = weeklyInstanceService.deleteWeeklyInstanceById(instanceId);
+        if (success) {
+            return ResponseEntity.ok(ApiResponse.success("删除周实例成功", null));
+        } else {
+            return ResponseEntity.badRequest().body(ApiResponse.error("周实例不存在或删除失败"));
+        }
+    }
 
     /**
      * 根据日期返回"实例逻辑"的活动课表课程（今日从本周实例；明日如果跨周则用下周实例）
