@@ -308,11 +308,8 @@ public class ScheduleService {
             // 周固定课表：只获取模板数据（scheduleDate为null的记录）
             return scheduleRepository.findTemplateSchedulesByTimetableId(timetableId);
         } else {
-            // 日期范围课表：按当前周获取
-            LocalDate startDate = LocalDate.parse(timetable.getStartDate().toString());
-            LocalDate currentDate = LocalDate.now();
-            int currentWeek = (int) ChronoUnit.WEEKS.between(startDate, currentDate) + 1;
-            return scheduleRepository.findByTimetableIdAndWeekNumber(timetableId, currentWeek);
+            // 日期范围课表：返回所有课程数据，前端会根据当前周进行过滤
+            return scheduleRepository.findByTimetableId(timetableId);
         }
     }
 

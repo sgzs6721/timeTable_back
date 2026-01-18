@@ -71,6 +71,9 @@ public class WeeklyInstanceService {
     
     @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private OrganizationService organizationService;
 
     /**
      * 为指定的固定课表生成当前周实例
@@ -197,6 +200,7 @@ public class WeeklyInstanceService {
 
     /**
      * 为所有活动课表生成"下周"的周实例
+     * 会检查每个机构的weeklyInstanceAutoGenerate设置，只有设置为true的机构才会生成
      */
     @Transactional
     public void generateNextWeekInstancesForAllActiveTimetables() {
@@ -210,6 +214,19 @@ public class WeeklyInstanceService {
 
         for (Timetables timetable : activeTimetables) {
             try {
+                // 检查机构的weeklyInstanceAutoGenerate设置
+                if (timetable.getOrganizationId() != null) {
+                    try {
+                        com.timetable.dto.NotificationSettingsDTO settings = organizationService.getNotificationSettings(timetable.getOrganizationId());
+                        if (settings != null && Boolean.FALSE.equals(settings.getWeeklyInstanceAutoGenerate())) {
+                            logger.info("机构 {} 已关闭周实例自动生成，跳过课表 {} ({})", 
+                                timetable.getOrganizationId(), timetable.getId(), timetable.getName());
+                            continue;
+                        }
+                    } catch (Exception e) {
+                        logger.warn("获取机构 {} 设置失败，将继续生成周实例: {}", timetable.getOrganizationId(), e.getMessage());
+                    }
+                }
                 generateNextWeekInstance(timetable.getId());
             } catch (Exception ignored) {}
         }

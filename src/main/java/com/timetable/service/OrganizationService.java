@@ -259,6 +259,7 @@ public class OrganizationService {
         defaultSettings.setCustomerNewEnabled(true);
         defaultSettings.setTodoEnabled(true);
         defaultSettings.setPaymentPendingEnabled(true);
+        defaultSettings.setWeeklyInstanceAutoGenerate(true);
         return defaultSettings;
     }
 

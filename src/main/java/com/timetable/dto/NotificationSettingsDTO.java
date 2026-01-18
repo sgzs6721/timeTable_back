@@ -9,18 +9,20 @@ public class NotificationSettingsDTO {
     private Boolean customerNewEnabled;
     private Boolean todoEnabled;
     private Boolean paymentPendingEnabled;
+    private Boolean weeklyInstanceAutoGenerate;
 
     public NotificationSettingsDTO() {
     }
 
     public NotificationSettingsDTO(Boolean wechatEnabled, Boolean scheduleChangeEnabled, 
                                   Boolean customerNewEnabled, Boolean todoEnabled, 
-                                  Boolean paymentPendingEnabled) {
+                                  Boolean paymentPendingEnabled, Boolean weeklyInstanceAutoGenerate) {
         this.wechatEnabled = wechatEnabled;
         this.scheduleChangeEnabled = scheduleChangeEnabled;
         this.customerNewEnabled = customerNewEnabled;
         this.todoEnabled = todoEnabled;
         this.paymentPendingEnabled = paymentPendingEnabled;
+        this.weeklyInstanceAutoGenerate = weeklyInstanceAutoGenerate;
     }
 
     public Boolean getWechatEnabled() {
@@ -61,5 +63,13 @@ public class NotificationSettingsDTO {
 
     public void setPaymentPendingEnabled(Boolean paymentPendingEnabled) {
         this.paymentPendingEnabled = paymentPendingEnabled;
+    }
+
+    public Boolean getWeeklyInstanceAutoGenerate() {
+        return weeklyInstanceAutoGenerate;
+    }
+
+    public void setWeeklyInstanceAutoGenerate(Boolean weeklyInstanceAutoGenerate) {
+        this.weeklyInstanceAutoGenerate = weeklyInstanceAutoGenerate;
     }
 }
