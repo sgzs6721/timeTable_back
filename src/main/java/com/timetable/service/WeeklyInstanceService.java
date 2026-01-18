@@ -201,6 +201,12 @@ public class WeeklyInstanceService {
             throw new IllegalArgumentException("模板课表不存在");
         }
 
+        // 检查是否为周固定课表
+        if (templateTimetable.getIsWeekly() == null || templateTimetable.getIsWeekly() != 1) {
+            logger.warn("课表不是周固定课表，跳过生成下周实例，ID: {}", templateTimetableId);
+            throw new IllegalArgumentException("只能为周固定课表生成实例");
+        }
+
         // 检查机构的自动生成设置
         if (!ignoreAutoGenerateSetting && templateTimetable.getOrganizationId() != null) {
             try {
