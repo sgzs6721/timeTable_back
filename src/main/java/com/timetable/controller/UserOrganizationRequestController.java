@@ -82,43 +82,16 @@ public class UserOrganizationRequestController {
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<List<UserOrganizationRequestDTO>>> getPendingRequests() {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
-            Users currentUser = userRepository.findByUsername(username);
-
-            if (currentUser == null) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("用户不存在"));
-            }
-
+            // 机构管理页面专用接口，不需要用户认证，返回所有待审批申请
             List<UserOrganizationRequestDTO> allRequests = new java.util.ArrayList<>();
             
-            // 如果是管理员，可以看到所有申请
-            if ("MANAGER".equals(currentUser.getPosition())) {
-                // 1. 获取微信用户的所有机构申请（不限状态）
-                List<UserOrganizationRequestDTO> wechatRequests = requestService.getAllRequests();
-                allRequests.addAll(wechatRequests);
-                
-                // 2. 获取普通注册用户的所有申请（不限状态）
-                List<UserOrganizationRequestDTO> normalRequests = requestService.getAllNormalRegistrations();
-                allRequests.addAll(normalRequests);
-            } else {
-                // 普通用户只能看到自己机构的申请（如果有权限的话）
-                if (currentUser.getOrganizationId() == null) {
-                    return ResponseEntity.badRequest()
-                            .body(ApiResponse.error("无权限查看申请"));
-                }
-                
-                // 1. 获取微信用户的机构申请
-                List<UserOrganizationRequestDTO> wechatRequests = 
-                    requestService.getAllRequestsByOrganizationId(currentUser.getOrganizationId());
-                allRequests.addAll(wechatRequests);
-                
-                // 2. 获取普通注册用户的申请
-                List<UserOrganizationRequestDTO> normalRequests = 
-                    requestService.getAllNormalRegistrationsByOrganizationId(currentUser.getOrganizationId());
-                allRequests.addAll(normalRequests);
-            }
+            // 1. 获取微信用户的所有机构申请
+            List<UserOrganizationRequestDTO> wechatRequests = requestService.getAllRequests();
+            allRequests.addAll(wechatRequests);
+            
+            // 2. 获取普通注册用户的所有申请
+            List<UserOrganizationRequestDTO> normalRequests = requestService.getAllNormalRegistrations();
+            allRequests.addAll(normalRequests);
             
             // 按创建时间倒序排序
             allRequests.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
