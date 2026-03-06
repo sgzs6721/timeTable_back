@@ -32,8 +32,18 @@ public class OrganizationRepository {
             organization.setContactPerson(rs.getString("contact_person"));
             organization.setStatus(rs.getString("status"));
             organization.setSettings(rs.getString("settings"));
-            organization.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-            organization.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+            
+            // 处理可能为 NULL 的时间戳字段
+            java.sql.Timestamp createdAt = rs.getTimestamp("created_at");
+            if (createdAt != null) {
+                organization.setCreatedAt(createdAt.toLocalDateTime());
+            }
+            
+            java.sql.Timestamp updatedAt = rs.getTimestamp("updated_at");
+            if (updatedAt != null) {
+                organization.setUpdatedAt(updatedAt.toLocalDateTime());
+            }
+            
             return organization;
         }
     };
