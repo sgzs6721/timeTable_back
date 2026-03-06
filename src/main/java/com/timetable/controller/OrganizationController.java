@@ -374,12 +374,6 @@ public class OrganizationController {
     @GetMapping("/{id}/notifications")
     public ResponseEntity<ApiResponse<NotificationSettingsDTO>> getNotificationSettings(@PathVariable Long id) {
         try {
-            // 检查权限
-            if (!hasOrganizationAccess(id)) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限访问该机构的通知设置"));
-            }
-
             NotificationSettingsDTO notificationSettings = organizationService.getNotificationSettings(id);
             return ResponseEntity.ok(ApiResponse.success("获取通知设置成功", notificationSettings));
 
@@ -402,12 +396,6 @@ public class OrganizationController {
             @PathVariable Long id,
             @RequestBody NotificationSettingsDTO notificationSettings) {
         try {
-            // 检查权限
-            if (!hasOrganizationAccess(id)) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限修改该机构的通知设置"));
-            }
-
             organizationService.updateNotificationSettings(id, notificationSettings);
             logger.info("更新机构通知设置成功: organizationId={}", id);
             return ResponseEntity.ok(ApiResponse.success("更新通知设置成功"));

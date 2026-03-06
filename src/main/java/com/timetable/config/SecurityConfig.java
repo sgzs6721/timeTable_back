@@ -64,6 +64,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/organizations/**").permitAll()
                 .antMatchers("/admin/**").permitAll()
                 .antMatchers("/organization-requests/**").permitAll()
+                .antMatchers("/organization-roles/**").permitAll()
+                .antMatchers("/api/role-permissions/**").permitAll()
+                .antMatchers("/salary-system-settings/**").permitAll()
+                .antMatchers("/salary-settings/**").permitAll()
                 // 允许访问所有Actuator监控端点
                 .antMatchers("/actuator/**").permitAll()
                 .antMatchers("/test/**").permitAll()

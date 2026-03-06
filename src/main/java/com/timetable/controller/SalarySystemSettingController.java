@@ -28,14 +28,7 @@ public class SalarySystemSettingController {
             @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-
-            // 确定要使用的机构ID
-            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            Long targetOrganizationId = organizationId;
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }
@@ -55,13 +48,7 @@ public class SalarySystemSettingController {
             @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-            // 确定要使用的机构ID
-            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            Long targetOrganizationId = organizationId;
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }
@@ -82,14 +69,7 @@ public class SalarySystemSettingController {
             @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-
-            // 确定要使用的机构ID
-            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            Long targetOrganizationId = organizationId;
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }

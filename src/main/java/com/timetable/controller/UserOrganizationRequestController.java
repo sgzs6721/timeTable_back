@@ -113,22 +113,8 @@ public class UserOrganizationRequestController {
     public ResponseEntity<ApiResponse<UserOrganizationRequestDTO>> approveRequest(
             @Valid @RequestBody ApproveOrganizationRequestDTO approveDTO) {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
-            Users currentUser = userRepository.findByUsername(username);
-
-            if (currentUser == null) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("用户不存在"));
-            }
-
-            // 检查是否是管理员
-            if (!"MANAGER".equals(currentUser.getPosition())) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限审批申请"));
-            }
-
             UserOrganizationRequestDTO result;
+            Long approverId = null;
             
             // 判断是微信申请还是普通注册申请
             boolean isNormalRegistration = approveDTO.getRequestId() < 0;
@@ -140,7 +126,7 @@ public class UserOrganizationRequestController {
                     Long userId = -approveDTO.getRequestId();
                     result = requestService.approveNormalRegistration(
                         userId,
-                        currentUser.getId(),
+                        approverId,
                         approveDTO.getDefaultRole(),
                         approveDTO.getDefaultPosition()
                     );
@@ -148,12 +134,12 @@ public class UserOrganizationRequestController {
                     // 微信申请：更新UserOrganizationRequest和Users表
                     result = requestService.approveRequest(
                         approveDTO.getRequestId(),
-                        currentUser.getId(),
+                        approverId,
                         approveDTO.getDefaultRole(),
                         approveDTO.getDefaultPosition()
                     );
                 }
-                logger.info("管理员 {} 同意了申请 {}", username, approveDTO.getRequestId());
+                logger.info("机构管理模式同意了申请 {}", approveDTO.getRequestId());
                 return ResponseEntity.ok(ApiResponse.success("申请已批准", result));
             } else {
                 // 拒绝申请
@@ -167,18 +153,18 @@ public class UserOrganizationRequestController {
                     Long userId = -approveDTO.getRequestId();
                     result = requestService.rejectNormalRegistration(
                         userId,
-                        currentUser.getId(),
+                        approverId,
                         approveDTO.getRejectReason()
                     );
                 } else {
                     // 微信申请：更新UserOrganizationRequest和Users表
                     result = requestService.rejectRequest(
                         approveDTO.getRequestId(),
-                        currentUser.getId(),
+                        approverId,
                         approveDTO.getRejectReason()
                     );
                 }
-                logger.info("管理员 {} 拒绝了申请 {}", username, approveDTO.getRequestId());
+                logger.info("机构管理模式拒绝了申请 {}", approveDTO.getRequestId());
                 return ResponseEntity.ok(ApiResponse.success("申请已拒绝", result));
             }
 
@@ -233,21 +219,6 @@ public class UserOrganizationRequestController {
     public ResponseEntity<ApiResponse<Void>> deleteRequest(
             @PathVariable Long requestId) {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
-            Users currentUser = userRepository.findByUsername(username);
-
-            if (currentUser == null) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("用户不存在"));
-            }
-
-            // 检查是否是管理员
-            if (!"MANAGER".equals(currentUser.getPosition())) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限删除申请"));
-            }
-
             // 判断是微信申请还是普通注册申请
             boolean isNormalRegistration = requestId < 0;
             
@@ -260,7 +231,7 @@ public class UserOrganizationRequestController {
                 requestService.deleteRequest(requestId);
             }
             
-            logger.info("管理员 {} 删除了申请 {}", username, requestId);
+            logger.info("机构管理模式删除了申请 {}", requestId);
             return ResponseEntity.ok(ApiResponse.success("申请已删除", null));
 
         } catch (RuntimeException e) {
