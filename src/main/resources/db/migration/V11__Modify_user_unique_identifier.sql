@@ -19,12 +19,65 @@ DEALLOCATE PREPARE stmt;
 
 -- 2. 创建复合唯一索引 (username, is_deleted, status)
 -- 这样可以确保同一用户名在相同的删除状态和用户状态下是唯一的
-CREATE UNIQUE INDEX idx_users_username_deleted_status ON users (username, is_deleted, status);
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_username_deleted_status') = 0,
+    'CREATE UNIQUE INDEX idx_users_username_deleted_status ON users (username, is_deleted, status)',
+    'SELECT "idx_users_username_deleted_status already exists"'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 3. 为复合索引的各个字段创建单独的索引以提高查询性能
-CREATE INDEX idx_users_username ON users (username);
-CREATE INDEX idx_users_is_deleted ON users (is_deleted);
-CREATE INDEX idx_users_status ON users (status);
+-- 使用条件判断避免重复创建索引
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_username') = 0,
+    'CREATE INDEX idx_users_username ON users (username)',
+    'SELECT "idx_users_username already exists"'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_is_deleted') = 0,
+    'CREATE INDEX idx_users_is_deleted ON users (is_deleted)',
+    'SELECT "idx_users_is_deleted already exists"'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_status') = 0,
+    'CREATE INDEX idx_users_status ON users (status)',
+    'SELECT "idx_users_status already exists"'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 4. 创建复合索引 (username, is_deleted) 用于常见的查询场景
-CREATE INDEX idx_users_username_deleted ON users (username, is_deleted); 
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+     AND TABLE_NAME = 'users' 
+     AND INDEX_NAME = 'idx_users_username_deleted') = 0,
+    'CREATE INDEX idx_users_username_deleted ON users (username, is_deleted)',
+    'SELECT "idx_users_username_deleted already exists"'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt; 
