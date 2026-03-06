@@ -11,6 +11,7 @@ import com.timetable.repository.UserRepository;
 import com.timetable.service.OrganizationService;
 import com.timetable.service.UserOrganizationRequestService;
 import com.timetable.service.UserService;
+import com.timetable.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,9 @@ public class OrganizationController {
     @Value("${organization.management.password}")
     private String orgMgmtPassword;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     /**
      * 机构管理访问验证（独立的用户名密码，不依赖系统用户表）
      */
@@ -74,9 +78,12 @@ public class OrganizationController {
                         .body(ApiResponse.error("用户名或密码错误"));
             }
             
+            String token = jwtUtil.generateToken("__ORG_MANAGER__");
+            
             Map<String, Object> data = new HashMap<>();
             data.put("verified", true);
             data.put("username", request.getUsername());
+            data.put("token", token);
             
             logger.info("机构管理访问验证成功: {}", request.getUsername());
             return ResponseEntity.ok(ApiResponse.success("验证成功", data));

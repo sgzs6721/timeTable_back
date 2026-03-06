@@ -53,6 +53,17 @@ public class UserService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // 机构管理专用虚拟用户，不查数据库
+        if ("__ORG_MANAGER__".equals(username)) {
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            authorities.add(new SimpleGrantedAuthority("ROLE_BUSINESS_ADMIN"));
+            return new org.springframework.security.core.userdetails.User(
+                    "__ORG_MANAGER__",
+                    "",
+                    authorities
+            );
+        }
+        
         Users user = userRepository.findByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("用户不存在: " + username);
