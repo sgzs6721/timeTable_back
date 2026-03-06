@@ -3,12 +3,9 @@ package com.timetable.controller;
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.UserSalarySettingDTO;
 import com.timetable.entity.UserSalarySetting;
-import com.timetable.generated.tables.pojos.Users;
 import com.timetable.service.UserSalarySettingService;
-import com.timetable.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,9 +17,6 @@ public class UserSalarySettingController {
     @Autowired
     private UserSalarySettingService salarySettingService;
 
-    @Autowired
-    private UserService userService;
-
     /**
      * 获取所有用户的工资设置（仅管理员）
      */
@@ -31,14 +25,7 @@ public class UserSalarySettingController {
             @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-
-            // 确定要使用的机构ID
-            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            Long targetOrganizationId = organizationId;
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }
@@ -59,14 +46,7 @@ public class UserSalarySettingController {
             @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-
-            // 确定要使用的机构ID
-            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            Long targetOrganizationId = organizationId;
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }
@@ -115,14 +95,7 @@ public class UserSalarySettingController {
             @RequestParam(required = false) Long organizationId,
             Authentication authentication) {
         try {
-            Users user = userService.findByUsername(authentication.getName());
-            if (user == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-            }
-
-
-            // 确定要使用的机构ID
-            Long targetOrganizationId = organizationId != null ? organizationId : user.getOrganizationId();
+            Long targetOrganizationId = organizationId;
             if (targetOrganizationId == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
             }
