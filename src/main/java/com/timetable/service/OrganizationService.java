@@ -11,6 +11,7 @@ import com.timetable.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -118,7 +119,11 @@ public class OrganizationService {
         if (organization == null) {
             throw new RuntimeException("机构不存在");
         }
-        organizationRepository.deleteById(id);
+        try {
+            organizationRepository.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("该机构下仍有关联数据（如用户、课表、客户、申请记录等），暂时无法删除，请先清理关联数据");
+        }
     }
 
     /**

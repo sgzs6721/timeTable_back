@@ -151,12 +151,6 @@ public class OrganizationController {
     public ResponseEntity<ApiResponse<OrganizationDTO>> createOrganization(
             @Valid @RequestBody Map<String, String> organizationData) {
         try {
-            // 检查权限
-            if (!isAdmin()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限创建机构"));
-            }
-
             Organization organization = new Organization();
             organization.setName(organizationData.get("name"));
             organization.setCode(organizationData.get("code"));
@@ -188,12 +182,6 @@ public class OrganizationController {
             @PathVariable Long id,
             @Valid @RequestBody Map<String, String> organizationData) {
         try {
-            // 检查权限
-            if (!isAdmin()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限更新机构"));
-            }
-
             Organization organization = new Organization();
             organization.setName(organizationData.get("name"));
             organization.setCode(organizationData.get("code"));
@@ -223,12 +211,6 @@ public class OrganizationController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteOrganization(@PathVariable Long id) {
         try {
-            // 检查权限
-            if (!isAdmin()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限删除机构"));
-            }
-
             organizationService.deleteOrganization(id);
             logger.info("删除机构成功: {}", id);
             return ResponseEntity.ok(ApiResponse.success("删除机构成功"));
@@ -251,12 +233,6 @@ public class OrganizationController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getOrganizationAdmins(
             @PathVariable Long id) {
         try {
-            // 检查权限
-            if (!isAdmin()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限查看机构管理员"));
-            }
-
             List<Map<String, Object>> admins = organizationService.getOrganizationAdmins(id);
             return ResponseEntity.ok(ApiResponse.success("获取机构管理员成功", admins));
 
@@ -275,12 +251,6 @@ public class OrganizationController {
             @PathVariable Long id,
             @PathVariable Long userId) {
         try {
-            // 检查权限
-            if (!isAdmin()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限设置机构管理员"));
-            }
-
             organizationService.setOrganizationAdmin(id, userId);
             logger.info("设置机构管理员成功: organizationId={}, userId={}", id, userId);
             return ResponseEntity.ok(ApiResponse.success("设置机构管理员成功"));
@@ -304,12 +274,6 @@ public class OrganizationController {
             @PathVariable Long id,
             @PathVariable Long userId) {
         try {
-            // 检查权限
-            if (!isAdmin()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("无权限移除机构管理员"));
-            }
-
             organizationService.removeOrganizationAdmin(id, userId);
             logger.info("移除机构管理员成功: organizationId={}, userId={}", id, userId);
             return ResponseEntity.ok(ApiResponse.success("移除机构管理员成功"));
