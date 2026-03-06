@@ -434,21 +434,9 @@ public class AdminController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers(
             Authentication authentication,
             @RequestParam(value = "organizationId", required = false) Long organizationId) {
-        Users currentUser = userService.findByUsername(authentication.getName());
-        if (currentUser == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("用户不存在"));
-        }
-        
-        if (currentUser.getOrganizationId() == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("用户未关联机构"));
-        }
-        
-        // 如果没有指定organizationId参数，则使用当前用户的机构ID
-        Long targetOrganizationId = organizationId != null ? organizationId : currentUser.getOrganizationId();
-        
-        // 验证当前用户是否有权限查看指定机构的用户
-        if (!targetOrganizationId.equals(currentUser.getOrganizationId()) && !"ADMIN".equals(currentUser.getRole())) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("没有权限查看其他机构的用户"));
+        Long targetOrganizationId = organizationId;
+        if (targetOrganizationId == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("机构ID不能为空"));
         }
         
         List<Users> users = userService.getUsersByOrganizationId(targetOrganizationId);
