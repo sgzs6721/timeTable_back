@@ -210,10 +210,11 @@ public class RolePermissionService {
         permissions.put("refresh", true);
         // 管理员权限：ADMIN角色或MANAGER职位都有管理员权限
         boolean isAdmin = "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role);
+        boolean canManageOrganization = "MANAGER".equalsIgnoreCase(role);
         permissions.put("admin", isAdmin);
         permissions.put("admin_timetables", isAdmin);
         permissions.put("admin_pending", isAdmin);
-        permissions.put("organization-management", true);
+        permissions.put("organization-management", canManageOrganization);
         permissions.put("archived", true);
         permissions.put("profile", true);
         permissions.put("guide", true);
@@ -243,7 +244,7 @@ public class RolePermissionService {
         actionPermissions.put("admin", true);
         actionPermissions.put("admin_timetables", true);
         actionPermissions.put("admin_pending", true);
-        actionPermissions.put("organization-management", true);
+        actionPermissions.put("organization-management", false);
         actionPermissions.put("archived", true);
         actionPermissions.put("profile", true);
         actionPermissions.put("guide", true);
