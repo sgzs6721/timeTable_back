@@ -144,19 +144,25 @@ public class RolePermissionService {
         
         try {
             if (permission.getMenuPermissions() != null) {
-                dto.setMenuPermissions(objectMapper.readValue(
+                Map<String, Boolean> storedMenuPermissions = objectMapper.readValue(
                     permission.getMenuPermissions(), 
                     new TypeReference<Map<String, Boolean>>() {}
-                ));
+                );
+                Map<String, Boolean> mergedMenuPermissions = getDefaultMenuPermissions();
+                mergedMenuPermissions.putAll(storedMenuPermissions);
+                dto.setMenuPermissions(mergedMenuPermissions);
             } else {
                 dto.setMenuPermissions(getDefaultMenuPermissions());
             }
             
             if (permission.getActionPermissions() != null) {
-                dto.setActionPermissions(objectMapper.readValue(
+                Map<String, Boolean> storedActionPermissions = objectMapper.readValue(
                     permission.getActionPermissions(), 
                     new TypeReference<Map<String, Boolean>>() {}
-                ));
+                );
+                Map<String, Boolean> mergedActionPermissions = getDefaultActionPermissions(permission.getRole());
+                mergedActionPermissions.putAll(storedActionPermissions);
+                dto.setActionPermissions(mergedActionPermissions);
             } else {
                 dto.setActionPermissions(getDefaultActionPermissions(permission.getRole()));
             }
@@ -203,7 +209,10 @@ public class RolePermissionService {
         Map<String, Boolean> permissions = new HashMap<>();
         permissions.put("refresh", true);
         // 管理员权限：ADMIN角色或MANAGER职位都有管理员权限
-        permissions.put("admin", "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role));
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role);
+        permissions.put("admin", isAdmin);
+        permissions.put("admin_timetables", isAdmin);
+        permissions.put("admin_pending", isAdmin);
         permissions.put("organization-management", true);
         permissions.put("archived", true);
         permissions.put("profile", true);
@@ -232,6 +241,8 @@ public class RolePermissionService {
         Map<String, Boolean> actionPermissions = new HashMap<>();
         actionPermissions.put("refresh", true);
         actionPermissions.put("admin", true);
+        actionPermissions.put("admin_timetables", true);
+        actionPermissions.put("admin_pending", true);
         actionPermissions.put("organization-management", true);
         actionPermissions.put("archived", true);
         actionPermissions.put("profile", true);
