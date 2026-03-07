@@ -2,7 +2,9 @@ package com.timetable.controller;
 
 import com.timetable.dto.ApiResponse;
 import com.timetable.dto.RolePermissionDTO;
+import com.timetable.entity.OrganizationRole;
 import com.timetable.generated.tables.pojos.Users;
+import com.timetable.repository.OrganizationRoleRepository;
 import com.timetable.service.RolePermissionService;
 import com.timetable.service.UserService;
 import org.slf4j.Logger;
@@ -30,6 +32,9 @@ public class RolePermissionController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private OrganizationRoleRepository organizationRoleRepository;
+
     /**
      * 获取当前用户的权限配置
      */
@@ -43,7 +48,17 @@ public class RolePermissionController {
             
             // 获取用户所属机构和职位/角色的权限配置
             Long organizationId = user.getOrganizationId();
-            String permissionRole = "ADMIN".equalsIgnoreCase(user.getRole()) ? user.getRole() : user.getPosition();
+            String permissionRole;
+            if (user.getOrganizationRoleId() != null) {
+                OrganizationRole organizationRole = organizationRoleRepository.findById(user.getOrganizationRoleId()).orElse(null);
+                permissionRole = organizationRole != null ? organizationRole.getRoleCode() : user.getPosition();
+            } else if (user.getPosition() != null && !user.getPosition().trim().isEmpty()) {
+                permissionRole = user.getPosition();
+            } else if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+                permissionRole = user.getRole();
+            } else {
+                permissionRole = user.getRole();
+            }
             
             if (organizationId == null) {
                 return ResponseEntity.ok(ApiResponse.error("用户未分配机构"));
