@@ -1340,10 +1340,8 @@ public class WeeklyInstanceService {
         
         // 根据是否与模板不同来设置修改标记和备注
         schedule.setIsModified(isDifferentFromTemplate);
-        if (isDifferentFromTemplate) {
-            schedule.setNote("调换课程");
-        } else {
-            // 如果与模板一致，清除备注（或保留原备注）
+        if (!isDifferentFromTemplate) {
+            // 如果与模板一致，清除历史遗留的系统标记备注
             if ("调换课程".equals(schedule.getNote())) {
                 schedule.setNote(null);
             }

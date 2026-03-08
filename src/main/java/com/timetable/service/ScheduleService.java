@@ -954,9 +954,6 @@ public class ScheduleService {
             schedule1.setStudentName(schedule2.getStudentName());
             schedule2.setStudentName(tempStudentName);
             
-            // 更新备注
-            schedule1.setNote("调换课程");
-            schedule2.setNote("调换课程");
             schedule1.setUpdatedAt(LocalDateTime.now());
             schedule2.setUpdatedAt(LocalDateTime.now());
             
