@@ -507,7 +507,7 @@ public class WeeklyInstanceController {
                 if (scheduleDateStr != null) {
                     schedule.setScheduleDate(LocalDate.parse(scheduleDateStr));
                 }
-                schedule.setNote(note != null ? note : "批量添加");
+                schedule.setNote(note);
 
                 schedulesToCreate.add(schedule);
             }

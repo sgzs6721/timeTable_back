@@ -1261,6 +1261,7 @@ public class TimetableService {
         // 创建新课表
         Timetables newTable = new Timetables();
         newTable.setUserId(source.getUserId());
+        newTable.setOrganizationId(source.getOrganizationId());
         newTable.setName((newName != null && !newName.trim().isEmpty()) ? newName.trim() : source.getName() + "(转化)");
         newTable.setDescription(source.getDescription());
         newTable.setIsWeekly((byte)1);
@@ -1310,6 +1311,7 @@ public class TimetableService {
         // 创建新课表
         Timetables newTable = new Timetables();
         newTable.setUserId(source.getUserId());
+        newTable.setOrganizationId(source.getOrganizationId());
         newTable.setName((newName != null && !newName.trim().isEmpty()) ? newName.trim() : source.getName() + "(转化)");
         newTable.setDescription(source.getDescription());
         newTable.setIsWeekly((byte)0);
