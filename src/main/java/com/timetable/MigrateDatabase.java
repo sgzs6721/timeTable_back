@@ -11,7 +11,7 @@ public class MigrateDatabase {
     public static void main(String[] args) {
         try {
             // 数据库连接配置
-            String url = "jdbc:mysql://121.36.91.199:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true";
+            String url = "jdbc:mysql://101.42.16.251:3306/timetable_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true";
             String username = "timetable";
             String password = "Leilei*0217";
             
