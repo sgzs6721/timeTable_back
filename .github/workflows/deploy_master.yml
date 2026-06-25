@@ -7,7 +7,7 @@ on:
 jobs:
   master-timeTable-back:
     runs-on: ubuntu-22.04
-    steps:
+    steps: 
       - name: Checkout code
         uses: actions/checkout@v4
       - name: JDK 8
