@@ -452,7 +452,7 @@ public class AuthController {
             Map<String, Object> loginResult = wechatLoginService.processWechatLogin(code);
             
             // 前端页面URL
-            String frontendUrl = "https://timetable.devtesting.top";
+            String frontendUrl = "https://table.devtesting.top";
             
             // 检查是否需要选择机构
             if (loginResult.containsKey("needSelectOrganization") && 
